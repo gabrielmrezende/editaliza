@@ -9,6 +9,7 @@ import {
   MINUTOS_MINIMOS_TOPICO,
   PASSO_CICLO,
 } from './constantes';
+import { diaDaSemana, diasEntre, somarDias } from '@/lib/datas';
 import { prioridade } from './prioridade';
 
 /** Disciplina com ao menos um tópico pendente, já com prioridade calculada. */
@@ -17,11 +18,6 @@ interface Ativa { disciplina: DisciplinaPlano; prio: number; topicos: Topico[] }
 interface Alocacao { id: string; prio: number; alvo: number; minutosTopico: number; topicos: Topico[] }
 interface Estado extends Alocacao { indice: number; restante: number; alocado: number }
 
-const MS_DIA = 86_400_000;
-const paraMs = (iso: string) => Date.parse(`${iso}T00:00:00Z`);
-const somarDias = (iso: string, n: number) => new Date(paraMs(iso) + n * MS_DIA).toISOString().slice(0, 10);
-const diaSemana = (iso: string) => new Date(paraMs(iso)).getUTCDay();
-const diferencaDias = (a: string, b: string) => Math.round((paraMs(a) - paraMs(b)) / MS_DIA);
 const soma = (xs: number[]) => xs.reduce((s, x) => s + x, 0);
 
 export function gerarPlano(entrada: EntradaPlano): PlanoGerado {
@@ -71,12 +67,12 @@ function gerarCiclo(entrada: EntradaPlano, ativas: Ativa[], avisos: Aviso[]): Pl
 }
 
 function gerarPrazo(entrada: EntradaPlano, dataProva: string, ativas: Ativa[], avisos: Aviso[]): PlanoGerado {
-  const nDias = diferencaDias(dataProva, entrada.hoje);
+  const nDias = diasEntre(entrada.hoje, dataProva);
   const nReserva =
     nDias >= DIAS_MINIMOS_PARA_RESERVA ? Math.max(DIAS_MINIMOS_RESERVA, Math.round(FRACAO_RESERVA * nDias)) : 0;
   const nEstudo = nDias - nReserva;
   const datas = Array.from({ length: nDias }, (_, i) => somarDias(entrada.hoje, i));
-  const minutosDia = datas.map((data) => entrada.minutosPorDia[diaSemana(data)]);
+  const minutosDia = datas.map((data) => entrada.minutosPorDia[diaDaSemana(data)]);
 
   const { alocacoes, fora } = faseEstudo(ativas, soma(minutosDia.slice(0, nEstudo)));
   if (fora.length > 0) avisos.push({ tipo: 'nao_cabe', topicosFora: fora });

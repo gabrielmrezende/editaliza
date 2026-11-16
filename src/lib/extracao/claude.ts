@@ -2,7 +2,8 @@ import 'server-only';
 import Anthropic, { toFile } from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod';
-import { EsquemaConteudoCargoIA, EsquemaEditalResumo } from '@/lib/dominio/esquemas';
+import { EsquemaConteudoCargoIA, EsquemaEditalResumo, type ConteudoCargoIA } from '@/lib/dominio/esquemas';
+import type { EditalResumo } from '@/lib/dominio/tipos';
 import { PROMPT_LISTAR_CARGOS, promptExtrairConteudo } from './prompts';
 import { EditalInvalidoError, ExtracaoFalhouError, type Extrator } from './tipos';
 
@@ -37,6 +38,41 @@ const ConteudoApi = z.object({
   tipoProva: z.enum(['multipla_escolha', 'certo_errado', 'discursiva', 'mista']),
   pesosInformados: z.boolean(),
 });
+
+export const ORGAO_PADRAO = 'Órgão não identificado';
+
+const dataValida = z.iso.date();
+const textoOuNull = (s: string | null) => (s && s.trim() ? s.trim() : null);
+const inteiroNaoNegativo = (n: number | null) => (n !== null && Number.isInteger(n) && n >= 0 ? n : null);
+const naoNegativo = (n: number | null) => (n !== null && Number.isFinite(n) && n >= 0 ? n : null);
+
+/**
+ * Campos opcionais inválidos (data impossível, ano não inteiro, órgão vazio, cargo sem nome) viram
+ * null ou um padrão, em vez de derrubar a leitura inteira.
+ */
+export function normalizarResumo(api: z.infer<typeof ResumoApi>): EditalResumo {
+  return {
+    orgao: textoOuNull(api.orgao) ?? ORGAO_PADRAO,
+    banca: textoOuNull(api.banca),
+    ano: inteiroNaoNegativo(api.ano),
+    dataProva: api.dataProva !== null && dataValida.safeParse(api.dataProva).success ? api.dataProva : null,
+    cargos: api.cargos.flatMap((c) => (c.nome.trim() ? [{ nome: c.nome.trim() }] : [])),
+  };
+}
+
+/** Questões não inteiras/negativas e pontos negativos viram null (peso padrão). */
+export function normalizarConteudo(api: z.infer<typeof ConteudoApi>): ConteudoCargoIA {
+  return {
+    tipoProva: api.tipoProva,
+    pesosInformados: api.pesosInformados,
+    disciplinas: api.disciplinas.map((d) => ({
+      nome: d.nome,
+      questoes: inteiroNaoNegativo(d.questoes),
+      pontos: naoNegativo(d.pontos),
+      topicos: d.topicos,
+    })),
+  };
+}
 
 /** Converte o texto da resposta em valor validado; qualquer falha vira ExtracaoFalhouError. */
 export function interpretarResposta<D extends z.ZodType>(
@@ -110,10 +146,16 @@ async function chamar<A extends z.ZodType, D extends z.ZodType>(
   fileId: string,
   prompt: string,
   esquemaApi: A,
+  normalizar: (bruto: z.infer<A>) => z.input<D>,
   esquemaDominio: D,
 ): Promise<{ dados: z.infer<D>; custoCentavos: number }> {
   const msg = await client.beta.messages.stream(montarRequisicao(fileId, prompt, esquemaApi)).finalMessage();
-  return lerMensagem(msg, esquemaDominio);
+  const { dados, custoCentavos } = lerMensagem(msg, esquemaApi);
+  try {
+    return { dados: esquemaDominio.parse(normalizar(dados)), custoCentavos };
+  } catch (cause) {
+    throw new ExtracaoFalhouError('A resposta da IA veio em formato inesperado. Tente novamente.', { cause, custoCentavos });
+  }
 }
 
 export function extratorClaude(): Extrator {
@@ -126,7 +168,7 @@ export function extratorClaude(): Extrator {
       return f.id;
     },
     async listarCargos(fileId) {
-      const { dados, custoCentavos } = await chamar(client, fileId, PROMPT_LISTAR_CARGOS, ResumoApi, EsquemaEditalResumo);
+      const { dados, custoCentavos } = await chamar(client, fileId, PROMPT_LISTAR_CARGOS, ResumoApi, normalizarResumo, EsquemaEditalResumo);
       if (dados.cargos.length === 0) {
         const erro = new EditalInvalidoError();
         erro.custoCentavos = custoCentavos;
@@ -135,7 +177,7 @@ export function extratorClaude(): Extrator {
       return { resumo: dados, custoCentavos };
     },
     async extrairConteudo(fileId, cargo) {
-      const { dados, custoCentavos } = await chamar(client, fileId, promptExtrairConteudo(cargo), ConteudoApi, EsquemaConteudoCargoIA);
+      const { dados, custoCentavos } = await chamar(client, fileId, promptExtrairConteudo(cargo), ConteudoApi, normalizarConteudo, EsquemaConteudoCargoIA);
       return { conteudo: dados, custoCentavos };
     },
   };

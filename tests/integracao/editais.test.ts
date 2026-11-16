@@ -387,4 +387,22 @@ describe('editais (serviço)', () => {
       expect(error).not.toBeNull();
     });
   });
+
+  it('cargos ficam na ordem do edital (posicao), nao em ordem alfabetica', async () => {
+    const { editalId } = await editalPronto();
+    const { data: gravados } = await admin().from('edital_cargos').select('nome, posicao').eq('edital_id', editalId).order('posicao');
+    expect(gravados).toEqual([{ nome: 'Cargo A', posicao: 0 }, { nome: 'Cargo B', posicao: 1 }]);
+    await admin().from('edital_cargos').update({ posicao: 5 }).eq('edital_id', editalId).eq('nome', 'Cargo A');
+    const visao = await lerEdital(editalId);
+    expect(visao!.cargos.map((c) => c.nome)).toEqual(['Cargo B', 'Cargo A']);
+  });
+
+  it('apagar o usuario que enviou nao apaga nem trava o edital', async () => {
+    const u = await criarUsuarioTeste(emailUnico('editais-apagado'));
+    const { editalId } = await receberEdital(u.id, await enviarTmp(u, await pdfUnico()));
+    const { error } = await admin().auth.admin.deleteUser(u.id);
+    expect(error).toBeNull();
+    const edital = await linhaEdital(editalId);
+    expect(edital.enviado_por).toBeNull();
+  });
 });

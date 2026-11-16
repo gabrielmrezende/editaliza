@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { calcularCustoCentavos, interpretarResposta, lerMensagem, montarRequisicao } from '@/lib/extracao/claude';
+import { calcularCustoCentavos, interpretarResposta, lerMensagem, montarRequisicao, normalizarConteudo, normalizarResumo } from '@/lib/extracao/claude';
+import { EsquemaConteudoCargoIA, EsquemaEditalResumo } from '@/lib/dominio/esquemas';
 import { ExtracaoFalhouError, obterExtrator } from '@/lib/extracao';
 
 const Esq = z.object({ a: z.number() });
@@ -89,5 +90,35 @@ describe('montarRequisicao', () => {
     const [doc, texto] = req.messages[0].content as { type: string; cache_control?: unknown }[];
     expect(doc).toMatchObject({ type: 'document', source: { type: 'file', file_id: 'file_1' }, cache_control: { type: 'ephemeral' } });
     expect(texto).toMatchObject({ type: 'text', text: 'prompt' });
+  });
+});
+
+describe('normalizar campos opcionais da IA', () => {
+  it('resumo: data impossivel, ano nao inteiro e orgao vazio viram padrao em vez de falhar', () => {
+    const r = normalizarResumo({
+      orgao: '  ',
+      banca: '',
+      ano: 2026.5,
+      dataProva: '2026-02-30',
+      cargos: [{ nome: 'Analista' }, { nome: ' ' }],
+    });
+    expect(r).toEqual({ orgao: 'Órgão não identificado', banca: null, ano: null, dataProva: null, cargos: [{ nome: 'Analista' }] });
+    expect(EsquemaEditalResumo.safeParse(r).success).toBe(true);
+    expect(normalizarResumo({ orgao: 'TRF', banca: 'FCC', ano: 2026, dataProva: '2026-12-06', cargos: [] })).toEqual({
+      orgao: 'TRF', banca: 'FCC', ano: 2026, dataProva: '2026-12-06', cargos: [],
+    });
+  });
+  it('conteudo: questoes nao inteiras ou negativas e pontos negativos viram null', () => {
+    const c = normalizarConteudo({
+      tipoProva: 'mista',
+      pesosInformados: true,
+      disciplinas: [
+        { nome: 'Português', questoes: 12.5, pontos: -1, topicos: ['Crase'] },
+        { nome: 'Direito', questoes: -2, pontos: 1.5, topicos: ['Atos'] },
+        { nome: 'Lógica', questoes: 10, pontos: null, topicos: [] },
+      ],
+    });
+    expect(c.disciplinas.map((d) => [d.questoes, d.pontos])).toEqual([[null, null], [null, 1.5], [10, null]]);
+    expect(EsquemaConteudoCargoIA.safeParse(c).success).toBe(true);
   });
 });

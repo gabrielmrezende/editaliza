@@ -2,6 +2,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { PDFDocument } from 'pdf-lib';
 import { atribuirIds } from '@/lib/dominio/esquemas';
+import type { EditalVisao } from '@/lib/dominio/tipos';
 import { consumirCota } from '@/lib/cotas';
 import { custoDoErro, EditalInvalidoError, obterExtrator } from '@/lib/extracao';
 import { criarClienteAdmin } from '@/lib/supabase/admin';
@@ -215,7 +216,7 @@ export async function processarCargos(editalId: string): Promise<void> {
     if (errDel) throw errDel;
     const { error: errCargos } = await db
       .from('edital_cargos')
-      .insert(resumo.cargos.map((c) => ({ edital_id: editalId, nome: c.nome, status_conteudo: 'pendente' })));
+      .insert(resumo.cargos.map((c, posicao) => ({ edital_id: editalId, nome: c.nome, posicao, status_conteudo: 'pendente' })));
     if (errCargos) throw errCargos;
 
     const { error: errUp } = await db
@@ -352,12 +353,7 @@ export async function processarConteudo(cargoId: string): Promise<void> {
   }
 }
 
-export type EditalVisao = {
-  status: 'processando' | 'pronto' | 'erro';
-  erro: string | null;
-  resumo: { orgao: string | null; banca: string | null; ano: number | null; dataProva: string | null };
-  cargos: { id: string; nome: string; statusConteudo: string }[];
-};
+export type { EditalVisao };
 
 /** Estado do edital para o cliente. Processando há mais de 10 min vira erro (e é gravado). */
 export async function lerEdital(editalId: string): Promise<EditalVisao | null> {
@@ -386,6 +382,7 @@ export async function lerEdital(editalId: string): Promise<EditalVisao | null> {
     .from('edital_cargos')
     .select('id, nome, status_conteudo')
     .eq('edital_id', editalId)
+    .order('posicao')
     .order('nome');
   if (errCargos) throw errCargos;
 

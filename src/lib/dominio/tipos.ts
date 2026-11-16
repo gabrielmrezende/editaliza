@@ -9,6 +9,13 @@ export interface EntradaPlano { disciplinas: DisciplinaPlano[]; dataProva: strin
 export interface BlocoEstudo { disciplinaId: string; topicoId: string | null; tipo: 'estudo' | 'revisao_geral' | 'simulado'; minutos: number }
 export interface DiaPlano { data: string; blocos: BlocoEstudo[] }
 export type Aviso = { tipo: 'nao_cabe'; topicosFora: string[] } | { tipo: 'pesos_assumidos' } | { tipo: 'sem_tempo' } | { tipo: 'data_invalida' };
+/** Estado do edital para o cliente (GET /api/editais/:id). */
+export type EditalVisao = {
+  status: 'processando' | 'pronto' | 'erro';
+  erro: string | null;
+  resumo: { orgao: string | null; banca: string | null; ano: number | null; dataProva: string | null };
+  cargos: { id: string; nome: string; statusConteudo: string }[];
+};
 export type PlanoGerado =
   | { modo: 'prazo'; dias: DiaPlano[]; inicioReserva: string | null; avisos: Aviso[] }
   | { modo: 'ciclo'; ciclo: { disciplinaId: string; minutos: number }[]; avisos: Aviso[] };
