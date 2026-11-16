@@ -8,6 +8,14 @@ export function hojeEmSaoPaulo(agora: Date = new Date()): string {
   return formatoIso.format(agora);
 }
 
+/**
+ * Instante (ISO UTC) em que o dia `iso` começa em São Paulo. O Brasil não tem horário de verão
+ * desde 2019, então o deslocamento é fixo em -03:00.
+ */
+export function inicioDoDiaEmSaoPaulo(iso: string): string {
+  return new Date(`${iso}T00:00:00-03:00`).toISOString();
+}
+
 const MS_DIA = 86_400_000;
 const paraMs = (iso: string) => Date.parse(`${iso}T00:00:00Z`);
 

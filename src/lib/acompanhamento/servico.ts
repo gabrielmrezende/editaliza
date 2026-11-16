@@ -1,6 +1,6 @@
 import 'server-only';
 import { z } from 'zod';
-import { hojeEmSaoPaulo, somarDias } from '@/lib/datas';
+import { hojeEmSaoPaulo, inicioDoDiaEmSaoPaulo, somarDias } from '@/lib/datas';
 import type { EsquemaEdicaoSessao, EsquemaNovaSessao } from '@/lib/dominio/esquemas';
 import type { DisciplinaPlano } from '@/lib/dominio/tipos';
 import { criarClienteAdmin } from '@/lib/supabase/admin';
@@ -79,9 +79,8 @@ function resolverNomes(
 
 /** Limite diário por usuário: conta as sessões criadas no dia de São Paulo de `hoje`. */
 async function exigirDentroDoLimiteDiario(userId: string, hoje: string): Promise<void> {
-  // São Paulo não tem horário de verão desde 2019: o dia vai de 00:00-03:00 a 00:00-03:00.
-  const inicio = new Date(`${hoje}T00:00:00-03:00`).toISOString();
-  const fim = new Date(`${somarDias(hoje, 1)}T00:00:00-03:00`).toISOString();
+  const inicio = inicioDoDiaEmSaoPaulo(hoje);
+  const fim = inicioDoDiaEmSaoPaulo(somarDias(hoje, 1));
   const { count, error } = await criarClienteAdmin()
     .from('sessoes_estudo')
     .select('id', { count: 'exact', head: true })
@@ -232,12 +231,13 @@ export async function marcarRevisao(
   agora: Date = new Date(),
 ): Promise<void> {
   if (!uuid.safeParse(revisaoId).success) throw naoEncontrado();
-  await exigirPodeRegistrar(userId);
+  const plano = await exigirPodeRegistrar(userId);
   const { data, error } = await criarClienteAdmin()
     .from('revisoes')
     .update({ concluida_em: concluida ? agora.toISOString() : null })
     .eq('id', revisaoId)
     .eq('user_id', userId)
+    .eq('plano_id', plano.id)
     .select('id');
   if (error) {
     // Desfazer uma concluída quando já há outra pendente igual (índice único parcial).

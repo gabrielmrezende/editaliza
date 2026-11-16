@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
+import { hojeEmSaoPaulo } from '@/lib/datas';
 import { admin, criarUsuarioTeste, emailUnico } from './ajuda';
 import { EsquemaEdicaoSessao, EsquemaNovaSessao } from '@/lib/dominio/esquemas';
 import type { DisciplinaPlano } from '@/lib/dominio/tipos';
@@ -284,28 +285,62 @@ describe('sessões e revisões (serviço)', () => {
     expect(await revisoesDe(a.planoId)).toHaveLength(2);
   });
 
-  it('limite diário: a 200ª sessão passa e a 201ª recebe 429', async () => {
+  it('limite diário: a 200ª sessão passa, a 201ª recebe 429 e no dia seguinte volta a valer', async () => {
     const a = await novoAluno();
+    // Relógio real: created_at (default do banco) e o dia contado pelo serviço precisam coincidir.
+    const agora = new Date();
+    const hoje = hojeEmSaoPaulo(agora);
     const linhas = Array.from({ length: 199 }, () => ({
       user_id: a.id,
       plano_id: a.planoId,
-      data: '2026-11-16',
+      data: hoje,
       disciplina_id: 'd0',
       disciplina_nome: 'Português',
       minutos: 10,
       origem: 'manual',
-      created_at: AGORA.toISOString(),
+      created_at: agora.toISOString(),
     }));
     const { error } = await admin().from('sessoes_estudo').insert(linhas);
     expect(error).toBeNull();
 
-    await registrarSessao(a.id, nova(a.planoId, { topicoId: null, intervalos: [] }), AGORA);
-    await esperarErro(
-      registrarSessao(a.id, nova(a.planoId, { topicoId: null, intervalos: [] }), AGORA),
-      429,
-      'Você registrou muitas sessões hoje.',
-    );
-    // outro dia (de São Paulo) volta a valer
-    await registrarSessao(a.id, nova(a.planoId, { topicoId: null, intervalos: [] }), new Date('2026-11-17T15:00:00Z'));
+    const entradaSimples = nova(a.planoId, { data: hoje, topicoId: null, intervalos: [] });
+    await registrarSessao(a.id, entradaSimples, agora);
+    await esperarErro(registrarSessao(a.id, entradaSimples, agora), 429, 'Você registrou muitas sessões hoje.');
+    // no dia seguinte (de São Paulo) a contagem recomeça
+    await registrarSessao(a.id, entradaSimples, new Date(agora.getTime() + 24 * 3_600_000));
+  });
+
+  it('excluir sessão cujo tópico foi editado re-aponta pelo tópico da revisão, não pelo da sessão', async () => {
+    const a = await novoAluno();
+    const primeira = await registrarSessao(a.id, nova(a.planoId), AGORA); // d0-t0: cria as 4 revisões
+    const segunda = await registrarSessao(a.id, nova(a.planoId), AGORA); // d0-t0: dedupe
+    await editarSessao(a.id, primeira.sessaoId, edicao({ topicoId: 'd0-t1' }), AGORA);
+    // sessão mais recente em outro tópico: não pode receber as revisões de d0-t0
+    await registrarSessao(a.id, nova(a.planoId, { topicoId: 'd0-t1', intervalos: [] }), AGORA);
+
+    await excluirSessao(a.id, primeira.sessaoId);
+    const revs = await revisoesDe(a.planoId);
+    expect(revs).toHaveLength(4);
+    expect(revs.every((r) => r.topico_id === 'd0-t0' && r.sessao_id === segunda.sessaoId)).toBe(true);
+  });
+
+  it('excluir sessão editada para outro tópico apaga as revisões do tópico antigo se não há outra sessão nele', async () => {
+    const a = await novoAluno();
+    const { sessaoId } = await registrarSessao(a.id, nova(a.planoId), AGORA);
+    await editarSessao(a.id, sessaoId, edicao({ topicoId: 'd0-t1' }), AGORA);
+    await registrarSessao(a.id, nova(a.planoId, { topicoId: 'd0-t1', intervalos: [] }), AGORA);
+    await excluirSessao(a.id, sessaoId);
+    expect(await revisoesDe(a.planoId)).toEqual([]);
+  });
+
+  it('marcarRevisao só vale para revisões do plano ativo', async () => {
+    const u = await criarUsuarioTeste(emailUnico('sessoes-rev-antigo'));
+    const antigo = await criarPlano(u.id);
+    await registrarSessao(u.id, nova(antigo), AGORA);
+    const rev = (await revisoesDe(antigo))[0];
+    await admin().from('planos').update({ ativo: false }).eq('id', antigo);
+    await criarPlano(u.id);
+    await esperarErro(marcarRevisao(u.id, rev.id, true, AGORA), 404);
   });
 });
+

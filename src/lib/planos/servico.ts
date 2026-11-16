@@ -2,6 +2,7 @@ import 'server-only';
 import { z } from 'zod';
 import type { EsquemaEntradaCriarPlano } from '@/lib/dominio/esquemas';
 import type { ConteudoCargo, DisciplinaPlano } from '@/lib/dominio/tipos';
+import { exigirPodeRegistrar } from '@/lib/acompanhamento/servico';
 import { revisoesParaCriar } from '@/lib/acompanhamento/revisoes';
 import { hojeEmSaoPaulo, somarDias } from '@/lib/datas';
 import { INTERVALOS_REVISAO } from '@/lib/dominio/acompanhamento';
@@ -149,12 +150,14 @@ export async function marcarTopico(
   const db = criarClienteAdmin();
   const { data: plano, error } = await db
     .from('planos')
-    .select('conteudo')
+    .select('conteudo, ativo')
     .eq('id', planoId)
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;
-  if (!plano) throw naoEncontrado();
+  // Marcar grava revisões (estudo): só o plano ativo, e pelo ponto único de permissão.
+  if (!plano || !plano.ativo) throw naoEncontrado();
+  await exigirPodeRegistrar(userId);
 
   const disciplina = (plano.conteudo as DisciplinaPlano[]).find((d) => d.topicos.some((t) => t.id === topicoId));
   const topico = disciplina?.topicos.find((t) => t.id === topicoId);

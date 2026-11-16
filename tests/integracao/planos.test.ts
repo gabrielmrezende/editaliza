@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+﻿import { beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { admin, criarUsuarioTeste, emailUnico } from './ajuda';
 import type { ConteudoCargo, DisciplinaPlano, MinutosPorDia, PlanoGerado } from '@/lib/dominio/tipos';
@@ -297,6 +297,16 @@ describe('planos (serviço)', () => {
       await esperarErro(marcarTopico(outro.id, planoId, 'd0-t0', false), 404);
       await esperarErro(marcarTopico(usuario.id, 'nao-e-uuid', 'd0-t0', true), 404);
       expect(await concluidos()).toEqual([]);
+    });
+
+    it('plano que não é o ativo responde 404 e não grava', async () => {
+      const u = await criarUsuarioTeste(emailUnico('planos-inativo'));
+      const e = await criarEdital({ acesso: [u.id] });
+      const antigo = await criarPlano(u.id, entrada(e), AGORA);
+      await criarPlano(u.id, entrada(e), AGORA); // o antigo deixa de ser ativo
+      await esperarErro(marcarTopico(u.id, antigo, 'd0-t0', true), 404);
+      const { data } = await admin().from('topicos_concluidos').select('topico_id').eq('plano_id', antigo);
+      expect(data).toEqual([]);
     });
   });
 });

@@ -1,6 +1,7 @@
--- excluir_sessao: as revisões pendentes da sessão excluída passam para a sessão mais recente do
--- mesmo tópico (mesmo usuário e plano), se houver; só as sem outra sessão no tópico são apagadas.
--- Evita perder revisões que a deduplicação deixou "pertencendo" à primeira sessão.
+-- excluir_sessao: cada revisão pendente da sessão excluída passa para a sessão mais recente
+-- (data desc, created_at desc) do mesmo usuário e plano cujo tópico é o da REVISÃO, se houver;
+-- só as revisões sem outra sessão no tópico são apagadas. Evita perder revisões que a
+-- deduplicação deixou "pertencendo" à primeira sessão (a edição de uma sessão não muda as revisões).
 create or replace function public.excluir_sessao(p_user uuid, p_sessao uuid)
 returns boolean
 language plpgsql
@@ -8,12 +9,9 @@ security invoker
 set search_path = ''
 as $$
 declare
-  v_plano uuid;
-  v_topico text;
   v_achou boolean := false;
-  v_outra uuid;
 begin
-  select true, s.plano_id, s.topico_id into v_achou, v_plano, v_topico
+  select true into v_achou
   from public.sessoes_estudo s
   where s.id = p_sessao and s.user_id = p_user
   for update;
@@ -21,22 +19,27 @@ begin
     return false;
   end if;
 
-  if v_topico is not null and v_plano is not null then
-    select s.id into v_outra
-    from public.sessoes_estudo s
-    where s.user_id = p_user and s.plano_id = v_plano and s.topico_id = v_topico and s.id <> p_sessao
-    order by s.data desc, s.created_at desc
-    limit 1;
-  end if;
+  -- sem outra sessão no tópico da revisão: apaga
+  delete from public.revisoes r
+  where r.sessao_id = p_sessao and r.user_id = p_user and r.concluida_em is null
+    and not exists (
+      select 1 from public.sessoes_estudo o
+      where o.user_id = p_user and o.plano_id = r.plano_id and o.topico_id = r.topico_id and o.id <> p_sessao
+    );
 
-  if v_outra is not null then
-    update public.revisoes r
-    set sessao_id = v_outra
-    where r.sessao_id = p_sessao and r.user_id = p_user and r.concluida_em is null;
-  else
-    delete from public.revisoes r
-    where r.sessao_id = p_sessao and r.user_id = p_user and r.concluida_em is null;
-  end if;
+  -- as demais passam para a sessão mais recente do tópico da revisão
+  update public.revisoes r
+  set sessao_id = (
+    select o.id
+    from public.sessoes_estudo o
+    where o.user_id = p_user
+      and o.plano_id = r.plano_id
+      and o.topico_id = r.topico_id
+      and o.id <> p_sessao
+    order by o.data desc, o.created_at desc
+    limit 1
+  )
+  where r.sessao_id = p_sessao and r.user_id = p_user and r.concluida_em is null;
 
   delete from public.sessoes_estudo s where s.id = p_sessao and s.user_id = p_user;
   return true;
