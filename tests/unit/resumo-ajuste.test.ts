@@ -24,6 +24,16 @@ describe('textoDoResumo', () => {
       'Português perdeu um pouco de prioridade: 86% de acerto em 40 questões.',
     );
   });
+  it('prioridade volta ao normal', () => {
+    expect(
+      textoDoResumo({ tipo: 'prioridade', disciplinaId: 'd1', nome: 'Português', direcao: 'normal', percentual: null, questoes: 0 }),
+    ).toBe('Português voltou à prioridade normal.');
+  });
+  it('sobe com 59% (vindo de 59,6%)', () => {
+    expect(
+      textoDoResumo({ tipo: 'prioridade', disciplinaId: 'd1', nome: 'Português', direcao: 'sobe', percentual: 59, questoes: 250 }),
+    ).toBe('Português ganhou prioridade: 59% de acerto em 250 questões.');
+  });
   it('revisões atrasadas', () => {
     expect(textoDoResumo({ tipo: 'revisoes_atrasadas', disciplinaId: 'd3', nome: 'Contabilidade', quantidade: 3 })).toBe(
       '3 revisões atrasadas em Contabilidade: elas aparecem primeiro em Hoje.',

@@ -51,7 +51,7 @@ function entrada(parcial: Partial<EntradaAjuste> = {}): EntradaAjuste {
     minutosPorDia: MPD,
     pesosInformados: true,
     criadoEm: somarDias(HOJE, -14),
-    ajustesVigentes: {},
+    fatoresAcertoVigentes: {},
     posicaoAtual: 0,
     sessoes: [],
     concluidos: [],
@@ -108,9 +108,54 @@ describe('calcularMultiplicadores e itens de prioridade', () => {
   });
 
   it('fator vigente igual nao gera item de prioridade', () => {
-    const e = entrada({ sessoes: [sessao(somarDias(HOJE, -3), 'd1', 60, 13, 12)], ajustesVigentes: { d1: 1.25 } });
+    const e = entrada({ sessoes: [sessao(somarDias(HOJE, -3), 'd1', 60, 13, 12)], fatoresAcertoVigentes: { d1: 1.25 } });
     expect(ajustarPlano(e).ajustes).toEqual({ d1: 1.25 });
     expect(prioridades(ajustarPlano(e))).toEqual([]);
+  });
+
+  it('estavel por duas semanas (acerto baixo + 2 atrasadas): a segunda nao repete a prioridade', () => {
+    const base = {
+      criadoEm: HOJE,
+      sessoes: [sessao(somarDias(HOJE, -10), 'd1', 60, 2, 10)],
+      revisoesPendentes: [atrasada('d1'), atrasada('d1')],
+    };
+    const primeira = ajustarPlano(entrada(base));
+    expect(primeira.ajustes).toEqual({ d1: 1.38 });
+    expect(primeira.fatoresAcerto).toEqual({ d1: 1.25 });
+    expect(prioridades(primeira)).toHaveLength(1);
+    const segunda = ajustarPlano(entrada({ ...base, fatoresAcertoVigentes: primeira.fatoresAcerto }));
+    expect(segunda.ajustes).toEqual({ d1: 1.38 });
+    expect(prioridades(segunda)).toEqual([]);
+    // revisões em dia na segunda semana: o multiplicador cai para 1,25, mas o acerto não mudou
+    const semAtrasadas = ajustarPlano(entrada({ ...base, revisoesPendentes: [], fatoresAcertoVigentes: primeira.fatoresAcerto }));
+    expect(semAtrasadas.ajustes).toEqual({ d1: 1.25 });
+    expect(semAtrasadas.resumo).toEqual([{ tipo: 'em_dia' }]);
+  });
+
+  it('de 1,25 de volta a ×1: item normal (com e sem questoes suficientes)', () => {
+    const vigentes = { fatoresAcertoVigentes: { d1: 1.25 } };
+    const r = ajustarPlano(entrada({ ...vigentes, sessoes: [sessao(somarDias(HOJE, -2), 'd1', 60, 7, 3)] }));
+    expect(r.fatoresAcerto).toEqual({});
+    expect(prioridades(r)).toEqual([
+      { tipo: 'prioridade', disciplinaId: 'd1', nome: 'Direito Constitucional', direcao: 'normal', percentual: 70, questoes: 10 },
+    ]);
+    const semQuestoes = ajustarPlano(entrada({ ...vigentes, criadoEm: HOJE }));
+    expect(semQuestoes.resumo).toEqual([
+      { tipo: 'prioridade', disciplinaId: 'd1', nome: 'Direito Constitucional', direcao: 'normal', percentual: null, questoes: 0 },
+    ]);
+  });
+
+  it('direcao e relativa ao fator anterior: 1,25 → 0,85 desce; 0,85 → 1,25 sobe', () => {
+    const d = somarDias(HOJE, -2);
+    const desce = ajustarPlano(entrada({ fatoresAcertoVigentes: { d1: 1.25 }, sessoes: [sessao(d, 'd1', 60, 9, 1)] }));
+    expect(prioridades(desce)).toMatchObject([{ direcao: 'desce', percentual: 90 }]);
+    const sobe = ajustarPlano(entrada({ fatoresAcertoVigentes: { d1: 0.85 }, sessoes: [sessao(d, 'd1', 60, 1, 9)] }));
+    expect(prioridades(sobe)).toMatchObject([{ direcao: 'sobe', percentual: 10 }]);
+  });
+
+  it('sobe com 59,6% mostra 59% (arredonda para baixo)', () => {
+    const r = ajustarPlano(entrada({ sessoes: [sessao(somarDias(HOJE, -2), 'd1', 60, 149, 101)] }));
+    expect(prioridades(r)).toMatchObject([{ direcao: 'sobe', percentual: 59, questoes: 250 }]);
   });
 
   it('no maximo 2 itens de prioridade, maiores mudancas primeiro', () => {

@@ -20,7 +20,15 @@ import { gerarPlano } from './gerar';
 export type ItemResumo =
   | { tipo: 'horas'; estudados: number; planejados: number; diasAteProva: number | null }
   | { tipo: 'sem_estudo' }
-  | { tipo: 'prioridade'; disciplinaId: string; nome: string; direcao: 'sobe' | 'desce'; percentual: number; questoes: number }
+  | {
+      tipo: 'prioridade';
+      disciplinaId: string;
+      nome: string;
+      direcao: 'sobe' | 'desce' | 'normal';
+      /** null quando a matéria agora tem menos de 10 questões na janela. */
+      percentual: number | null;
+      questoes: number;
+    }
   | { tipo: 'revisoes_atrasadas'; disciplinaId: string; nome: string; quantidade: number }
   | { tipo: 'nao_cabe'; agora: number; antes: number }
   | { tipo: 'em_dia' };
@@ -33,7 +41,8 @@ export interface EntradaAjuste {
   pesosInformados: boolean;
   /** Data (aaaa-mm-dd) de criação do plano. */
   criadoEm: string;
-  ajustesVigentes: Record<string, number>;
+  /** Fatores só de acerto do ajuste anterior (chave ausente = ×1). */
+  fatoresAcertoVigentes: Record<string, number>;
   /** Minutos percorridos no ciclo hoje (calculado pelo chamador como na página do plano). */
   posicaoAtual: number;
   sessoes: { data: string; disciplinaId: string; minutos: number; acertos: number; erros: number }[];
@@ -45,6 +54,8 @@ export interface EntradaAjuste {
 export interface ResultadoAjuste {
   gerado: PlanoGerado;
   ajustes: Record<string, number>;
+  /** Fatores só de acerto deste ajuste (matérias com ×1 ficam de fora), para comparar no próximo. */
+  fatoresAcerto: Record<string, number>;
   cicloInicio: PosicaoCiclo | null;
   resumo: ItemResumo[];
   janela: { inicio: string; fim: string };
@@ -56,7 +67,7 @@ const MS_DIA = 86_400_000;
 
 interface Acerto { acertos: number; questoes: number; fator: number }
 
-/** Acerto por matéria em [hoje − 28, hoje − 1]; fator só com ≥ 10 questões. */
+/** Acerto por matéria em [hoje − 28, hoje − 1]; fator ≠ 1 só com ≥ 10 questões. */
 function acertosPorMateria(e: EntradaAjuste): Map<string, Acerto> {
   const inicio = somarDias(e.hoje, -JANELA_ACERTO_DIAS);
   const totais = new Map<string, { acertos: number; questoes: number }>();
@@ -69,12 +80,23 @@ function acertosPorMateria(e: EntradaAjuste): Map<string, Acerto> {
   }
   const resultado = new Map<string, Acerto>();
   for (const [id, t] of totais) {
-    if (t.questoes < MIN_QUESTOES_ACERTO) continue;
-    const taxa = t.acertos / t.questoes;
-    const fator = taxa < ACERTO_BAIXO ? FATOR_ACERTO_BAIXO : taxa >= ACERTO_ALTO ? FATOR_ACERTO_ALTO : 1;
+    const taxa = t.questoes > 0 ? t.acertos / t.questoes : 0;
+    const fator =
+      t.questoes < MIN_QUESTOES_ACERTO ? 1 : taxa < ACERTO_BAIXO ? FATOR_ACERTO_BAIXO : taxa >= ACERTO_ALTO ? FATOR_ACERTO_ALTO : 1;
     resultado.set(id, { ...t, fator });
   }
   return resultado;
+}
+
+/** Fatores de acerto ≠ 1 das matérias do conteúdo. */
+function calcularFatoresAcerto(e: EntradaAjuste): Record<string, number> {
+  const acertos = acertosPorMateria(e);
+  const fatores: Record<string, number> = {};
+  for (const d of e.conteudo) {
+    const fator = acertos.get(d.id)?.fator ?? 1;
+    if (fator !== 1) fatores[d.id] = fator;
+  }
+  return fatores;
 }
 
 /** Revisões pendentes com data anterior a hoje, por matéria. */
@@ -154,6 +176,7 @@ export function ajustarPlano(e: EntradaAjuste): ResultadoAjuste {
   return {
     gerado,
     ajustes,
+    fatoresAcerto: calcularFatoresAcerto(e),
     cicloInicio,
     resumo: resumo.length > 0 ? resumo.slice(0, MAX_ITENS_RESUMO) : [{ tipo: 'em_dia' }],
     janela,
@@ -177,23 +200,19 @@ function itemDeHoras(e: EntradaAjuste, janela: { inicio: string; fim: string }, 
 
 /** Matérias cujo fator de acerto difere do vigente; no máximo 2, maiores mudanças primeiro. */
 function itensDePrioridade(e: EntradaAjuste): ItemResumo[] {
-  const nomes = new Map(e.conteudo.map((d) => [d.id, d.nome]));
+  const acertos = acertosPorMateria(e);
   const itens: { mudanca: number; item: ItemResumo }[] = [];
-  for (const [disciplinaId, a] of acertosPorMateria(e)) {
-    const nome = nomes.get(disciplinaId);
-    if (nome === undefined || a.fator === 1) continue;
-    const vigente = e.ajustesVigentes[disciplinaId] ?? 1;
+  for (const d of e.conteudo) {
+    const a = acertos.get(d.id) ?? { acertos: 0, questoes: 0, fator: 1 };
+    const vigente = e.fatoresAcertoVigentes[d.id] ?? 1;
     if (a.fator === vigente) continue;
+    const direcao = a.fator === 1 ? 'normal' : a.fator > vigente ? 'sobe' : 'desce';
+    const taxa = (100 * a.acertos) / a.questoes;
+    // "sobe" arredonda para baixo: 59,6% vira 59%, nunca "60%" contradizendo a regra de < 60%.
+    const percentual = a.questoes < MIN_QUESTOES_ACERTO ? null : direcao === 'sobe' ? Math.floor(taxa) : Math.round(taxa);
     itens.push({
       mudanca: Math.abs(a.fator - vigente),
-      item: {
-        tipo: 'prioridade',
-        disciplinaId,
-        nome,
-        direcao: a.fator > 1 ? 'sobe' : 'desce',
-        percentual: Math.round((100 * a.acertos) / a.questoes),
-        questoes: a.questoes,
-      },
+      item: { tipo: 'prioridade', disciplinaId: d.id, nome: d.nome, direcao, percentual, questoes: a.questoes },
     });
   }
   return itens

@@ -14,6 +14,7 @@ export function textoDoResumo(item: ItemResumo): string {
     case 'sem_estudo':
       return 'Nenhum estudo registrado nos últimos 7 dias.';
     case 'prioridade':
+      if (item.direcao === 'normal') return `${item.nome} voltou à prioridade normal.`;
       return item.direcao === 'sobe'
         ? `${item.nome} ganhou prioridade: ${item.percentual}% de acerto em ${item.questoes} questões.`
         : `${item.nome} perdeu um pouco de prioridade: ${item.percentual}% de acerto em ${item.questoes} questões.`;
