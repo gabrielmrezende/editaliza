@@ -256,3 +256,82 @@ describe('acompanhamento (banco)', () => {
     });
   });
 });
+
+describe('acompanhamento (funções)', () => {
+  it('authenticated não executa registrar_sessao, excluir_sessao nem aplicar_ajuste', async () => {
+    const u = await criarUsuarioTeste(emailUnico('acomp-rpc'));
+    const p = await criarPlano(u.id);
+    const sessao = await registrar(u.id, p);
+
+    const reg = await u.cliente.rpc('registrar_sessao', {
+      p_user: u.id,
+      p_plano: p,
+      p_sessao: { data: '2026-11-16', disciplina_id: 'd0', disciplina_nome: 'P', minutos: 5, origem: 'manual' },
+      p_revisoes: [],
+      p_concluir: false,
+    });
+    expect(reg.error).not.toBeNull();
+    expect(reg.error!.code).toBe('42501');
+
+    const exc = await u.cliente.rpc('excluir_sessao', { p_user: u.id, p_sessao: sessao });
+    expect(exc.error).not.toBeNull();
+    expect(exc.error!.code).toBe('42501');
+    expect((await admin().from('sessoes_estudo').select('id').eq('id', sessao)).data).toHaveLength(1);
+
+    const aj = await u.cliente.rpc('aplicar_ajuste', {
+      p_plano: p,
+      p_ajustado_lido: null,
+      p_gerado: {},
+      p_ajustes: {},
+      p_ciclo_inicio: null,
+      p_janela_inicio: '2026-10-19',
+      p_janela_fim: '2026-11-16',
+      p_resumo: [],
+      p_gerado_anterior: {},
+      p_multiplicadores: {},
+      p_agora: '2026-11-16T15:00:00Z',
+    });
+    expect(aj.error).not.toBeNull();
+    expect(aj.error!.code).toBe('42501');
+  });
+
+  it('registrar_sessao com o plano de outro usuário dá erro e não grava', async () => {
+    const a = await criarUsuarioTeste(emailUnico('acomp-a'));
+    const b = await criarUsuarioTeste(emailUnico('acomp-b'));
+    const planoDeB = await criarPlano(b.id);
+    await expect(registrar(a.id, planoDeB)).rejects.toMatchObject({ code: 'P0002' });
+    expect((await admin().from('sessoes_estudo').select('id').eq('plano_id', planoDeB)).data).toEqual([]);
+  });
+
+  it('aplicar_ajuste em plano inativo devolve null e não grava', async () => {
+    const u = await criarUsuarioTeste(emailUnico('acomp-inativo'));
+    const p = await criarPlano(u.id); // ativo: false
+    const r = await admin().rpc('aplicar_ajuste', {
+      p_plano: p,
+      p_ajustado_lido: null,
+      p_gerado: { x: 1 },
+      p_ajustes: {},
+      p_ciclo_inicio: null,
+      p_janela_inicio: '2026-10-19',
+      p_janela_fim: '2026-11-16',
+      p_resumo: [],
+      p_gerado_anterior: {},
+      p_multiplicadores: {},
+      p_agora: '2026-11-16T15:00:00Z',
+    });
+    expect(r.error).toBeNull();
+    expect(r.data).toBeNull();
+    expect((await admin().from('ajustes_plano').select('id').eq('plano_id', p)).data).toEqual([]);
+  });
+
+  it('excluir_sessao re-aponta as pendentes para a sessão mais recente do mesmo tópico', async () => {
+    const u = await criarUsuarioTeste(emailUnico('acomp-reaponta'));
+    const p = await criarPlano(u.id);
+    const primeira = await registrar(u.id, p);
+    const segunda = await registrar(u.id, p); // dedupe: nenhuma revisão nova
+    expect((await admin().rpc('excluir_sessao', { p_user: u.id, p_sessao: primeira })).data).toBe(true);
+    const { data } = await admin().from('revisoes').select('sessao_id').eq('plano_id', p);
+    expect(data).toHaveLength(2);
+    expect(data!.every((r) => r.sessao_id === segunda)).toBe(true);
+  });
+});

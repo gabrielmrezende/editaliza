@@ -2,7 +2,9 @@ import 'server-only';
 import { z } from 'zod';
 import type { EsquemaEntradaCriarPlano } from '@/lib/dominio/esquemas';
 import type { ConteudoCargo, DisciplinaPlano } from '@/lib/dominio/tipos';
+import { revisoesParaCriar } from '@/lib/acompanhamento/revisoes';
 import { hojeEmSaoPaulo, somarDias } from '@/lib/datas';
+import { INTERVALOS_REVISAO } from '@/lib/dominio/acompanhamento';
 import { usuarioTemAcesso } from '@/lib/editais/servico';
 import { gerarPlano } from '@/lib/plano/gerar';
 import { criarClienteAdmin } from '@/lib/supabase/admin';
@@ -136,7 +138,13 @@ async function concluidosDoPlanoAtivo(userId: string, cargoId: string): Promise<
 }
 
 /** Marca (ou desmarca) um tópico do plano como concluído. Idempotente. */
-export async function marcarTopico(userId: string, planoId: string, topicoId: string, concluido: boolean): Promise<void> {
+export async function marcarTopico(
+  userId: string,
+  planoId: string,
+  topicoId: string,
+  concluido: boolean,
+  agora: Date = new Date(),
+): Promise<void> {
   if (!uuid.safeParse(planoId).success) throw naoEncontrado();
   const db = criarClienteAdmin();
   const { data: plano, error } = await db
@@ -148,8 +156,9 @@ export async function marcarTopico(userId: string, planoId: string, topicoId: st
   if (error) throw error;
   if (!plano) throw naoEncontrado();
 
-  const existe = (plano.conteudo as DisciplinaPlano[]).some((d) => d.topicos.some((t) => t.id === topicoId));
-  if (!existe) throw new PlanoInvalidoError('Este tópico não faz parte do plano.', 400);
+  const disciplina = (plano.conteudo as DisciplinaPlano[]).find((d) => d.topicos.some((t) => t.id === topicoId));
+  const topico = disciplina?.topicos.find((t) => t.id === topicoId);
+  if (!disciplina || !topico) throw new PlanoInvalidoError('Este tópico não faz parte do plano.', 400);
 
   const { error: errGravar } = concluido
     ? await db
@@ -157,4 +166,48 @@ export async function marcarTopico(userId: string, planoId: string, topicoId: st
         .upsert({ plano_id: planoId, topico_id: topicoId }, { onConflict: 'plano_id,topico_id', ignoreDuplicates: true })
     : await db.from('topicos_concluidos').delete().eq('plano_id', planoId).eq('topico_id', topicoId);
   if (errGravar) throw errGravar;
+
+  if (!concluido) {
+    // Desfazer a marcação apaga as revisões pendentes que ela criou; as das sessões ficam.
+    const { error: errApagar } = await db
+      .from('revisoes')
+      .delete()
+      .eq('plano_id', planoId)
+      .eq('topico_id', topicoId)
+      .eq('origem', 'conclusao')
+      .is('concluida_em', null);
+    if (errApagar) throw errApagar;
+    return;
+  }
+
+  const { data: pendentes, error: errPendentes } = await db
+    .from('revisoes')
+    .select('topico_id, intervalo')
+    .eq('plano_id', planoId)
+    .eq('topico_id', topicoId)
+    .is('concluida_em', null);
+  if (errPendentes) throw errPendentes;
+  const hoje = hojeEmSaoPaulo(agora);
+  const novas = revisoesParaCriar(
+    topicoId,
+    hoje,
+    INTERVALOS_REVISAO,
+    (pendentes ?? []).map((r) => ({ topicoId: r.topico_id as string, intervalo: r.intervalo as number })),
+  );
+  for (const nova of novas) {
+    const { error: errNova } = await db.from('revisoes').insert({
+      user_id: userId,
+      plano_id: planoId,
+      disciplina_id: disciplina.id,
+      disciplina_nome: disciplina.nome,
+      topico_id: topicoId,
+      topico_nome: topico.nome,
+      data_estudo: hoje,
+      data_revisao: nova.dataRevisao,
+      intervalo: nova.intervalo,
+      origem: 'conclusao',
+    });
+    // 23505: outra requisição criou a mesma pendente agora; o resultado é o mesmo.
+    if (errNova && errNova.code !== '23505') throw errNova;
+  }
 }
