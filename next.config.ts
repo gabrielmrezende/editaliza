@@ -6,6 +6,8 @@ import type { NextConfig } from "next";
 // - partialPrefetching: prefetch parcial de rotas (par do cacheComponents); sem impacto no código.
 // - turbopack.rules "*.css": processa o Tailwind v4 via @tailwindcss/turbopack; necessário para o CSS.
 const nextConfig: NextConfig = {
+  // Playwright e o Supabase local usam 127.0.0.1 (não localhost).
+  allowedDevOrigins: ["127.0.0.1"],
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

@@ -8,5 +8,5 @@ export default defineConfig({
     reuseExistingServer: true,
     env: { EXTRACAO_MODO: 'fake' },
   },
-  use: { baseURL: 'http://localhost:3000' },
+  use: { baseURL: 'http://127.0.0.1:3000' },
 });
