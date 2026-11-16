@@ -339,3 +339,30 @@ describe('gerarPlano (revisao R11/R12)', () => {
     expect(blocos(reserva).every((x) => x.disciplinaId === 'hi')).toBe(true);
   });
 });
+
+describe('gerarPlano com ajustes', () => {
+  const disciplinas = [disc('d1', 4, 'basico', 10), disc('d2', 4, 'basico', 10), disc('d3', 3, 'nunca_vi', 5)];
+
+  it('sem ajustes o resultado e identico ao de antes (snapshot)', () => {
+    expect(gerarPlano(entrada({ disciplinas, dataProva: somarDias(HOJE, 40) }))).toMatchSnapshot();
+    expect(gerarPlano(entrada({ disciplinas, dataProva: null }))).toMatchSnapshot();
+  });
+
+  it('ajustes vazio ou com fator 1 nao muda nada', () => {
+    const e = entrada({ disciplinas, dataProva: somarDias(HOJE, 40) });
+    expect(gerarPlano({ ...e, ajustes: {} })).toEqual(gerarPlano(e));
+    expect(gerarPlano({ ...e, ajustes: { d1: 1 } })).toEqual(gerarPlano(e));
+  });
+
+  it('multiplicador 1,4 da mais minutos a materia no prazo e no ciclo', () => {
+    const e = entrada({ disciplinas, dataProva: somarDias(HOJE, 40) });
+    const sem = prazo(gerarPlano(e));
+    const com = prazo(gerarPlano({ ...e, ajustes: { d1: 1.4 } }));
+    expect(minutosDe(com.dias, 'd1')).toBeGreaterThan(minutosDe(sem.dias, 'd1'));
+
+    const c = entrada({ disciplinas, dataProva: null });
+    const cicloSem = ciclo(gerarPlano(c)).ciclo.find((i) => i.disciplinaId === 'd1')!;
+    const cicloCom = ciclo(gerarPlano({ ...c, ajustes: { d1: 1.4 } })).ciclo.find((i) => i.disciplinaId === 'd1')!;
+    expect(cicloCom.minutos).toBeGreaterThan(cicloSem.minutos);
+  });
+});

@@ -1,0 +1,670 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`gerarPlano com ajustes > sem ajustes o resultado e identico ao de antes (snapshot) 1`] = `
+{
+  "avisos": [],
+  "dias": [
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t1",
+        },
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t1",
+        },
+      ],
+      "data": "2026-01-05",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t1",
+        },
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t1",
+        },
+      ],
+      "data": "2026-01-06",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t1",
+        },
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t1",
+        },
+      ],
+      "data": "2026-01-07",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t1",
+        },
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t1",
+        },
+      ],
+      "data": "2026-01-08",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t1",
+        },
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t1",
+        },
+      ],
+      "data": "2026-01-09",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t1",
+        },
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t1",
+        },
+      ],
+      "data": "2026-01-10",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t1",
+        },
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t1",
+        },
+      ],
+      "data": "2026-01-11",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t1",
+        },
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t1",
+        },
+      ],
+      "data": "2026-01-12",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t1",
+        },
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t2",
+        },
+      ],
+      "data": "2026-01-13",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t2",
+        },
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t1",
+        },
+      ],
+      "data": "2026-01-14",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t2",
+        },
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t2",
+        },
+      ],
+      "data": "2026-01-15",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t2",
+        },
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t2",
+        },
+      ],
+      "data": "2026-01-16",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t2",
+        },
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t2",
+        },
+      ],
+      "data": "2026-01-17",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t2",
+        },
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t2",
+        },
+      ],
+      "data": "2026-01-18",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t2",
+        },
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t2",
+        },
+      ],
+      "data": "2026-01-19",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t2",
+        },
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t2",
+        },
+      ],
+      "data": "2026-01-20",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t2",
+        },
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t3",
+        },
+      ],
+      "data": "2026-01-21",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t3",
+        },
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t2",
+        },
+      ],
+      "data": "2026-01-22",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t3",
+        },
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t3",
+        },
+      ],
+      "data": "2026-01-23",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t2",
+        },
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t3",
+        },
+      ],
+      "data": "2026-01-24",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t3",
+        },
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t2",
+        },
+      ],
+      "data": "2026-01-25",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t3",
+        },
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t3",
+        },
+      ],
+      "data": "2026-01-26",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t3",
+        },
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t3",
+        },
+      ],
+      "data": "2026-01-27",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t3",
+        },
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t3",
+        },
+      ],
+      "data": "2026-01-28",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t3",
+        },
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t3",
+        },
+      ],
+      "data": "2026-01-29",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t4",
+        },
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t4",
+        },
+      ],
+      "data": "2026-01-30",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t3",
+        },
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t4",
+        },
+      ],
+      "data": "2026-01-31",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t4",
+        },
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t4",
+        },
+      ],
+      "data": "2026-02-01",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t4",
+        },
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t3",
+        },
+      ],
+      "data": "2026-02-02",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t4",
+        },
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t4",
+        },
+      ],
+      "data": "2026-02-03",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t3",
+        },
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t4",
+        },
+      ],
+      "data": "2026-02-04",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t4",
+        },
+        {
+          "disciplinaId": "d3",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d3-t3",
+        },
+      ],
+      "data": "2026-02-05",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d1-t4",
+        },
+        {
+          "disciplinaId": "d2",
+          "minutos": 60,
+          "tipo": "estudo",
+          "topicoId": "d2-t4",
+        },
+      ],
+      "data": "2026-02-06",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 120,
+          "tipo": "revisao_geral",
+          "topicoId": null,
+        },
+      ],
+      "data": "2026-02-07",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 120,
+          "tipo": "revisao_geral",
+          "topicoId": null,
+        },
+      ],
+      "data": "2026-02-08",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d3",
+          "minutos": 120,
+          "tipo": "revisao_geral",
+          "topicoId": null,
+        },
+      ],
+      "data": "2026-02-09",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 120,
+          "tipo": "revisao_geral",
+          "topicoId": null,
+        },
+      ],
+      "data": "2026-02-10",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d2",
+          "minutos": 120,
+          "tipo": "revisao_geral",
+          "topicoId": null,
+        },
+      ],
+      "data": "2026-02-11",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d3",
+          "minutos": 120,
+          "tipo": "revisao_geral",
+          "topicoId": null,
+        },
+      ],
+      "data": "2026-02-12",
+    },
+    {
+      "blocos": [
+        {
+          "disciplinaId": "d1",
+          "minutos": 120,
+          "tipo": "simulado",
+          "topicoId": null,
+        },
+      ],
+      "data": "2026-02-13",
+    },
+  ],
+  "inicioReserva": "2026-02-07",
+  "modo": "prazo",
+}
+`;
+
+exports[`gerarPlano com ajustes > sem ajustes o resultado e identico ao de antes (snapshot) 2`] = `
+{
+  "avisos": [],
+  "ciclo": [
+    {
+      "disciplinaId": "d1",
+      "minutos": 300,
+    },
+    {
+      "disciplinaId": "d2",
+      "minutos": 300,
+    },
+    {
+      "disciplinaId": "d3",
+      "minutos": 225,
+    },
+  ],
+  "modo": "ciclo",
+}
+`;

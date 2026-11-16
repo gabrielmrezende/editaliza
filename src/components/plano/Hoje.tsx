@@ -4,7 +4,7 @@ import { useId } from 'react';
 import { dataPorExtenso } from '@/lib/datas';
 import type { BlocoEstudo, Topico } from '@/lib/dominio/tipos';
 import { Bolha } from './Bolha';
-import { formatarMinutos } from './formatar';
+import { formatarMinutos } from '@/lib/formatar';
 
 export type ItemHoje = {
   chave: string;

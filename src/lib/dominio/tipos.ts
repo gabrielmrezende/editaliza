@@ -5,7 +5,11 @@ export interface ConteudoCargo { disciplinas: Disciplina[]; tipoProva: 'multipla
 export interface EditalResumo { orgao: string; banca: string | null; ano: number | null; dataProva: string | null; cargos: { nome: string }[] }
 export interface DisciplinaPlano extends Disciplina { nivel: Nivel }
 export type MinutosPorDia = [number, number, number, number, number, number, number]; // índice = Date.getDay() (0 = domingo)
-export interface EntradaPlano { disciplinas: DisciplinaPlano[]; dataProva: string | null; hoje: string; minutosPorDia: MinutosPorDia; concluidos: string[]; pesosInformados: boolean }
+export interface EntradaPlano {
+  disciplinas: DisciplinaPlano[]; dataProva: string | null; hoje: string; minutosPorDia: MinutosPorDia; concluidos: string[]; pesosInformados: boolean;
+  /** Multiplicador de prioridade por disciplina (ajuste semanal); ausente = ×1. */
+  ajustes?: Record<string, number>;
+}
 export interface BlocoEstudo { disciplinaId: string; topicoId: string | null; tipo: 'estudo' | 'revisao_geral' | 'simulado'; minutos: number }
 export interface DiaPlano { data: string; blocos: BlocoEstudo[] }
 export type Aviso = { tipo: 'nao_cabe'; topicosFora: string[] } | { tipo: 'pesos_assumidos' } | { tipo: 'sem_tempo' } | { tipo: 'data_invalida' };

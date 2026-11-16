@@ -46,7 +46,7 @@ function selecionarAtivas(entrada: EntradaPlano): Ativa[] {
   return entrada.disciplinas
     .map((disciplina) => ({
       disciplina,
-      prio: prioridade(disciplina, entrada.pesosInformados),
+      prio: prioridade(disciplina, entrada.pesosInformados) * (entrada.ajustes?.[disciplina.id] ?? 1),
       topicos: disciplina.topicos.filter((t) => !feitos.has(t.id)),
     }))
     .filter((a) => a.topicos.length > 0);

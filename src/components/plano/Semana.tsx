@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { dataPorExtenso } from '@/lib/datas';
 import type { DiaPlano, DisciplinaPlano } from '@/lib/dominio/tipos';
-import { formatarMinutos } from './formatar';
+import { formatarMinutos } from '@/lib/formatar';
 
 type ItemCiclo = { disciplinaId: string; minutos: number };
 
