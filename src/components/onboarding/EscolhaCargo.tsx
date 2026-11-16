@@ -6,6 +6,7 @@ import { alerta, botaoPrimario, botaoSecundario } from '../estilos';
 import { pedir } from './api';
 import { Lendo } from './Lendo';
 import type { EditalVisao } from './tipos';
+import { SemConexao } from './SemConexao';
 import { useSondagem } from './useSondagem';
 
 type Cargo = EditalVisao['cargos'][number];
@@ -32,32 +33,36 @@ export function EscolhaCargo({
   const cargoLendo = estado.fase === 'lendo' ? estado.cargo : null;
   const urlCargo = (c: Cargo) => `/api/editais/${editalId}/cargos/${c.id}`;
 
-  useSondagem(cargoLendo !== null, async () => {
+  const sondagem = useSondagem(cargoLendo !== null, async () => {
     const cargo = cargoLendo!;
     const r = await pedir<RespostaCargo>(urlCargo(cargo));
     if (!r.ok) {
-      if (r.status === 0) return false;
+      if (r.status === 0) return 'sem_rede';
       setEstado({ fase: 'erro', cargo, erro: r.erro });
-      return true;
+      return 'fim';
     }
     if (r.dados.statusConteudo === 'pronto' && r.dados.conteudo) {
       aoPronto(cargo.id, r.dados.conteudo);
-      return true;
+      return 'fim';
     }
     if (r.dados.statusConteudo === 'erro') {
       setEstado({ fase: 'erro', cargo, erro: r.dados.erro ?? 'Não conseguimos ler o conteúdo deste cargo.' });
-      return true;
+      return 'fim';
     }
-    return false;
+    return 'continuar';
   });
 
   async function escolher(cargo: Cargo) {
     const r = await pedir(urlCargo(cargo), { method: 'POST' });
     if (!r.ok) setEstado({ fase: 'erro', cargo, erro: r.erro });
-    else setEstado({ fase: 'lendo', cargo });
+    else {
+      sondagem.reiniciar();
+      setEstado({ fase: 'lendo', cargo });
+    }
   }
 
   if (estado.fase === 'lendo') {
+    if (sondagem.semConexao) return <SemConexao aoTentar={sondagem.reiniciar} />;
     return <Lendo texto={`Lendo o conteúdo de ${estado.cargo.nome}…`} detalhe="Separando matérias e tópicos do conteúdo programático." />;
   }
 

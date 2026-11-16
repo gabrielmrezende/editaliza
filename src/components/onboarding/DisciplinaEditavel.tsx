@@ -18,19 +18,25 @@ function Xis() {
 export function DisciplinaEditavel({
   disciplina: d,
   focoId,
+  aoFocado,
   aoMudar,
   aoRemover,
   aoAdicionarTopico,
 }: {
   disciplina: Disciplina;
   focoId: string | null;
+  /** Chamado depois de focar o campo recém-criado (o pai limpa focoId para não roubar o foco depois). */
+  aoFocado: () => void;
   aoMudar: (d: Disciplina) => void;
   aoRemover: () => void;
   aoAdicionarTopico: () => void;
 }) {
   const nome = d.nome.trim() || 'sem nome';
   const focar = (id: string) => (el: HTMLInputElement | HTMLTextAreaElement | null) => {
-    if (el && id === focoId && document.activeElement !== el) el.focus();
+    if (el && id === focoId) {
+      el.focus();
+      aoFocado();
+    }
   };
 
   return (

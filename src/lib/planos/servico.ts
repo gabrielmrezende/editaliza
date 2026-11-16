@@ -6,7 +6,7 @@ import { hojeEmSaoPaulo } from '@/lib/datas';
 import { usuarioTemAcesso } from '@/lib/editais/servico';
 import { gerarPlano } from '@/lib/plano/gerar';
 import { criarClienteAdmin } from '@/lib/supabase/admin';
-import { MSG_DATA_PASSADA } from './mensagens';
+import { MSG_DATA_PASSADA, MSG_SEM_HORAS } from './mensagens';
 
 export type EntradaCriarPlano = z.output<typeof EsquemaEntradaCriarPlano>;
 
@@ -70,6 +70,9 @@ export async function criarPlano(userId: string, entrada: EntradaCriarPlano, ago
   if (entrada.dataProva !== null && entrada.dataProva <= hoje) {
     throw new PlanoInvalidoError(MSG_DATA_PASSADA, 400);
   }
+  if (entrada.minutosPorDia.every((m) => m === 0)) {
+    throw new PlanoInvalidoError(MSG_SEM_HORAS, 400);
+  }
   if (!dentroDosLimites(entrada.disciplinas)) {
     throw new PlanoInvalidoError('O conteúdo do plano é grande demais.', 400);
   }
@@ -90,7 +93,11 @@ export async function criarPlano(userId: string, entrada: EntradaCriarPlano, ago
     hoje,
     minutosPorDia: entrada.minutosPorDia,
     concluidos: [],
-    pesosInformados: (cargo.conteudo as ConteudoCargo).pesosInformados === true,
+    // Pesos valem se o edital os informa ou se o aluno preencheu questões/pontos na revisão.
+    // O cliente nunca manda a flag: ela é derivada aqui.
+    pesosInformados:
+      (cargo.conteudo as ConteudoCargo).pesosInformados === true ||
+      entrada.disciplinas.some((d) => (d.questoes ?? 0) > 0 || (d.pontos ?? 0) > 0),
   });
 
   const { data: planoId, error } = await db.rpc('criar_plano', {

@@ -64,7 +64,7 @@ export function RevisaoConteudo({
       </p>
       {!pesosInformados && (
         <p className="rounded-md border-l-4 border-caneta bg-caneta-clara px-4 py-3">
-          O edital não informa quantas questões cada matéria tem. Vamos dar o mesmo peso a todas.
+          Este edital não informa o peso das matérias. Se souber, preencha o número de questões; senão, usaremos peso igual.
         </p>
       )}
       <p aria-live="polite" className="text-sm font-bold">
@@ -77,6 +77,7 @@ export function RevisaoConteudo({
             key={d.id}
             disciplina={d}
             focoId={focoId}
+            aoFocado={() => setFocoId(null)}
             aoMudar={(nova) => mudar(disciplinas.map((x, k) => (k === i ? nova : x)))}
             aoRemover={() => mudar(disciplinas.filter((_, k) => k !== i))}
             aoAdicionarTopico={() => adicionarTopico(i)}

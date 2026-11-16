@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { dataPorExtenso, diasEntre } from '@/lib/datas';
 import type { DisciplinaPlano, PlanoGerado } from '@/lib/dominio/tipos';
 import { semana, tarefasDoDia } from '@/lib/plano/consultas';
@@ -9,6 +8,7 @@ import { Avisos } from './Avisos';
 import { Hoje, type ItemHoje } from './Hoje';
 import { Progresso } from './Progresso';
 import { Semana } from './Semana';
+import { useMarcacoes } from './useMarcacoes';
 
 type Props = {
   planoId: string;
@@ -22,44 +22,21 @@ type Props = {
   posicaoCiclo: number;
   /** Hoje tem horas de estudo? (no ciclo, dia sem horas fica livre). */
   diaDeEstudo: boolean;
+  /** No ciclo: tópico de hoje, fixo no dia (calculado no servidor) para poder ser desmarcado. */
+  topicoDoCiclo: string | null;
 };
 
 /** Tela do plano: hoje, semana e progresso; marcar um tópico grava na hora (otimista). */
 export function PainelPlano(p: Props) {
-  const [concluidos, setConcluidos] = useState(() => new Set(p.concluidosIniciais));
-  const [erro, setErro] = useState<string | null>(null);
+  const { concluidos, marcar, erro, anuncio } = useMarcacoes(p.planoId, p.concluidosIniciais);
   const porId = new Map(p.disciplinas.map((d) => [d.id, d]));
-
-  async function marcar(topicoId: string, feito: boolean) {
-    const aplicar = (marcado: boolean) =>
-      setConcluidos((atual) => {
-        const novo = new Set(atual);
-        if (marcado) novo.add(topicoId);
-        else novo.delete(topicoId);
-        return novo;
-      });
-    setErro(null);
-    aplicar(feito);
-    const ok = await fetch(`/api/planos/${p.planoId}/topicos/${encodeURIComponent(topicoId)}`, {
-      method: feito ? 'PUT' : 'DELETE',
-    })
-      .then((r) => r.ok)
-      .catch(() => false);
-    if (!ok) {
-      aplicar(!feito);
-      setErro('Não foi possível salvar a marcação. Confira sua internet e tente de novo.');
-    }
-  }
 
   const blocos = p.gerado.modo === 'ciclo' && !p.diaDeEstudo ? [] : tarefasDoDia(p.gerado, p.hoje, p.posicaoCiclo);
   const itens: ItemHoje[] = blocos.map((b, i) => {
     const d = porId.get(b.disciplinaId);
-    // No ciclo o bloco não traz tópico: mostra o primeiro ainda pendente da matéria.
-    const topico = b.topicoId
-      ? d?.topicos.find((t) => t.id === b.topicoId)
-      : b.tipo === 'estudo'
-        ? d?.topicos.find((t) => !concluidos.has(t.id))
-        : undefined;
+    // No ciclo o bloco não traz tópico: usa o tópico do dia, fixo (não pula ao marcar).
+    const idTopico = b.topicoId ?? (b.tipo === 'estudo' ? p.topicoDoCiclo : null);
+    const topico = idTopico ? d?.topicos.find((t) => t.id === idTopico) : undefined;
     return {
       chave: `${i}-${b.disciplinaId}-${b.topicoId ?? ''}`,
       tipo: b.tipo,
@@ -93,6 +70,9 @@ export function PainelPlano(p: Props) {
           {erro}
         </p>
       )}
+      <p role="status" className="sr-only">
+        {anuncio}
+      </p>
 
       {/* Celular: Hoje, Progresso, Semana. Tela larga: Progresso vira a coluna da direita. */}
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-x-10">

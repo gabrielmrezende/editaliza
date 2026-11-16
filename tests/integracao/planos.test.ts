@@ -89,14 +89,30 @@ describe('planos (serviço)', () => {
     if (gerado.modo === 'prazo') expect(gerado.dias[0].data).toBe('2026-11-16');
   });
 
-  it('pesosInformados vem do banco, nao do cliente', async () => {
+  it('pesos: do banco ou das questoes preenchidas, nunca da flag do cliente', async () => {
     const semPesos = await criarEdital({ acesso: [usuario.id], pesosInformados: false });
     const comPesos = await criarEdital({ acesso: [usuario.id], pesosInformados: true });
-    const forjado = { ...entrada(semPesos), pesosInformados: true } as ReturnType<typeof entrada>;
-    const a = await linhaPlano(await criarPlano(usuario.id, forjado, AGORA));
-    const b = await linhaPlano(await criarPlano(usuario.id, entrada(comPesos), AGORA));
-    expect((a.gerado as PlanoGerado).avisos).toContainEqual({ tipo: 'pesos_assumidos' });
-    expect((b.gerado as PlanoGerado).avisos).not.toContainEqual({ tipo: 'pesos_assumidos' });
+    const avisos = async (e: Parameters<typeof entrada>[0], disciplinas: DisciplinaPlano[]) => {
+      const forjado = { ...entrada(e), disciplinas, pesosInformados: true } as ReturnType<typeof entrada>;
+      return ((await linhaPlano(await criarPlano(usuario.id, forjado, AGORA))).gerado as PlanoGerado).avisos;
+    };
+    const semNumeros = disciplinasDe(semPesos.conteudo).map((d) => ({ ...d, questoes: null, pontos: null }));
+    const zerados = disciplinasDe(semPesos.conteudo).map((d) => ({ ...d, questoes: 0, pontos: 0 }));
+    const umaPreenchida = semNumeros.map((d, i) => (i === 0 ? { ...d, questoes: 12 } : d));
+
+    // edital sem pesos e aluno sem números: peso igual, mesmo com a flag forjada
+    expect(await avisos(semPesos, semNumeros)).toContainEqual({ tipo: 'pesos_assumidos' });
+    expect(await avisos(semPesos, zerados)).toContainEqual({ tipo: 'pesos_assumidos' });
+    // edital sem pesos, mas o aluno preencheu questões na revisão
+    expect(await avisos(semPesos, umaPreenchida)).not.toContainEqual({ tipo: 'pesos_assumidos' });
+    // edital com pesos
+    expect(await avisos(comPesos, disciplinasDe(comPesos.conteudo))).not.toContainEqual({ tipo: 'pesos_assumidos' });
+  });
+
+  it('semana sem horas responde 400', async () => {
+    const e = await criarEdital({ acesso: [usuario.id] });
+    const zerado = { ...entrada(e), minutosPorDia: [0, 0, 0, 0, 0, 0, 0] as MinutosPorDia };
+    await esperarErro(criarPlano(usuario.id, zerado, AGORA), 400, 'Informe ao menos um dia com horas de estudo.');
   });
 
   it('sem acesso ao edital responde 404', async () => {

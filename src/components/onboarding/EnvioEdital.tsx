@@ -6,6 +6,7 @@ import { alerta, botaoPrimario, botaoSecundario, rotulo } from '../estilos';
 import { pedir } from './api';
 import { Lendo } from './Lendo';
 import type { EditalVisao } from './tipos';
+import { SemConexao } from './SemConexao';
 import { useSondagem } from './useSondagem';
 
 const MAX_BYTES = 50 * 1024 * 1024;
@@ -26,22 +27,22 @@ export function EnvioEdital({ aoPronto }: { aoPronto: (editalId: string, edital:
   const [estado, setEstado] = useState<Estado>({ fase: 'escolher' });
 
   const editalId = estado.fase === 'lendo' ? estado.editalId : null;
-  useSondagem(editalId !== null, async () => {
+  const sondagem = useSondagem(editalId !== null, async () => {
     const r = await pedir<EditalVisao>(`/api/editais/${editalId}`);
     if (!r.ok) {
-      if (r.status === 0) return false; // sem rede: tenta de novo no próximo ciclo
+      if (r.status === 0) return 'sem_rede';
       setEstado({ fase: 'erro', editalId: editalId!, erro: r.erro, podeTentar: true });
-      return true;
+      return 'fim';
     }
     if (r.dados.status === 'pronto') {
       aoPronto(editalId!, r.dados);
-      return true;
+      return 'fim';
     }
     if (r.dados.status === 'erro') {
       setEstado({ fase: 'erro', editalId: editalId!, erro: r.dados.erro ?? 'Não conseguimos ler este edital.', podeTentar: true });
-      return true;
+      return 'fim';
     }
-    return false;
+    return 'continuar';
   });
 
   async function enviar(e: React.FormEvent) {
@@ -75,18 +76,23 @@ export function EnvioEdital({ aoPronto }: { aoPronto: (editalId: string, edital:
       body: JSON.stringify({ caminho: envio.dados.caminho }),
     });
     if (!registro.ok) return falhar(registro.erro);
+    sondagem.reiniciar();
     setEstado({ fase: 'lendo', editalId: registro.dados.editalId });
   }
 
   async function tentarDeNovo(id: string) {
     const r = await pedir(`/api/editais/${id}/tentar-novamente`, { method: 'POST' });
-    if (r.ok) setEstado({ fase: 'lendo', editalId: id });
+    if (r.ok) {
+      sondagem.reiniciar();
+      setEstado({ fase: 'lendo', editalId: id });
+    }
     else setEstado({ fase: 'erro', editalId: id, erro: r.erro, podeTentar: r.status !== 409 });
   }
 
   const outroArquivo = () => setEstado({ fase: 'escolher' });
 
   if (estado.fase === 'lendo') {
+    if (sondagem.semConexao) return <SemConexao aoTentar={sondagem.reiniciar} />;
     return <Lendo texto="Lendo seu edital…" detalhe="Estamos encontrando os cargos. Costuma levar menos de um minuto." />;
   }
 

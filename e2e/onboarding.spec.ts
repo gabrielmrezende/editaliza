@@ -32,6 +32,18 @@ test.describe('onboarding', () => {
     await ateRevisao(page);
     await page.getByRole('button', { name: 'Remover tópico Ortografia oficial' }).click();
     await expect(page.getByRole('button', { name: 'Remover tópico Ortografia oficial' })).toHaveCount(0);
+
+    // Adicionar tópico foca o campo novo uma vez; depois o foco não é roubado ao digitar em outro campo.
+    await page.getByRole('region', { name: 'Matéria Língua Portuguesa' }).getByRole('button', { name: 'Adicionar tópico' }).click();
+    const novo = page.getByLabel('Tópico 4 de Língua Portuguesa');
+    await expect(novo).toBeFocused();
+    const outro = page.getByLabel('Tópico 1 de Raciocínio Lógico');
+    await outro.click();
+    await outro.press('ControlOrMeta+a');
+    await outro.pressSequentially('Lógica proposicional');
+    await expect(outro).toHaveValue('Lógica proposicional');
+    await expect(outro).toBeFocused();
+    await novo.fill('Redação oficial');
     await continuar(page);
 
     await expect(page.getByRole('heading', { name: 'Quando é a prova?' })).toBeVisible();
@@ -99,5 +111,67 @@ test.describe('onboarding', () => {
     await page.getByLabel('Quarta').fill('1,5');
     await continuar(page);
     await expect(page.getByRole('heading', { name: 'Qual é o seu nível?' })).toBeVisible();
+  });
+
+  test('ciclo: topico de hoje fica fixo e pode ser desmarcado', async ({ page }) => {
+    await ateRevisao(page);
+    await continuar(page);
+    await page.getByLabel('A data ainda não saiu').check();
+    await continuar(page);
+    for (const dia of ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']) {
+      await page.getByLabel(dia).fill('1');
+    }
+    await continuar(page);
+    await page.getByRole('button', { name: 'Gerar meu plano' }).click();
+    await page.waitForURL(/\/app\/plano$/);
+
+    const hoje = page.getByRole('region', { name: 'Hoje' });
+    const caixa = hoje.getByLabel('Concluí este tópico');
+    await expect(caixa).toHaveCount(1);
+    const nomeTopico = hoje.getByRole('listitem').locator('p').nth(1);
+    const topico = await nomeTopico.textContent();
+    const status = page.getByRole('main').getByRole('status');
+    const gravou = (metodo: string) =>
+      page.waitForResponse((r) => r.request().method() === metodo && r.url().includes('/api/planos/'));
+
+    // Marca: continua no mesmo tópico (não pula para o próximo) e é anunciado.
+    await Promise.all([gravou('PUT'), caixa.check()]);
+    await expect(caixa).toBeChecked();
+    await expect(nomeTopico).toHaveText(topico!);
+    await expect(status).toContainText('marcado como concluído');
+
+    // Recarregando, o tópico de hoje segue fixo e marcado; dá para desmarcar.
+    await page.reload();
+    await expect(caixa).toBeChecked();
+    await expect(nomeTopico).toHaveText(topico!);
+    await Promise.all([gravou('DELETE'), caixa.uncheck()]);
+    await expect(caixa).not.toBeChecked();
+    await expect(status).toContainText('desmarcado');
+
+    // Cliques rápidos: o servidor termina com o último estado escolhido.
+    await caixa.click();
+    await caixa.click();
+    await caixa.click();
+    await expect(caixa).toBeChecked();
+    await page.waitForLoadState('networkidle');
+    await page.reload();
+    await expect(caixa).toBeChecked();
+    await expect(nomeTopico).toHaveText(topico!);
+  });
+
+  test('sem conexao durante a leitura avisa e permite tentar de novo', async ({ page }) => {
+    await entrar(page, `conexao-${randomUUID()}@teste.local`);
+    // Só as consultas (GET /api/editais/:id) falham; o envio passa.
+    await page.route('**/api/editais/*', (route) =>
+      route.request().method() === 'GET' ? route.abort('internetdisconnected') : route.fallback(),
+    );
+    await page.getByLabel('PDF do edital').setInputFiles(PDF);
+    await page.getByRole('button', { name: 'Ler edital' }).click();
+    await expect(page.getByRole('main').getByRole('alert')).toContainText('Não conseguimos falar com o servidor', {
+      timeout: 20_000,
+    });
+    await page.unroute('**/api/editais/*');
+    await page.getByRole('button', { name: 'Tentar de novo' }).click();
+    await expect(page.getByRole('button', { name: 'Cargo A' })).toBeVisible({ timeout: 30_000 });
   });
 });

@@ -47,7 +47,7 @@ export function NivelMaterias({
                     onChange={() => aoMudar({ ...niveis, [d.id]: o.valor })}
                     className="peer sr-only"
                   />
-                  <span className="flex min-h-10 cursor-pointer items-center justify-center rounded-md px-3 text-sm font-bold text-tinta-suave transition-colors peer-checked:bg-tinta peer-checked:text-white peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-caneta">
+                  <span className="flex min-h-11 cursor-pointer items-center justify-center rounded-md px-3 text-sm font-bold text-tinta-suave transition-colors peer-checked:bg-tinta peer-checked:text-white peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-caneta">
                     {o.texto}
                   </span>
                 </label>

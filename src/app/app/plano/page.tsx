@@ -5,7 +5,8 @@ import { Marca } from '@/components/Marca';
 import { PainelPlano } from '@/components/plano/PainelPlano';
 import { hojeEmSaoPaulo } from '@/lib/datas';
 import type { DisciplinaPlano, PlanoGerado } from '@/lib/dominio/tipos';
-import { ehDiaDeEstudo, posicaoNoCiclo } from '@/lib/planos/ciclo';
+import { tarefasDoDia } from '@/lib/plano/consultas';
+import { ehDiaDeEstudo, posicaoNoCiclo, topicoDoCicloHoje } from '@/lib/planos/ciclo';
 import { criarClienteServidor, exigirUsuario } from '@/lib/supabase/servidor';
 
 type LinhaPlano = {
@@ -34,11 +35,23 @@ async function Plano() {
 
   const { data: feitos, error: errFeitos } = await supabase
     .from('topicos_concluidos')
-    .select('topico_id')
+    .select('topico_id, concluido_em')
     .eq('plano_id', plano.id);
   if (errFeitos) throw errFeitos;
 
   const hoje = hojeEmSaoPaulo();
+  const concluidos = (feitos ?? []).map((f) => ({
+    topicoId: f.topico_id as string,
+    dia: hojeEmSaoPaulo(new Date(f.concluido_em as string)),
+  }));
+  const posicaoCiclo = posicaoNoCiclo(hojeEmSaoPaulo(new Date(plano.created_at)), hoje, plano.minutos_por_dia);
+  const diaDeEstudo = ehDiaDeEstudo(hoje, plano.minutos_por_dia);
+  let topicoDoCiclo: string | null = null;
+  if (plano.gerado.modo === 'ciclo' && diaDeEstudo) {
+    const bloco = tarefasDoDia(plano.gerado, hoje, posicaoCiclo)[0];
+    const disciplina = bloco && plano.conteudo.find((d) => d.id === bloco.disciplinaId);
+    if (disciplina) topicoDoCiclo = topicoDoCicloHoje(disciplina, concluidos, hoje);
+  }
   const cargo = plano.edital_cargos;
   const origem = [cargo?.editais?.orgao, cargo?.editais?.ano].filter(Boolean).join(' ');
   return (
@@ -49,10 +62,11 @@ async function Plano() {
       dataProva={plano.data_prova}
       disciplinas={plano.conteudo}
       gerado={plano.gerado}
-      concluidosIniciais={(feitos ?? []).map((f) => f.topico_id as string)}
+      concluidosIniciais={concluidos.map((c) => c.topicoId)}
       hoje={hoje}
-      posicaoCiclo={posicaoNoCiclo(hojeEmSaoPaulo(new Date(plano.created_at)), hoje, plano.minutos_por_dia)}
-      diaDeEstudo={ehDiaDeEstudo(hoje, plano.minutos_por_dia)}
+      posicaoCiclo={posicaoCiclo}
+      diaDeEstudo={diaDeEstudo}
+      topicoDoCiclo={topicoDoCiclo}
     />
   );
 }

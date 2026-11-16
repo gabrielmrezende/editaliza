@@ -31,7 +31,7 @@ export function Hoje({
   data: string;
   itens: ItemHoje[];
   semTempo: boolean;
-  aoMarcar: (topicoId: string, feito: boolean) => void;
+  aoMarcar: (topicoId: string, nome: string, feito: boolean) => void;
 }) {
   const id = useId();
   const total = itens.reduce((s, i) => s + i.minutos, 0);
@@ -74,7 +74,7 @@ export function Hoje({
                     <Bolha
                       checked={item.concluido}
                       aria-describedby={idTopico}
-                      onChange={(e) => aoMarcar(item.topico!.id, e.target.checked)}
+                      onChange={(e) => aoMarcar(item.topico!.id, item.topico!.nome, e.target.checked)}
                     />
                     Concluí este tópico
                   </label>

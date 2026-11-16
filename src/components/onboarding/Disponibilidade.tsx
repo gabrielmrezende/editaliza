@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { MSG_SEM_HORAS } from '@/lib/planos/mensagens';
 import { alerta } from '../estilos';
 import { formatarHoras, lerHoras } from './horas';
 import { Navegacao } from './Navegacao';
@@ -38,7 +39,7 @@ export function Disponibilidade({
   function continuar() {
     const invalido = DIAS.find((d) => minutos[d.indice] === null);
     if (invalido) return setErro(`Confira ${invalido.nome.toLowerCase()}: use números de 0 a 24, como 2 ou 1,5.`);
-    if (total === 0) return setErro('Informe ao menos um dia com tempo de estudo.');
+    if (total === 0) return setErro(MSG_SEM_HORAS);
     aoContinuar();
   }
 

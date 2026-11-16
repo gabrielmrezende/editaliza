@@ -78,3 +78,19 @@ describe('posicaoNoCiclo', () => {
     expect(ehDiaDeEstudo('2026-11-23', semFimDeSemana)).toBe(true);
   });
 });
+
+describe('topicoDoCicloHoje', () => {
+  const d = {
+    id: 'd0', nome: 'M', questoes: null, pontos: null, nivel: 'basico' as const,
+    topicos: [{ id: 'a', nome: 'A' }, { id: 'b', nome: 'B' }, { id: 'c', nome: 'C' }],
+  };
+
+  it('fixa o topico concluido hoje; senao o primeiro pendente', async () => {
+    const { topicoDoCicloHoje } = await import('@/lib/planos/ciclo');
+    expect(topicoDoCicloHoje(d, [], '2026-11-16')).toBe('a');
+    expect(topicoDoCicloHoje(d, [{ topicoId: 'a', dia: '2026-11-15' }], '2026-11-16')).toBe('b');
+    expect(topicoDoCicloHoje(d, [{ topicoId: 'a', dia: '2026-11-15' }, { topicoId: 'b', dia: '2026-11-16' }], '2026-11-16')).toBe('b');
+    const todos = ['a', 'b', 'c'].map((topicoId) => ({ topicoId, dia: '2026-11-01' }));
+    expect(topicoDoCicloHoje(d, todos, '2026-11-16')).toBeNull();
+  });
+});
