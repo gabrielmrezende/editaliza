@@ -100,17 +100,138 @@ describe('RLS', () => {
     expect(data).toEqual([]);
   });
 
-  it('storage: upload so em tmp/{uid}/ e sem leitura', async () => {
-    const pdf = new Blob(['%PDF-1.4'], { type: 'application/pdf' });
-    const ok = await a.cliente.storage
+  it('B nao insere plano com user_id de A', async () => {
+    const { error } = await b.cliente.from('planos').insert(novoPlano(a.id, { ativo: false }));
+    expect(error?.code).toBe('42501');
+  });
+
+  it('B nao atualiza nem apaga plano de A', async () => {
+    const { data: p } = await admin()
+      .from('planos')
+      .insert(novoPlano(a.id, { ativo: false, edital_versao: 1 }))
+      .select('id')
+      .single();
+    const up = await b.cliente
+      .from('planos')
+      .update({ edital_versao: 99 })
+      .eq('id', p!.id)
+      .select('id');
+    expect(up.error).toBeNull();
+    expect(up.data).toEqual([]);
+    const del = await b.cliente.from('planos').delete().eq('id', p!.id).select('id');
+    expect(del.error).toBeNull();
+    expect(del.data).toEqual([]);
+    const { data: depois } = await admin().from('planos').select('edital_versao').eq('id', p!.id);
+    expect(depois).toEqual([{ edital_versao: 1 }]);
+  });
+
+  it('A nao transfere o proprio plano para B (WITH CHECK do UPDATE)', async () => {
+    const { data: p } = await admin()
+      .from('planos')
+      .insert(novoPlano(a.id, { ativo: false }))
+      .select('id')
+      .single();
+    const { error } = await a.cliente.from('planos').update({ user_id: b.id }).eq('id', p!.id);
+    expect(error?.code).toBe('42501');
+    const { data } = await admin().from('planos').select('user_id').eq('id', p!.id);
+    expect(data).toEqual([{ user_id: a.id }]);
+  });
+
+  it('cliente nao se concede acesso a edital (edital_acessos)', async () => {
+    const { data: ed } = await admin().from('editais').insert(novoEdital()).select('id').single();
+    const own = await a.cliente.from('edital_acessos').insert({ user_id: a.id, edital_id: ed!.id });
+    expect(own.error?.code).toBe('42501');
+    const other = await a.cliente.from('edital_acessos').insert({ user_id: b.id, edital_id: ed!.id });
+    expect(other.error?.code).toBe('42501');
+    const { data } = await admin().from('edital_acessos').select('user_id').eq('edital_id', ed!.id);
+    expect(data).toEqual([]);
+  });
+
+  it('cliente nao altera nem apaga editais, cargos e acessos', async () => {
+    const { data: ed } = await admin()
       .from('editais')
-      .upload(`tmp/${a.id}/${randomUUID()}.pdf`, pdf);
-    expect(ok.error).toBeNull();
-    const alheio = await a.cliente.storage
+      .insert(novoEdital({ publicado: true, orgao: 'ORIG' }))
+      .select('id')
+      .single();
+    const { data: cg } = await admin()
+      .from('edital_cargos')
+      .insert({ edital_id: ed!.id, nome: 'ORIG' })
+      .select('id')
+      .single();
+    await admin().from('edital_acessos').insert({ user_id: a.id, edital_id: ed!.id });
+
+    const ups = [
+      await a.cliente.from('editais').update({ orgao: 'HACK' }).eq('id', ed!.id).select('id'),
+      await a.cliente.from('edital_cargos').update({ nome: 'HACK' }).eq('id', cg!.id).select('id'),
+      await a.cliente
+        .from('edital_acessos')
+        .update({ edital_id: ed!.id })
+        .eq('user_id', a.id)
+        .select('user_id'),
+    ];
+    const dels = [
+      await a.cliente.from('editais').delete().eq('id', ed!.id).select('id'),
+      await a.cliente.from('edital_cargos').delete().eq('id', cg!.id).select('id'),
+      await a.cliente.from('edital_acessos').delete().eq('edital_id', ed!.id).select('user_id'),
+    ];
+    for (const r of [...ups, ...dels]) {
+      // sem GRANT => erro 42501; com GRANT sem policy => 0 linhas. Nunca altera.
+      expect(r.error?.code === '42501' || (r.error === null && r.data?.length === 0)).toBe(true);
+    }
+    const { data: e2 } = await admin().from('editais').select('orgao').eq('id', ed!.id);
+    expect(e2).toEqual([{ orgao: 'ORIG' }]);
+    const { data: c2 } = await admin().from('edital_cargos').select('nome').eq('id', cg!.id);
+    expect(c2).toEqual([{ nome: 'ORIG' }]);
+    const { data: a2 } = await admin().from('edital_acessos').select('user_id').eq('edital_id', ed!.id);
+    expect(a2).toHaveLength(1);
+  });
+
+  it('cliente nao le colunas internas de editais', async () => {
+    const { data: ed } = await admin()
       .from('editais')
-      .upload(`tmp/${b.id}/${randomUUID()}.pdf`, pdf);
-    expect(alheio.error).not.toBeNull();
-    const raiz = await a.cliente.storage.from('editais').upload(`${randomUUID()}.pdf`, pdf);
-    expect(raiz.error).not.toBeNull();
+      .insert(novoEdital({ publicado: true }))
+      .select('id')
+      .single();
+    for (const col of ['sha256', 'storage_path', 'anthropic_file_id', 'enviado_por', 'custo_centavos', '*']) {
+      const { error } = await a.cliente.from('editais').select(col).eq('id', ed!.id);
+      expect(error?.code, col).toBe('42501');
+    }
+    const { data, error } = await a.cliente
+      .from('editais')
+      .select('id, orgao, banca, ano, data_prova, status, erro, publicado, versao, edital_origem_id, created_at')
+      .eq('id', ed!.id);
+    expect(error).toBeNull();
+    expect(data).toHaveLength(1);
+  });
+
+  it('storage: A envia para tmp/{uid}/ mas nao le, lista nem sobrescreve', async () => {
+    const pdf = () => new Blob(['%PDF-1.4'], { type: 'application/pdf' });
+    const caminho = `tmp/${a.id}/${randomUUID()}.pdf`;
+    const st = a.cliente.storage.from('editais');
+
+    const ok = await st.upload(caminho, pdf());
+    expect(ok.error).toBeNull(); // controle positivo
+
+    const dl = await st.download(caminho);
+    expect(dl.error).not.toBeNull();
+    const ls = await st.list(`tmp/${a.id}`);
+    expect(ls.error).toBeNull();
+    expect(ls.data).toEqual([]);
+    const over = await st.upload(caminho, pdf(), { upsert: true });
+    expect(over.error).not.toBeNull();
+    expect(over.error?.message).toMatch(/row-level security|unauthorized|not authorized/i);
+
+    const alheio = await st.upload(`tmp/${b.id}/${randomUUID()}.pdf`, pdf());
+    expect(alheio.error?.message).toMatch(/row-level security|unauthorized|not authorized/i);
+    const raiz = await st.upload(`${randomUUID()}.pdf`, pdf());
+    expect(raiz.error?.message).toMatch(/row-level security|unauthorized|not authorized/i);
+  });
+
+  it('storage: rejeita mime nao-PDF', async () => {
+    const txt = new Blob(['oi'], { type: 'text/plain' });
+    const { error } = await a.cliente.storage
+      .from('editais')
+      .upload(`tmp/${a.id}/${randomUUID()}.txt`, txt);
+    expect(error?.message).toMatch(/mime/i);
   });
 });
