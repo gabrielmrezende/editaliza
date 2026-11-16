@@ -13,5 +13,8 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.test.ts'],
     exclude: ['e2e/**', 'node_modules/**'],
+    globalSetup: ['tests/setup-global.ts'],
+    // beforeAll cria e loga usuários no Supabase local; com vários workers isso pode passar de 10 s.
+    hookTimeout: 30_000,
   },
 });

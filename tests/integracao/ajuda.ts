@@ -1,36 +1,17 @@
-import { execSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { inject } from 'vitest';
 import { criarClienteAdmin } from '@/lib/supabase/admin';
+import type { ConfigSupabase } from '../setup-global';
 
-type Config = { url: string; anon: string; service: string };
-
-let cache: Config | undefined;
-
-function lerConfig(): Config {
-  if (cache) return cache;
-  let url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  let anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  let service = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !anon || !service) {
-    const saida = execSync('npx supabase status -o env', { encoding: 'utf8' });
-    const env: Record<string, string> = {};
-    for (const linha of saida.split(/\r?\n/)) {
-      const m = linha.match(/^([A-Z0-9_]+)="?(.*?)"?$/);
-      if (m) env[m[1]] = m[2];
-    }
-    url ??= env.API_URL;
-    anon ??= env.ANON_KEY;
-    service ??= env.SERVICE_ROLE_KEY;
-  }
-  if (!url || !anon || !service) {
-    throw new Error('Supabase local não está rodando (npx supabase start)');
-  }
-  cache = { url, anon, service };
+/** Configuração lida uma vez no globalSetup (tests/setup-global.ts). */
+function lerConfig(): ConfigSupabase {
+  const cfg = inject('supabase');
+  if (!cfg) throw new Error('Supabase local não está rodando (npx supabase start)');
   // criarClienteAdmin lê do process.env
-  process.env.NEXT_PUBLIC_SUPABASE_URL = url;
-  process.env.SUPABASE_SERVICE_ROLE_KEY = service;
-  return cache;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = cfg.url;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = cfg.service;
+  return cfg;
 }
 
 export function admin(): SupabaseClient {
