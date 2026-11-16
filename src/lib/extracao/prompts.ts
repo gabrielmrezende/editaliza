@@ -1,9 +1,10 @@
 const REGRAS_COMUNS = `Regras obrigatórias:
 - Extraia SOMENTE o que está escrito no edital. Nunca invente, complete ou deduza informações.
-- Mantenha os nomes exatamente como aparecem no edital.`;
+- Mantenha os nomes exatamente como aparecem no edital.
+- A resposta tem os campos "resumo" e "conteudo"; preencha somente o pedido nesta tarefa e use null no outro.`;
 
 export const PROMPT_LISTAR_CARGOS = `Você é um assistente que lê editais de concursos públicos brasileiros.
-Leia o documento anexado e extraia: órgão, banca organizadora, ano, data da prova e a lista de todos os cargos oferecidos.
+Leia o documento anexado e extraia: órgão, banca organizadora, ano, data da prova e a lista de todos os cargos oferecidos. Preencha "resumo"; "conteudo" deve ser null.
 
 ${REGRAS_COMUNS}
 - Use null para banca, ano ou dataProva quando o edital não informar. A data da prova deve estar no formato aaaa-mm-dd.
@@ -12,7 +13,7 @@ ${REGRAS_COMUNS}
 
 export function promptExtrairConteudo(cargo: string): string {
   return `Você é um assistente que lê editais de concursos públicos brasileiros.
-Leia o documento anexado e extraia o conteúdo programático APENAS do cargo "${cargo}": as disciplinas, o número de questões, os pontos e os tópicos de cada uma.
+Leia o documento anexado e extraia o conteúdo programático APENAS do cargo "${cargo}": as disciplinas, o número de questões, os pontos e os tópicos de cada uma. Preencha "conteudo"; "resumo" deve ser null.
 
 ${REGRAS_COMUNS}
 - Considere somente as disciplinas e tópicos que se aplicam ao cargo "${cargo}" (conteúdos comuns a todos os cargos também valem).

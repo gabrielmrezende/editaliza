@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
   calcularCustoCentavos,
+  ESQUEMA_SAIDA,
   escolherModelo,
   interpretarResposta,
   lerMensagem,
@@ -11,6 +12,7 @@ import {
 } from '@/lib/extracao/claude';
 import { EsquemaConteudoCargoIA, EsquemaEditalResumo } from '@/lib/dominio/esquemas';
 import { ExtracaoFalhouError, obterExtrator } from '@/lib/extracao';
+import { PROMPT_LISTAR_CARGOS, promptExtrairConteudo } from '@/lib/extracao/prompts';
 
 const Esq = z.object({ a: z.number() });
 
@@ -46,9 +48,10 @@ describe('interpretarResposta', () => {
 });
 
 describe('escolherModelo', () => {
-  it('ausente ou vazio = opus (padrão)', () => {
-    expect(escolherModelo(undefined)).toBe('claude-opus-5-5');
-    expect(escolherModelo('')).toBe('claude-opus-5-5');
+  it('ausente ou vazio = haiku (padrão)', () => {
+    expect(escolherModelo(undefined)).toBe('claude-haiku-5-5');
+    expect(escolherModelo('')).toBe('claude-haiku-5-5');
+    expect(escolherModelo('  ')).toBe('claude-haiku-5-5');
   });
   it.each(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'])('aceita %s', (m) => {
     expect(escolherModelo(m)).toBe(m);
@@ -128,7 +131,7 @@ describe('lerMensagem', () => {
 
 describe('montarRequisicao', () => {
   it('opus: esforço médio, fallbacks, beta e cache no documento', () => {
-    const req = montarRequisicao('claude-opus-5-5', 'file_1', 'prompt', Esq);
+    const req = montarRequisicao('claude-opus-5-5', 'file_1', 'prompt');
     expect(req.model).toBe('claude-opus-5-5');
     expect(req.output_config?.effort).toBe('medium');
     expect(req).toMatchObject({ fallbacks: 'default', betas: ['server-side-fallback-2026-07-01'] });
@@ -137,17 +140,46 @@ describe('montarRequisicao', () => {
     expect(texto).toMatchObject({ type: 'text', text: 'prompt' });
   });
   it('sonnet também leva fallbacks e beta', () => {
-    const req = montarRequisicao('claude-sonnet-5-5', 'f', 'p', Esq);
+    const req = montarRequisicao('claude-sonnet-5-5', 'f', 'p');
     expect(req).toMatchObject({ model: 'claude-sonnet-5-5', fallbacks: 'default', betas: ['server-side-fallback-2026-07-01'] });
   });
   it('haiku não leva fallbacks nem betas, mas mantém esforço médio e cache', () => {
-    const req = montarRequisicao('claude-haiku-5-5', 'f', 'p', Esq);
+    const req = montarRequisicao('claude-haiku-5-5', 'f', 'p');
     expect(req.model).toBe('claude-haiku-5-5');
     expect(req).not.toHaveProperty('fallbacks');
     expect(req).not.toHaveProperty('betas');
     expect(req.output_config?.effort).toBe('medium');
     const [doc] = req.messages[0].content as { cache_control?: unknown }[];
     expect(doc.cache_control).toEqual({ type: 'ephemeral' });
+  });
+});
+
+describe('prefixo cacheável igual entre as etapas', () => {
+  const prefixo = (req: ReturnType<typeof montarRequisicao>) => {
+    const { messages, ...resto } = req;
+    const [doc] = messages[0].content;
+    return { resto, doc, papel: messages[0].role, qtd: messages[0].content.length };
+  };
+  it.each(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'] as const)(
+    '%s: listar e extrair (qualquer cargo) só diferem no texto final',
+    (modelo) => {
+      const listar = montarRequisicao(modelo, 'file_1', PROMPT_LISTAR_CARGOS);
+      const extrairA = montarRequisicao(modelo, 'file_1', promptExtrairConteudo('Analista'));
+      const extrairB = montarRequisicao(modelo, 'file_1', promptExtrairConteudo('Técnico'));
+      expect(JSON.stringify(prefixo(extrairA))).toBe(JSON.stringify(prefixo(listar)));
+      expect(JSON.stringify(prefixo(extrairB))).toBe(JSON.stringify(prefixo(listar)));
+      const textos = [listar, extrairA, extrairB].map((r) => (r.messages[0].content[1] as { text: string }).text);
+      expect(new Set(textos).size).toBe(3);
+      expect(listar).not.toHaveProperty('system');
+      expect(prefixo(listar).doc).toMatchObject({ type: 'document', cache_control: { type: 'ephemeral' } });
+    },
+  );
+  it('o esquema de saída é o mesmo e aceita o resultado de cada etapa', () => {
+    expect(ESQUEMA_SAIDA).toBeDefined();
+    const resumo = { orgao: 'X', banca: null, ano: null, dataProva: null, cargos: [{ nome: 'A' }] };
+    const conteudo = { disciplinas: [], tipoProva: 'mista', pesosInformados: false };
+    expect(ESQUEMA_SAIDA.safeParse({ resumo, conteudo: null }).success).toBe(true);
+    expect(ESQUEMA_SAIDA.safeParse({ resumo: null, conteudo }).success).toBe(true);
   });
 });
 

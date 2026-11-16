@@ -9,9 +9,9 @@ import { EditalInvalidoError, ExtracaoFalhouError, type Extrator } from './tipos
 
 export const MODELOS = ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'] as const;
 export type ModeloExtracao = (typeof MODELOS)[number];
-const MODELO_PADRAO: ModeloExtracao = 'claude-opus-5-5';
+const MODELO_PADRAO: ModeloExtracao = 'claude-haiku-5-5';
 
-/** Modelo da leitura: EXTRACAO_MODELO (ausente = opus); valor fora da lista é erro de configuração. */
+/** Modelo da leitura: EXTRACAO_MODELO (ausente = haiku); valor fora da lista é erro de configuração. */
 export function escolherModelo(valor: string | undefined): ModeloExtracao {
   if (valor === undefined || valor.trim() === '') return MODELO_PADRAO;
   const modelo = valor.trim();
@@ -73,6 +73,17 @@ const ConteudoApi = z.object({
   pesosInformados: z.boolean(),
 });
 
+/**
+ * Esquema de saída ÚNICO das duas etapas: o schema JSON faz parte do prefixo da requisição, então
+ * schemas diferentes em listarCargos/extrairConteudo invalidariam o cache do PDF. Cada etapa preenche
+ * o seu campo e devolve null no outro.
+ */
+export const ESQUEMA_SAIDA = z.object({
+  resumo: ResumoApi.nullable(),
+  conteudo: ConteudoApi.nullable(),
+});
+const FORMATO_SAIDA = zodOutputFormat(ESQUEMA_SAIDA);
+
 export const ORGAO_PADRAO = 'Órgão não identificado';
 
 const dataValida = z.iso.date();
@@ -131,14 +142,16 @@ export function interpretarResposta<D extends z.ZodType>(
 }
 
 /**
- * Corpo da requisição: o PDF vai com cache (as duas leituras do mesmo edital reaproveitam o prefixo).
+ * Corpo da requisição. Tudo até o fim do bloco do documento (model, max_tokens, output_config com o
+ * esquema único, betas/fallbacks, sem system, o document com cache) é idêntico nas duas etapas e em
+ * qualquer cargo; só o texto final (instrução da etapa) muda, depois do breakpoint de cache.
  * Só opus/sonnet têm fallback no servidor (beta); o haiku vai sem `betas`/`fallbacks`.
  */
-export function montarRequisicao<A extends z.ZodType>(modelo: ModeloExtracao, fileId: string, prompt: string, esquemaApi: A) {
+export function montarRequisicao(modelo: ModeloExtracao, fileId: string, prompt: string) {
   const base = {
     model: modelo,
     max_tokens: 64000,
-    output_config: { effort: 'medium' as const, format: zodOutputFormat(esquemaApi) },
+    output_config: { effort: 'medium' as const, format: FORMATO_SAIDA },
     messages: [
       {
         role: 'user' as const,
@@ -175,17 +188,17 @@ export function lerMensagem<D extends z.ZodType>(msg: MensagemFinal, esquema: D,
   }
 }
 
-async function chamar<A extends z.ZodType, D extends z.ZodType>(
+async function chamar<K extends 'resumo' | 'conteudo', D extends z.ZodType>(
   client: Anthropic,
   modelo: ModeloExtracao,
   etapa: 'listar_cargos' | 'extrair_conteudo',
   fileId: string,
   prompt: string,
-  esquemaApi: A,
-  normalizar: (bruto: z.infer<A>) => z.input<D>,
+  campo: K,
+  normalizar: (bruto: NonNullable<z.infer<typeof ESQUEMA_SAIDA>[K]>) => z.input<D>,
   esquemaDominio: D,
 ): Promise<{ dados: z.infer<D>; custoCentavos: number }> {
-  const req = montarRequisicao(modelo, fileId, prompt, esquemaApi);
+  const req = montarRequisicao(modelo, fileId, prompt);
   const msg =
     'betas' in req ? await client.beta.messages.stream(req).finalMessage() : await client.messages.stream(req).finalMessage();
   // Registrado antes de interpretar: chamada inválida também é cobrada. O file_id identifica o edital
@@ -196,9 +209,11 @@ async function chamar<A extends z.ZodType, D extends z.ZodType>(
       `cache_leitura=${u.cache_read_input_tokens ?? 0} cache_escrita=${u.cache_creation_input_tokens ?? 0} ` +
       `centavos=${calcularCustoCentavos(modelo, u)}`,
   );
-  const { dados, custoCentavos } = lerMensagem(msg, esquemaApi, modelo);
+  const { dados, custoCentavos } = lerMensagem(msg, ESQUEMA_SAIDA, modelo);
   try {
-    return { dados: esquemaDominio.parse(normalizar(dados)), custoCentavos };
+    const parte = dados[campo];
+    if (parte === null) throw new Error(`campo "${campo}" ausente na resposta`);
+    return { dados: esquemaDominio.parse(normalizar(parte as NonNullable<typeof parte>)), custoCentavos };
   } catch (cause) {
     throw new ExtracaoFalhouError('A resposta da IA veio em formato inesperado. Tente novamente.', { cause, custoCentavos });
   }
@@ -215,7 +230,7 @@ export function extratorClaude(): Extrator {
       return f.id;
     },
     async listarCargos(fileId) {
-      const { dados, custoCentavos } = await chamar(client, modelo, 'listar_cargos', fileId, PROMPT_LISTAR_CARGOS, ResumoApi, normalizarResumo, EsquemaEditalResumo);
+      const { dados, custoCentavos } = await chamar(client, modelo, 'listar_cargos', fileId, PROMPT_LISTAR_CARGOS, 'resumo', normalizarResumo, EsquemaEditalResumo);
       if (dados.cargos.length === 0) {
         const erro = new EditalInvalidoError();
         erro.custoCentavos = custoCentavos;
@@ -224,7 +239,7 @@ export function extratorClaude(): Extrator {
       return { resumo: dados, custoCentavos };
     },
     async extrairConteudo(fileId, cargo) {
-      const { dados, custoCentavos } = await chamar(client, modelo, 'extrair_conteudo', fileId, promptExtrairConteudo(cargo), ConteudoApi, normalizarConteudo, EsquemaConteudoCargoIA);
+      const { dados, custoCentavos } = await chamar(client, modelo, 'extrair_conteudo', fileId, promptExtrairConteudo(cargo), 'conteudo', normalizarConteudo, EsquemaConteudoCargoIA);
       return { conteudo: dados, custoCentavos };
     },
   };

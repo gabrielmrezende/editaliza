@@ -14,7 +14,7 @@ Configure em *Project → Settings → Environment Variables*, separadas por amb
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | navegador e servidor | chave anon (pública) do mesmo projeto |
 | `SUPABASE_SERVICE_ROLE_KEY` | só servidor | **segredo**; nunca com prefixo `NEXT_PUBLIC_` |
 | `ANTHROPIC_API_KEY` | só servidor | **segredo**; chave da API da Anthropic |
-| `EXTRACAO_MODELO` | só servidor | opcional; modelo da leitura de editais: `claude-opus-5-5` (padrão se ausente), `claude-sonnet-5-5` ou `claude-haiku-5-5`. Valor fora da lista faz a leitura falhar com erro claro. O modelo usado aparece no log `[extracao]` de cada chamada |
+| `EXTRACAO_MODELO` | só servidor | opcional; modelo da leitura de editais: `claude-haiku-5-5` (padrão se ausente), `claude-sonnet-5-5` ou `claude-opus-5-5`. Valor fora da lista faz a leitura falhar com erro claro. O modelo usado aparece no log `[extracao]` de cada chamada |
 | `NEXT_PUBLIC_SITE_URL` | links de login | URL pública daquele ambiente, sem barra no final (ex.: `https://editaliza.com.br`; no preview, a URL do preview/staging) |
 
 **Nunca** defina `EXTRACAO_MODO` na Vercel. Ele só existe para testes locais (`fake`); em produção o
