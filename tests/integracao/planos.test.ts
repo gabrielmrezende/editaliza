@@ -217,6 +217,55 @@ describe('planos (serviço)', () => {
     expect(nada).toEqual([]);
   });
 
+  it('novo plano do mesmo cargo leva sessões e revisões pendentes', async () => {
+    const u = await criarUsuarioTeste(emailUnico('planos-sessoes'));
+    const e = await criarEdital({ acesso: [u.id] });
+    const antigo = await criarPlano(u.id, entrada(e), AGORA);
+    const db = admin();
+    const sessao = (disciplina: string, nome: string) => ({
+      user_id: u.id,
+      plano_id: antigo,
+      data: '2026-11-16',
+      disciplina_id: disciplina,
+      disciplina_nome: nome,
+      minutos: 30,
+      origem: 'manual',
+    });
+    const { data: sessoes, error } = await db
+      .from('sessoes_estudo')
+      .insert([sessao('d0', 'Português'), sessao('d9', 'Extinta')])
+      .select('id, disciplina_id');
+    if (error) throw error;
+    const revisao = (extra: Record<string, unknown>) => ({
+      user_id: u.id,
+      plano_id: antigo,
+      disciplina_id: 'd0',
+      disciplina_nome: 'Português',
+      topico_id: 'd0-t0',
+      topico_nome: 'Crase',
+      data_estudo: '2026-11-16',
+      data_revisao: '2026-11-17',
+      origem: 'sessao',
+      ...extra,
+    });
+    const { error: errRev } = await db
+      .from('revisoes')
+      .insert([revisao({ intervalo: 1 }), revisao({ intervalo: 7, concluida_em: '2026-11-16T12:00:00Z' })]);
+    if (errRev) throw errRev;
+
+    const novo = await criarPlano(u.id, entrada(e), AGORA);
+    const { data: depois } = await db
+      .from('sessoes_estudo')
+      .select('disciplina_id, plano_id')
+      .in('id', sessoes!.map((s) => s.id));
+    const planoDe = (d: string) => depois!.find((s) => s.disciplina_id === d)!.plano_id;
+    expect(planoDe('d0')).toBe(novo);
+    expect(planoDe('d9')).toBe(antigo);
+    const { data: revs } = await db.from('revisoes').select('plano_id, concluida_em').eq('user_id', u.id);
+    expect(revs!.find((r) => r.concluida_em === null)!.plano_id).toBe(novo);
+    expect(revs!.find((r) => r.concluida_em !== null)!.plano_id).toBe(antigo);
+  });
+
   describe('marcarTopico', () => {
     let planoId: string;
 
