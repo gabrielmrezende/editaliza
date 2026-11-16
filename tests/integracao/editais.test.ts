@@ -1,5 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import { admin, criarUsuarioTeste, emailUnico } from './ajuda';
 
@@ -135,6 +137,13 @@ describe('editais (serviço)', () => {
     const existente = await pdfUnico();
     await receberEdital(dono.id, await enviarTmp(dono, existente));
     await expect(receberEdital(u.id, await enviarTmp(u, existente))).resolves.toMatchObject({ novo: false });
+  });
+
+  it('pdf protegido por senha de permissoes e aceito', async () => {
+    const u = await criarUsuarioTeste(emailUnico('editais-protegido'));
+    const bytes = await readFile(path.join(process.cwd(), 'tests', 'fixtures', 'edital-protegido.pdf'));
+    const r = await receberEdital(u.id, await enviarTmp(u, bytes));
+    expect(r.editalId).toBeTruthy();
   });
 
   it('arquivo que nao e pdf e recusado', async () => {

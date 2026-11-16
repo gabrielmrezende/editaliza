@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { EsquemaConteudoCargoIA, EsquemaEditalResumo } from '@/lib/dominio/esquemas';
@@ -61,5 +63,9 @@ describe('extrator fake', () => {
     const erroConteudo = await ex.extrairConteudo('fake-ok', 'FALHA').catch((e) => e);
     expect(erroConteudo).toBeInstanceOf(ExtracaoFalhouError);
     expect(erroConteudo.custoCentavos).toBe(7);
+  });
+  it('enviarArquivo aceita PDF protegido por senha de permissoes', async () => {
+    const pdf = await readFile(path.join(process.cwd(), 'tests', 'fixtures', 'edital-protegido.pdf'));
+    await expect(obterExtrator().enviarArquivo(pdf)).resolves.toBe('fake-ok');
   });
 });

@@ -72,7 +72,8 @@ export async function receberEdital(
     let paginas: number;
     try {
       if (bytes.subarray(0, 5).toString('latin1') !== '%PDF-') throw new Error('sem cabeçalho PDF');
-      paginas = (await PDFDocument.load(bytes)).getPageCount();
+      // PDFs só com senha de permissões (sem senha de abertura) são comuns em editais: lê a estrutura assim mesmo.
+      paginas = (await PDFDocument.load(bytes, { ignoreEncryption: true })).getPageCount();
     } catch {
       throw new EnvioInvalidoError('arquivo não é um PDF válido', 400);
     }
