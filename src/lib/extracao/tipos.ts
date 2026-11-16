@@ -15,3 +15,11 @@ export class EditalInvalidoError extends Error {
     this.name = 'EditalInvalidoError';
   }
 }
+
+/** A IA não devolveu uma resposta utilizável (recusa, corte, vazia ou fora do formato). */
+export class ExtracaoFalhouError extends Error {
+  constructor(mensagem = 'Não foi possível ler o edital. Tente novamente em instantes.', opcoes?: { cause?: unknown }) {
+    super(mensagem, opcoes);
+    this.name = 'ExtracaoFalhouError';
+  }
+}

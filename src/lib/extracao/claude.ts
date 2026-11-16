@@ -4,7 +4,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod';
 import { EsquemaConteudoCargoIA, EsquemaEditalResumo } from '@/lib/dominio/esquemas';
 import { PROMPT_LISTAR_CARGOS, promptExtrairConteudo } from './prompts';
-import { EditalInvalidoError, type Extrator } from './tipos';
+import { EditalInvalidoError, ExtracaoFalhouError, type Extrator } from './tipos';
 
 const MODELO = 'claude-opus-5-5';
 const DOLAR_EM_CENTAVOS = 550;
@@ -38,6 +38,28 @@ const ConteudoApi = z.object({
   pesosInformados: z.boolean(),
 });
 
+/** Converte o texto da resposta em valor validado; qualquer falha vira ExtracaoFalhouError. */
+export function interpretarResposta<D extends z.ZodType>(
+  stopReason: string | null | undefined,
+  texto: string,
+  esquema: D,
+): z.infer<D> {
+  if (stopReason !== 'end_turn') {
+    throw new ExtracaoFalhouError(
+      stopReason === 'refusal'
+        ? 'A IA não pôde ler este documento.'
+        : 'A leitura do edital foi interrompida. Tente novamente.',
+      { cause: stopReason },
+    );
+  }
+  if (texto.trim() === '') throw new ExtracaoFalhouError('A IA não devolveu nenhum conteúdo. Tente novamente.');
+  try {
+    return esquema.parse(JSON.parse(texto));
+  } catch (cause) {
+    throw new ExtracaoFalhouError('A resposta da IA veio em formato inesperado. Tente novamente.', { cause });
+  }
+}
+
 async function chamar<A extends z.ZodType, D extends z.ZodType>(
   client: Anthropic,
   fileId: string,
@@ -62,10 +84,8 @@ async function chamar<A extends z.ZodType, D extends z.ZodType>(
     ],
   });
   const msg = await stream.finalMessage();
-  if (msg.stop_reason === 'refusal') throw new Error('A IA recusou-se a ler o documento.');
-  if (msg.stop_reason === 'max_tokens') throw new Error('A resposta da IA foi cortada (limite de tokens).');
   const texto = msg.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
-  const dados = esquemaDominio.parse(JSON.parse(texto));
+  const dados = interpretarResposta(msg.stop_reason, texto, esquemaDominio);
   return { dados, custoCentavos: calcularCustoCentavos(msg.usage.input_tokens, msg.usage.output_tokens) };
 }
 
