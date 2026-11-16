@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { INTERVALOS_REVISAO } from '@/lib/dominio/acompanhamento';
 
 // Regras puras do cronômetro de estudo. Nada aqui lê o relógio: quem chama passa `agora` (ms).
 
@@ -15,8 +16,7 @@ export const ESQUECIDO_SEG = 6 * 3600;
 
 const MAX_MINUTOS = 1440;
 const TOLERANCIA_FUTURO_MS = 60_000;
-// Cópia local; a fonte da verdade (INTERVALOS_REVISAO) virá de acompanhamento.ts.
-const INTERVALOS_VALIDOS = [1, 7, 21, 30];
+const INTERVALOS_VALIDOS: readonly number[] = INTERVALOS_REVISAO;
 
 function decorridoSeg(iniciadoEm: number, agora: number): number {
   return Math.max(0, Math.floor((agora - iniciadoEm) / 1000));

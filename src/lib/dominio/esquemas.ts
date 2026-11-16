@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { INTERVALOS_REVISAO, ORIGENS_SESSAO, TIPOS_SESSAO } from './acompanhamento';
 import type { ConteudoCargo, MinutosPorDia } from './tipos';
 
 const dataIso = z.iso.date('Data deve estar no formato aaaa-mm-dd');
@@ -47,6 +48,57 @@ export const EsquemaEntradaCriarPlano = z.object({
   message: 'O plano precisa de ao menos 1 tópico.',
   path: ['disciplinas'],
 });
+
+const idCurto = z.string().min(1).max(64);
+const contagem = z.number().int().min(0).max(10000);
+const observacao = z
+  .string()
+  .trim()
+  .max(1000)
+  .transform((v) => (v === '' ? null : v))
+  .nullable();
+
+export const EsquemaNovaSessao = z
+  .object({
+    planoId: z.uuid(),
+    data: dataIso,
+    disciplinaId: idCurto,
+    topicoId: idCurto.nullable(),
+    minutos: z.number().int().min(0).max(1440),
+    acertos: contagem.default(0),
+    erros: contagem.default(0),
+    tipo: z.enum(TIPOS_SESSAO).nullable(),
+    observacao,
+    origem: z.enum(ORIGENS_SESSAO),
+    intervalos: z
+      .array(z.number().refine((n) => (INTERVALOS_REVISAO as readonly number[]).includes(n), 'Intervalo inválido.'))
+      .refine((v) => new Set(v).size === v.length, 'Intervalos repetidos.')
+      .default([]),
+    concluir: z.boolean().default(false),
+  })
+  .refine((s) => s.minutos > 0 || s.acertos + s.erros > 0, {
+    message: 'Informe o tempo ou as questões.',
+    path: ['minutos'],
+  })
+  .refine((s) => s.topicoId !== null || (s.intervalos.length === 0 && !s.concluir), {
+    message: 'Revisões e conclusão exigem um tópico.',
+    path: ['topicoId'],
+  });
+export type NovaSessao = z.infer<typeof EsquemaNovaSessao>;
+
+export const EsquemaEdicaoSessao = z
+  .object({
+    data: dataIso,
+    disciplinaId: idCurto,
+    topicoId: idCurto.nullable(),
+    minutos: z.number().int().min(0).max(1440),
+    acertos: contagem,
+    erros: contagem,
+    tipo: z.enum(TIPOS_SESSAO).nullable(),
+    observacao,
+  })
+  .partial()
+  .refine((e) => Object.values(e).some((v) => v !== undefined), 'Informe ao menos um campo.');
 
 export function atribuirIds(ia: ConteudoCargoIA): ConteudoCargo {
   return {

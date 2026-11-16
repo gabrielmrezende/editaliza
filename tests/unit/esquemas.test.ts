@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   EsquemaConteudoCargoIA,
+  EsquemaEdicaoSessao,
   EsquemaEditalResumo,
   EsquemaEntradaCriarPlano,
+  EsquemaNovaSessao,
   atribuirIds,
 } from '@/lib/dominio/esquemas';
 
@@ -94,5 +96,48 @@ describe('EsquemaEntradaCriarPlano', () => {
   });
   it('rejeita lista de disciplinas vazia', () => {
     expect(EsquemaEntradaCriarPlano.safeParse({ ...entrada, disciplinas: [] }).success).toBe(false);
+  });
+});
+
+describe('EsquemaNovaSessao', () => {
+  const base = {
+    planoId: uuid, data: '2026-11-16', disciplinaId: 'd0', topicoId: 'd0-t0', minutos: 30, tipo: null,
+    observacao: null, origem: 'manual' as const,
+  };
+
+  it('aplica padrões', () => {
+    const r = EsquemaNovaSessao.parse(base);
+    expect(r).toMatchObject({ acertos: 0, erros: 0, intervalos: [], concluir: false });
+  });
+
+  it('exige tempo ou questões', () => {
+    const r = EsquemaNovaSessao.safeParse({ ...base, minutos: 0 });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0].message).toBe('Informe o tempo ou as questões.');
+    expect(EsquemaNovaSessao.safeParse({ ...base, minutos: 0, acertos: 3 }).success).toBe(true);
+  });
+
+  it('rejeita intervalo inválido ou repetido', () => {
+    expect(EsquemaNovaSessao.safeParse({ ...base, intervalos: [2] }).success).toBe(false);
+    expect(EsquemaNovaSessao.safeParse({ ...base, intervalos: [1, 1] }).success).toBe(false);
+    expect(EsquemaNovaSessao.safeParse({ ...base, intervalos: [1, 7] }).success).toBe(true);
+  });
+
+  it('intervalos e concluir exigem tópico', () => {
+    expect(EsquemaNovaSessao.safeParse({ ...base, topicoId: null, intervalos: [1] }).success).toBe(false);
+    expect(EsquemaNovaSessao.safeParse({ ...base, topicoId: null, concluir: true }).success).toBe(false);
+    expect(EsquemaNovaSessao.safeParse({ ...base, topicoId: null }).success).toBe(true);
+  });
+
+  it('observação em branco vira null', () => {
+    expect(EsquemaNovaSessao.parse({ ...base, observacao: '   ' }).observacao).toBeNull();
+    expect(EsquemaNovaSessao.parse({ ...base, observacao: ' oi ' }).observacao).toBe('oi');
+  });
+});
+
+describe('EsquemaEdicaoSessao', () => {
+  it('exige ao menos um campo', () => {
+    expect(EsquemaEdicaoSessao.safeParse({}).success).toBe(false);
+    expect(EsquemaEdicaoSessao.safeParse({ minutos: 10 }).success).toBe(true);
   });
 });
