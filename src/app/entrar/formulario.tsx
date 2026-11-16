@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { urlDoSite } from '@/lib/url-site';
 import { criarClienteNavegador } from '@/lib/supabase/navegador';
 
 type Estado = 'parado' | 'enviando' | 'enviado' | 'erro';
@@ -11,7 +12,7 @@ export function FormularioEntrar() {
   const [estado, setEstado] = useState<Estado>('parado');
   const falhouCallback = useSearchParams().get('erro') !== null;
 
-  const urlCallback = () => `${window.location.origin}/auth/callback`;
+  const urlCallback = () => `${urlDoSite()}/auth/callback`;
 
   async function enviarLink(e: React.FormEvent) {
     e.preventDefault();
