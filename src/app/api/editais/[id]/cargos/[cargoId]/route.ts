@@ -12,7 +12,7 @@ async function carregar(id: string, cargoId: string) {
   if ('resposta' in acesso) return { resposta: acesso.resposta };
   const cargo = idValido(cargoId) ? await lerCargo(cargoId) : null;
   if (!cargo || cargo.editalId !== id) return { resposta: naoEncontrado() };
-  return { cargo };
+  return { cargo, userId: acesso.userId };
 }
 
 export async function GET(_req: Request, { params }: Ctx) {
@@ -33,7 +33,7 @@ export async function POST(_req: Request, { params }: Ctx) {
     const r = await carregar(id, cargoId);
     if ('resposta' in r) return r.resposta;
     if (r.cargo.statusConteudo === 'pronto') return json({ statusConteudo: 'pronto' }, 200);
-    if (await iniciarConteudo(cargoId)) {
+    if (await iniciarConteudo(r.userId, cargoId)) {
       after(() => processarConteudo(cargoId));
     }
     return json({ statusConteudo: 'processando' }, 202);

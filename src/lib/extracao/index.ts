@@ -1,8 +1,8 @@
 import { extratorFake } from './fake';
 import { extratorClaude } from './claude';
-import { EditalInvalidoError, ExtracaoFalhouError, type Extrator } from './tipos';
+import { custoDoErro, EditalInvalidoError, ExtracaoFalhouError, type Extrator } from './tipos';
 
-export { EditalInvalidoError, ExtracaoFalhouError };
+export { custoDoErro, EditalInvalidoError, ExtracaoFalhouError };
 export type { Extrator };
 
 // O extrator fake lê fixtures de tests/ e serve apenas para dev/e2e; nunca em produção.

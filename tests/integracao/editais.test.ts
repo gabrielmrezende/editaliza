@@ -164,13 +164,13 @@ describe('editais (serviço)', () => {
 
   it('cargo preso em processando ha mais de 10 min vira erro e pode ser reivindicado de novo', async () => {
     const { editalId, cargoId } = await editalPronto();
-    expect(await iniciarConteudo(cargoId)).toBe(true);
+    expect(await iniciarConteudo(usuario.id, cargoId)).toBe(true);
     // Em andamento e recente: não reivindica de novo.
-    expect(await iniciarConteudo(cargoId)).toBe(false);
+    expect(await iniciarConteudo(usuario.id, cargoId)).toBe(false);
     const velho = new Date(Date.now() - 11 * 60_000).toISOString();
     await admin().from('edital_cargos').update({ processando_desde: velho }).eq('id', cargoId);
     // Reivindicação direta de um processando travado.
-    expect(await iniciarConteudo(cargoId)).toBe(true);
+    expect(await iniciarConteudo(usuario.id, cargoId)).toBe(true);
     // Leitura trata como erro e grava.
     await admin().from('edital_cargos').update({ processando_desde: velho }).eq('id', cargoId);
     const visao = await lerCargo(cargoId);
@@ -213,13 +213,13 @@ describe('editais (serviço)', () => {
       .insert({ edital_id: editalId, nome: 'Cargo X' })
       .select('id')
       .single();
-    await expect(iniciarConteudo(data!.id)).rejects.toMatchObject({ status: 409 });
+    await expect(iniciarConteudo(usuario.id, data!.id)).rejects.toMatchObject({ status: 409 });
   });
 
   it('tentar novamente recusa edital que nao e edital (409) mas reabre erro comum', async () => {
     const { editalId: invalido } = await receberNovo('INVALIDO');
     await processarCargos(invalido);
-    await expect(reiniciarEdital(invalido)).rejects.toMatchObject({
+    await expect(reiniciarEdital(usuario.id, invalido)).rejects.toMatchObject({
       status: 409,
       message: 'Este arquivo não parece ser um edital de concurso.',
     });
@@ -227,7 +227,7 @@ describe('editais (serviço)', () => {
 
     const { editalId } = await receberNovo();
     await admin().from('editais').update({ status: 'erro', erro: 'Não conseguimos ler este edital. Tente de novo ou envie outro arquivo.' }).eq('id', editalId);
-    expect(await reiniciarEdital(editalId)).toBe(true);
+    expect(await reiniciarEdital(usuario.id, editalId)).toBe(true);
     expect((await linhaEdital(editalId)).status).toBe('processando');
   });
 
@@ -257,5 +257,84 @@ describe('editais (serviço)', () => {
     // Não consumiu limite extra: continua 1 edital deste usuário.
     const { count } = await admin().from('editais').select('id', { count: 'exact', head: true }).eq('enviado_por', u.id);
     expect(count).toBe(1);
+  });
+  describe('custo e cota de IA', () => {
+    const MSG_COTA = 'Você atingiu o limite de leituras por hoje. Tente novamente amanhã.';
+
+    /** Simula `n` chamadas de IA já feitas pelo usuário (opcionalmente há `horasAtras`). */
+    async function gastarCota(userId: string, n: number, horasAtras = 0) {
+      const criado_em = new Date(Date.now() - horasAtras * 3_600_000).toISOString();
+      const { error } = await admin()
+        .from('cotas_uso')
+        .insert(Array.from({ length: n }, () => ({ user_id: userId, tipo: 'ia', criado_em })));
+      if (error) throw error;
+    }
+
+    it('custo de listar cargos e gravado mesmo quando a IA falha', async () => {
+      const { editalId } = await receberNovo('FALHA');
+      await processarCargos(editalId);
+      const edital = await linhaEdital(editalId);
+      expect(edital.status).toBe('erro');
+      expect(edital.custo_centavos).toBe(7);
+    });
+
+    it('custo de extrair conteudo e gravado mesmo quando a IA falha', async () => {
+      const { editalId } = await editalPronto();
+      const { data } = await admin().from('edital_cargos').insert({ edital_id: editalId, nome: 'FALHA' }).select('id').single();
+      await processarConteudo(data!.id);
+      const { data: cargo } = await admin().from('edital_cargos').select('status_conteudo').eq('id', data!.id).single();
+      expect(cargo!.status_conteudo).toBe('erro');
+      expect((await linhaEdital(editalId)).custo_centavos).toBe(7);
+    });
+
+    it('16a chamada de IA em 24 h e recusada (429) e o cargo nao fica preso', async () => {
+      const { editalId } = await editalPronto();
+      const u = await criarUsuarioTeste(emailUnico('editais-cota'));
+      await admin().from('edital_acessos').insert({ user_id: u.id, edital_id: editalId });
+      const { data: cargos } = await admin()
+        .from('edital_cargos')
+        .insert(Array.from({ length: 16 }, (_, i) => ({ edital_id: editalId, nome: `Cargo Q${i}` })))
+        .select('id');
+      for (const c of cargos!.slice(0, 15)) expect(await iniciarConteudo(u.id, c.id)).toBe(true);
+      const decimoSexto = cargos![15].id;
+      await expect(iniciarConteudo(u.id, decimoSexto)).rejects.toMatchObject({ status: 429, message: MSG_COTA });
+      const { data } = await admin().from('edital_cargos').select('status_conteudo, erro').eq('id', decimoSexto).single();
+      expect(data).toEqual({ status_conteudo: 'erro', erro: MSG_COTA });
+    });
+
+    it('tentar novamente tambem conta na cota', async () => {
+      const u = await criarUsuarioTeste(emailUnico('editais-cota-retry'));
+      const { editalId } = await receberEdital(u.id, await enviarTmp(u, await pdfUnico()));
+      await admin().from('editais').update({ status: 'erro', erro: 'x' }).eq('id', editalId);
+      await gastarCota(u.id, 14); // + 1 do envio = 15
+      await expect(reiniciarEdital(u.id, editalId)).rejects.toMatchObject({ status: 429, message: MSG_COTA });
+      expect((await linhaEdital(editalId)).status).toBe('erro');
+    });
+
+    it('envio de edital novo acima da cota responde 429; chamadas antigas nao contam', async () => {
+      const u = await criarUsuarioTeste(emailUnico('editais-cota-envio'));
+      await gastarCota(u.id, 15, 25); // fora da janela
+      const ok = await receberEdital(u.id, await enviarTmp(u, await pdfUnico()));
+      expect(ok.novo).toBe(true);
+      await gastarCota(u.id, 14);
+      const erro = await receberEdital(u.id, await enviarTmp(u, await pdfUnico())).catch((e) => e);
+      expect(erro).toMatchObject({ status: 429, message: MSG_COTA });
+      // Edital existente (sem chamada de IA) continua liberado.
+      const dono = await criarUsuarioTeste(emailUnico('editais-cota-dono'));
+      const existente = await pdfUnico();
+      await receberEdital(dono.id, await enviarTmp(dono, existente));
+      await expect(receberEdital(u.id, await enviarTmp(u, existente))).resolves.toMatchObject({ novo: false });
+    });
+
+    it('cota e atomica sob chamadas paralelas', async () => {
+      const u = await criarUsuarioTeste(emailUnico('editais-cota-paralelo'));
+      const r = await Promise.all(
+        Array.from({ length: 20 }, () =>
+          admin().rpc('consumir_cota', { p_user: u.id, p_tipo: 'ia', p_limite: 15, p_janela_minutos: 1440 }),
+        ),
+      );
+      expect(r.every((x) => x.error === null)).toBe(true);
+      expect(r.filter((x) => x.data === true)).toHaveLength(15);
+    });
   });
 });

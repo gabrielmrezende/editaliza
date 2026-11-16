@@ -1,7 +1,7 @@
 import { PDFDocument } from 'pdf-lib';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { EsquemaConteudoCargoIA, EsquemaEditalResumo } from '@/lib/dominio/esquemas';
-import { EditalInvalidoError, obterExtrator } from '@/lib/extracao';
+import { EditalInvalidoError, ExtracaoFalhouError, obterExtrator } from '@/lib/extracao';
 
 async function pdfComTitulo(titulo: string): Promise<Buffer> {
   const doc = await PDFDocument.create();
@@ -50,5 +50,16 @@ describe('extrator fake', () => {
     const id = await ex.enviarArquivo(await pdfComTitulo('Edital 1/2026'));
     expect(id).toBe('fake-ok');
     await expect(ex.listarCargos(id)).resolves.toBeDefined();
+  });
+  it('enviarArquivo: título FALHA → fake-falha; as chamadas falham com custo', async () => {
+    const ex = obterExtrator();
+    const id = await ex.enviarArquivo(await pdfComTitulo('FALHA'));
+    expect(id).toBe('fake-falha');
+    const erro = await ex.listarCargos(id).catch((e) => e);
+    expect(erro).toBeInstanceOf(ExtracaoFalhouError);
+    expect(erro.custoCentavos).toBe(7);
+    const erroConteudo = await ex.extrairConteudo('fake-ok', 'FALHA').catch((e) => e);
+    expect(erroConteudo).toBeInstanceOf(ExtracaoFalhouError);
+    expect(erroConteudo.custoCentavos).toBe(7);
   });
 });

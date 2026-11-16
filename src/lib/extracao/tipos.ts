@@ -10,6 +10,8 @@ export interface Extrator {
 
 /** O PDF não parece um edital, ou nenhum cargo foi encontrado. */
 export class EditalInvalidoError extends Error {
+  /** Custo da chamada de IA que levou a este erro (a chamada é cobrada mesmo assim). */
+  custoCentavos = 0;
   constructor(mensagem = 'O arquivo não parece ser um edital com cargos.') {
     super(mensagem);
     this.name = 'EditalInvalidoError';
@@ -18,8 +20,19 @@ export class EditalInvalidoError extends Error {
 
 /** A IA não devolveu uma resposta utilizável (recusa, corte, vazia ou fora do formato). */
 export class ExtracaoFalhouError extends Error {
-  constructor(mensagem = 'Não foi possível ler o edital. Tente novamente em instantes.', opcoes?: { cause?: unknown }) {
+  /** Custo da chamada de IA que falhou (a chamada é cobrada mesmo assim). */
+  custoCentavos: number;
+  constructor(
+    mensagem = 'Não foi possível ler o edital. Tente novamente em instantes.',
+    opcoes?: { cause?: unknown; custoCentavos?: number },
+  ) {
     super(mensagem, opcoes);
     this.name = 'ExtracaoFalhouError';
+    this.custoCentavos = opcoes?.custoCentavos ?? 0;
   }
+}
+
+/** Custo carregado por um erro de extração (0 se o erro não veio de uma chamada de IA). */
+export function custoDoErro(erro: unknown): number {
+  return erro instanceof ExtracaoFalhouError || erro instanceof EditalInvalidoError ? erro.custoCentavos : 0;
 }

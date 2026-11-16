@@ -60,6 +60,51 @@ export function interpretarResposta<D extends z.ZodType>(
   }
 }
 
+/** Corpo da requisição: o PDF vai com cache (as duas leituras do mesmo edital reaproveitam o prefixo). */
+export function montarRequisicao<A extends z.ZodType>(fileId: string, prompt: string, esquemaApi: A) {
+  return {
+    model: MODELO,
+    max_tokens: 64000,
+    betas: ['server-side-fallback-2026-07-01'],
+    fallbacks: 'default' as const,
+    output_config: { effort: 'medium' as const, format: zodOutputFormat(esquemaApi) },
+    messages: [
+      {
+        role: 'user' as const,
+        content: [
+          {
+            type: 'document' as const,
+            source: { type: 'file' as const, file_id: fileId },
+            cache_control: { type: 'ephemeral' as const },
+          },
+          { type: 'text' as const, text: prompt },
+        ],
+      },
+    ],
+  };
+}
+
+type MensagemFinal = {
+  stop_reason: string | null | undefined;
+  content: { type: string; text?: string }[];
+  usage: { input_tokens: number; output_tokens: number; cache_creation_input_tokens?: number | null; cache_read_input_tokens?: number | null };
+};
+
+/** Custo calculado ANTES de interpretar: uma resposta inválida também é cobrada e vai no erro. */
+export function lerMensagem<D extends z.ZodType>(msg: MensagemFinal, esquema: D): { dados: z.infer<D>; custoCentavos: number } {
+  const u = msg.usage;
+  // Escrita em cache custa 1,25× a entrada; leitura, 0,1× (arredondado para cima no total).
+  const entrada = u.input_tokens + 1.25 * (u.cache_creation_input_tokens ?? 0) + 0.1 * (u.cache_read_input_tokens ?? 0);
+  const custoCentavos = calcularCustoCentavos(entrada, u.output_tokens);
+  const texto = msg.content.flatMap((b) => (b.type === 'text' && typeof b.text === 'string' ? [b.text] : [])).join('');
+  try {
+    return { dados: interpretarResposta(msg.stop_reason, texto, esquema), custoCentavos };
+  } catch (erro) {
+    if (erro instanceof ExtracaoFalhouError) erro.custoCentavos = custoCentavos;
+    throw erro;
+  }
+}
+
 async function chamar<A extends z.ZodType, D extends z.ZodType>(
   client: Anthropic,
   fileId: string,
@@ -67,26 +112,8 @@ async function chamar<A extends z.ZodType, D extends z.ZodType>(
   esquemaApi: A,
   esquemaDominio: D,
 ): Promise<{ dados: z.infer<D>; custoCentavos: number }> {
-  const stream = client.beta.messages.stream({
-    model: MODELO,
-    max_tokens: 64000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-    output_config: { effort: 'medium', format: zodOutputFormat(esquemaApi) },
-    messages: [
-      {
-        role: 'user',
-        content: [
-          { type: 'document', source: { type: 'file', file_id: fileId } },
-          { type: 'text', text: prompt },
-        ],
-      },
-    ],
-  });
-  const msg = await stream.finalMessage();
-  const texto = msg.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
-  const dados = interpretarResposta(msg.stop_reason, texto, esquemaDominio);
-  return { dados, custoCentavos: calcularCustoCentavos(msg.usage.input_tokens, msg.usage.output_tokens) };
+  const msg = await client.beta.messages.stream(montarRequisicao(fileId, prompt, esquemaApi)).finalMessage();
+  return lerMensagem(msg, esquemaDominio);
 }
 
 export function extratorClaude(): Extrator {
@@ -100,7 +127,11 @@ export function extratorClaude(): Extrator {
     },
     async listarCargos(fileId) {
       const { dados, custoCentavos } = await chamar(client, fileId, PROMPT_LISTAR_CARGOS, ResumoApi, EsquemaEditalResumo);
-      if (dados.cargos.length === 0) throw new EditalInvalidoError();
+      if (dados.cargos.length === 0) {
+        const erro = new EditalInvalidoError();
+        erro.custoCentavos = custoCentavos;
+        throw erro;
+      }
       return { resumo: dados, custoCentavos };
     },
     async extrairConteudo(fileId, cargo) {

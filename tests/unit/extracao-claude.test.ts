@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { calcularCustoCentavos, interpretarResposta } from '@/lib/extracao/claude';
+import { calcularCustoCentavos, interpretarResposta, lerMensagem, montarRequisicao } from '@/lib/extracao/claude';
 import { ExtracaoFalhouError, obterExtrator } from '@/lib/extracao';
 
 const Esq = z.object({ a: z.number() });
@@ -54,5 +54,40 @@ describe('obterExtrator em produção', () => {
       if (ant.m === undefined) delete process.env.EXTRACAO_MODO; else process.env.EXTRACAO_MODO = ant.m;
       (process.env as Record<string, string>).NODE_ENV = ant.n as string;
     }
+  });
+});
+
+describe('lerMensagem', () => {
+  const usage = { input_tokens: 1_000_000, output_tokens: 0 };
+  it('sucesso devolve dados e custo', () => {
+    const msg = { stop_reason: 'end_turn', content: [{ type: 'text', text: '{"a":2}' }], usage };
+    expect(lerMensagem(msg, Esq)).toEqual({ dados: { a: 2 }, custoCentavos: 2200 });
+  });
+  it.each([
+    ['max_tokens', [{ type: 'text', text: '{"a":1}' }]],
+    ['end_turn', [{ type: 'text', text: '{nope' }]],
+    ['refusal', []],
+  ])('falha (%s) carrega o custo da chamada', (stop, content) => {
+    const erro = (() => {
+      try {
+        lerMensagem({ stop_reason: stop, content, usage }, Esq);
+      } catch (e) {
+        return e;
+      }
+    })();
+    expect(erro).toBeInstanceOf(ExtracaoFalhouError);
+    expect((erro as ExtracaoFalhouError).custoCentavos).toBe(2200);
+  });
+});
+
+describe('montarRequisicao', () => {
+  it('usa o modelo com esforco medio, fallbacks e cache no documento', () => {
+    const req = montarRequisicao('file_1', 'prompt', Esq);
+    expect(req.model).toBe('claude-opus-5-5');
+    expect(req.output_config?.effort).toBe('medium');
+    expect(req.fallbacks).toBe('default');
+    const [doc, texto] = req.messages[0].content as { type: string; cache_control?: unknown }[];
+    expect(doc).toMatchObject({ type: 'document', source: { type: 'file', file_id: 'file_1' }, cache_control: { type: 'ephemeral' } });
+    expect(texto).toMatchObject({ type: 'text', text: 'prompt' });
   });
 });

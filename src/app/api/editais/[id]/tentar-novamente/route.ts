@@ -11,7 +11,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     if ('resposta' in acesso) return acesso.resposta;
     // Estado "processando há muito tempo" é gravado como erro pelo GET.
     await lerEdital(id);
-    if (await reiniciarEdital(id)) {
+    if (await reiniciarEdital(acesso.userId, id)) {
       after(() => processarCargos(id));
     }
     const edital = await lerEdital(id);

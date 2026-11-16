@@ -8,3 +8,13 @@ export const PROCESSANDO_MAX_MINUTOS = 10;
 
 export const MSG_ERRO_GENERICO = 'Não conseguimos ler este edital. Tente de novo ou envie outro arquivo.';
 export const MSG_EDITAL_INVALIDO = 'Este arquivo não parece ser um edital de concurso.';
+
+/** Chamadas de IA (listar cargos + extrair conteúdo, inclusive novas tentativas) por usuário na janela. */
+export const MAX_CHAMADAS_IA = 15;
+export const JANELA_IA_MINUTOS = 24 * 60;
+export const MSG_COTA_IA = 'Você atingiu o limite de leituras por hoje. Tente novamente amanhã.';
+
+/** URLs assinadas de envio por usuário na janela. */
+export const MAX_URLS_ENVIO = 20;
+export const JANELA_URLS_MINUTOS = 60;
+export const MSG_COTA_URLS = 'Você fez muitos envios na última hora. Aguarde um pouco e tente de novo.';

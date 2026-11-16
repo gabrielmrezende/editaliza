@@ -1,14 +1,18 @@
 import 'server-only';
 import { PDFDocument } from 'pdf-lib';
 import { atribuirIds } from '@/lib/dominio/esquemas';
-import { EditalInvalidoError, obterExtrator } from '@/lib/extracao';
+import { consumirCota } from '@/lib/cotas';
+import { custoDoErro, EditalInvalidoError, obterExtrator } from '@/lib/extracao';
 import { criarClienteAdmin } from '@/lib/supabase/admin';
 import { sha256Hex } from './hash';
 import {
   JANELA_HORAS,
+  JANELA_IA_MINUTOS,
   MAX_BYTES,
+  MAX_CHAMADAS_IA,
   MAX_NOVOS_POR_JANELA,
   MAX_PAGINAS,
+  MSG_COTA_IA,
   MSG_EDITAL_INVALIDO,
   MSG_ERRO_GENERICO,
   PROCESSANDO_MAX_MINUTOS,
@@ -30,6 +34,19 @@ export class EnvioInvalidoError extends Error {
 function mensagemDeErro(erro: unknown): string {
   return erro instanceof EditalInvalidoError ? MSG_EDITAL_INVALIDO : MSG_ERRO_GENERICO;
 }
+
+/**
+ * Cobra uma chamada de IA do usuário que a provocou, antes da chamada. Acima da cota, `liberar`
+ * desfaz a reivindicação (o item volta a 'erro' com a mensagem da cota) e a rota responde 429.
+ */
+async function cobrarChamadaIA(userId: string, liberar: () => PromiseLike<unknown>): Promise<void> {
+  if (await consumirCota(userId, 'ia', MAX_CHAMADAS_IA, JANELA_IA_MINUTOS)) return;
+  await liberar();
+  throw new EnvioInvalidoError(MSG_COTA_IA, 429);
+}
+
+const liberarEdital = (editalId: string) => () =>
+  criarClienteAdmin().from('editais').update({ status: 'erro', erro: MSG_COTA_IA }).eq('id', editalId);
 
 /**
  * Valida e registra o PDF enviado para tmp/. O agendamento do processamento
@@ -109,6 +126,9 @@ export async function receberEdital(
       await marcarErroEdital(editalId, erro);
       throw erro;
     }
+    // A leitura dos cargos (IA) será agendada pela rota: cobra antes. Acima da cota o edital fica
+    // em 'erro' com o arquivo guardado, e "tentar de novo" funciona depois.
+    await cobrarChamadaIA(userId, liberarEdital(editalId));
     return { editalId, novo: true };
   } finally {
     await armazem.remove([caminho]);
@@ -193,12 +213,16 @@ export async function processarCargos(editalId: string): Promise<void> {
     if (errUp) throw errUp;
     await somarCusto(editalId, custoCentavos);
   } catch (erro) {
+    await somarCusto(editalId, custoDoErro(erro));
     await marcarErroEdital(editalId, erro);
   }
 }
 
-/** Reabre um edital em 'erro'. Falso se não estava em erro; 409 se o arquivo não é um edital. */
-export async function reiniciarEdital(editalId: string): Promise<boolean> {
+/**
+ * Reabre um edital em 'erro' (cobrando a nova leitura de quem pediu). Falso se não estava em erro;
+ * 409 se o arquivo não é um edital; 429 acima da cota de IA.
+ */
+export async function reiniciarEdital(userId: string, editalId: string): Promise<boolean> {
   const db = criarClienteAdmin();
   const { data: atual, error: errLer } = await db
     .from('editais')
@@ -216,7 +240,9 @@ export async function reiniciarEdital(editalId: string): Promise<boolean> {
     .eq('status', 'erro')
     .select('id');
   if (error) throw error;
-  return (data?.length ?? 0) > 0;
+  if ((data?.length ?? 0) === 0) return false;
+  await cobrarChamadaIA(userId, liberarEdital(editalId));
+  return true;
 }
 
 function limiteExpirado(): string {
@@ -238,9 +264,10 @@ async function expirarCargos(filtro: { editalId?: string; cargoId?: string }): P
 
 /**
  * Reivindica o cargo para extração (pendente/erro → processando; também um 'processando' travado
- * há mais de 10 min). Falso se já em andamento ou pronto. 409 se o edital ainda não está pronto.
+ * há mais de 10 min), cobrando a chamada de quem pediu. Falso se já em andamento ou pronto.
+ * 409 se o edital ainda não está pronto; 429 acima da cota de IA.
  */
-export async function iniciarConteudo(cargoId: string): Promise<boolean> {
+export async function iniciarConteudo(userId: string, cargoId: string): Promise<boolean> {
   const db = criarClienteAdmin();
   const { data: cargo, error: errCargo } = await db
     .from('edital_cargos')
@@ -261,12 +288,17 @@ export async function iniciarConteudo(cargoId: string): Promise<boolean> {
     )
     .select('id');
   if (error) throw error;
-  return (data?.length ?? 0) > 0;
+  if ((data?.length ?? 0) === 0) return false;
+  await cobrarChamadaIA(userId, () =>
+    db.from('edital_cargos').update({ status_conteudo: 'erro', erro: MSG_COTA_IA }).eq('id', cargoId),
+  );
+  return true;
 }
 
 /** Extrai o conteúdo programático do cargo. O nome do cargo vem do banco, nunca do cliente. Nunca lança. */
 export async function processarConteudo(cargoId: string): Promise<void> {
   const db = criarClienteAdmin();
+  let editalId: string | null = null;
   try {
     const { data: cargo, error } = await db
       .from('edital_cargos')
@@ -274,6 +306,7 @@ export async function processarConteudo(cargoId: string): Promise<void> {
       .eq('id', cargoId)
       .single();
     if (error) throw error;
+    editalId = cargo.edital_id;
     const { data: edital, error: errEdital } = await db
       .from('editais')
       .select('anthropic_file_id')
@@ -292,6 +325,7 @@ export async function processarConteudo(cargoId: string): Promise<void> {
     await somarCusto(cargo.edital_id, custoCentavos);
   } catch (erro) {
     console.error(`[editais] falha ao extrair conteúdo do cargo ${cargoId}`, erro);
+    if (editalId) await somarCusto(editalId, custoDoErro(erro));
     await db
       .from('edital_cargos')
       .update({ status_conteudo: 'erro', erro: mensagemDeErro(erro) })
