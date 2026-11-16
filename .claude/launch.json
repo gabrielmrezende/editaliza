@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "central-estudos",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8765", "--bind", "127.0.0.1", "--directory", "C:\\Users\\gabri\\OneDrive\\Área de Trabalho\\Central de Estudos TI"],
+      "port": 8765
+    }
+  ]
+}

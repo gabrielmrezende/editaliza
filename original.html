@@ -1,0 +1,2458 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central de Estudos TI — BACEN, CGU e Banco do Brasil</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --navy:#0D134C;--navy-mid:#1a2060;--mint:#AFE8D0;--mint-d:#7dcfb0;
+  --lime:#BAFF38;--rust:#C8102E;--rust-dark:#a50e25;--amber:#EFBD7B;
+  --white:#fff;--bg:#eef0f7;--border:#e2e5f0;
+  --text:#0D134C;--text-mid:#4a5080;--text-soft:#8a90b8;
+  --green:#22c55e;--green-bg:#dcfce7;--red:#ef4444;--red-bg:#fee2e2;
+  --yellow:#f59e0b;--yellow-bg:#fef3c7;--sidebar-w:240px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;max-width:100%;overflow-x:hidden;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--navy);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:200;box-shadow:4px 0 24px rgba(13,19,76,.2);}
+.sb-logo{padding:20px 18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-badge{width:38px;height:38px;background:var(--rust);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0;padding:7px;}
+.sb-words{font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;color:white;line-height:1.25;}
+.sb-words span{display:block;font-weight:500;font-size:9px;color:rgba(255,255,255,.45);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
+.sb-info{margin:14px 14px 0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
+.si-row{display:flex;flex-direction:column;gap:2px;}
+.si-lbl{font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.38);}
+.si-val{font-family:'Nunito',sans-serif;font-weight:700;font-size:12px;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.si-div{height:1px;background:rgba(255,255,255,.07);}
+.sb-cd{margin:10px 14px 0;background:linear-gradient(135deg,var(--rust),var(--rust-dark));border-radius:10px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;}
+.cd-lbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.75);}
+.cd-date{font-size:11px;color:rgba(255,255,255,.65);margin-top:2px;}
+.cd-num{font-family:'Nunito',sans-serif;font-weight:900;font-size:26px;color:white;line-height:1;}
+.cd-dias{font-size:9px;color:rgba(255,255,255,.65);margin-top:1px;text-align:right;}
+.sb-nav{padding:14px 10px;flex:1;overflow-y:auto;}
+.sb-nav-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.28);padding:0 8px;margin-bottom:5px;margin-top:10px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;color:rgba(255,255,255,.55);transition:all .15s;user-select:none;margin-bottom:2px;text-decoration:none;}
+.nav-item:hover{background:rgba(255,255,255,.08);color:white;}
+.nav-item.active{background:var(--rust);color:white;}
+.nav-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.sb-footer{padding:14px;border-top:1px solid rgba(255,255,255,.08);}
+.btn-save{width:100%;padding:10px;background:var(--mint);color:var(--navy);border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.btn-save:hover{background:var(--mint-d);}
+.btn-backup{width:100%;padding:8px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:8px;font-family:'Inter',sans-serif;font-weight:600;font-size:11px;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:5px;color:rgba(255,255,255,.6);}
+.btn-backup:hover{background:rgba(255,255,255,.08);color:white;border-color:rgba(255,255,255,.4);}
+.backup-modal{position:fixed;inset:0;background:rgba(13,19,76,.4);z-index:600;display:none;align-items:center;justify-content:center;}
+.backup-modal.open{display:flex;}
+.backup-box{background:white;border-radius:16px;padding:24px;width:360px;box-shadow:0 20px 60px rgba(13,19,76,.25);display:flex;flex-direction:column;gap:14px;}
+.backup-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;color:var(--navy);}
+.backup-sub{font-size:12px;color:var(--text-soft);margin-top:-8px;line-height:1.5;}
+.backup-actions{display:flex;flex-direction:column;gap:8px;}
+.backup-btn-exp{padding:11px;background:var(--navy);color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .18s;}
+.backup-btn-exp:hover{background:var(--navy-mid);}
+.backup-btn-imp{padding:11px;background:var(--bg);color:var(--navy);border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .18s;}
+.backup-btn-imp:hover{border-color:var(--navy);}
+.backup-btn-close{padding:9px;background:transparent;border:none;color:var(--text-soft);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;}
+.backup-warn{font-size:11px;color:var(--text-soft);background:var(--yellow-bg);border:1px solid #fde68a;border-radius:8px;padding:8px 12px;line-height:1.5;}
+
+/* ── TABS ── */
+.content{margin-left:var(--sidebar-w);width:calc(100% - var(--sidebar-w));max-width:calc(100vw - var(--sidebar-w));min-width:0;display:flex;flex-direction:column;align-items:stretch;}
+.topstrip{background:white;border-bottom:1px solid var(--border);padding:0 28px;height:54px;width:100%;max-width:100%;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.05);overflow:hidden;}
+.page-title{font-family:'Nunito',sans-serif;font-weight:900;font-size:17px;color:var(--navy);}
+.strip-right{display:flex;align-items:center;gap:12px;min-width:0;}
+.tab-bar{display:flex;gap:2px;min-width:0;overflow-x:auto;}
+.tab-btn{padding:6px 16px;border-radius:8px;border:none;background:transparent;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;color:var(--text-soft);cursor:pointer;transition:all .15s;}
+.tab-btn:hover{background:var(--bg);color:var(--navy);}
+.tab-btn.active{background:var(--navy);color:white;}
+.strip-actions{display:flex;gap:8px;}
+.btn{padding:7px 15px;border-radius:8px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;border:none;transition:all .18s;display:flex;align-items:center;gap:5px;}
+.btn-navy{background:var(--navy);color:white;}.btn-navy:hover{background:var(--navy-mid);}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--text-mid);}.btn-ghost:hover{border-color:var(--navy);color:var(--navy);}
+
+/* ── PAGES ── */
+.page{display:none;width:100%;max-width:100%;margin:0 auto;padding:22px 28px;flex-direction:column;gap:20px;min-width:0;}
+.page.active{display:flex;}
+.sec-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-soft);margin-bottom:12px;}
+
+/* ── PROGRESSO CARD ── */
+.prog-card{background:var(--navy);border-radius:16px;padding:20px 24px;display:flex;align-items:center;gap:28px;box-shadow:0 6px 24px rgba(13,19,76,.2);min-width:0;max-width:100%;}
+.prog-main{flex:1;}
+.prog-top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;}
+.prog-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.45);}
+.prog-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:4px;}
+.prog-pct{font-family:'Nunito',sans-serif;font-weight:900;font-size:38px;color:var(--mint);line-height:1;}
+.prog-bar{height:8px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--mint),var(--lime));border-radius:99px;transition:width .6s;min-width:0;}
+.prog-stats{display:flex;gap:20px;flex-shrink:0;}
+.ps{text-align:center;}.ps-v{font-family:'Nunito',sans-serif;font-weight:900;font-size:26px;line-height:1;color:white;}
+.ps-v.g{color:var(--mint);}.ps-v.r{color:var(--amber);}.ps-v.b{color:#aab4ff;}.ps-v.lime{color:var(--lime);}
+.ps-l{font-size:8px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:rgba(255,255,255,.38);margin-top:3px;}
+
+/* ── TRACKER ROW ── */
+.tracker-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;width:100%;max-width:100%;min-width:0;}
+
+/* ── CRONÔMETRO ── */
+.crono-card{background:white;border-radius:16px;border:1.5px solid var(--border);padding:20px 22px;display:flex;flex-direction:column;gap:14px;min-width:0;max-width:100%;}
+.crono-display{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.crono-time{font-family:'Nunito',sans-serif;font-weight:900;font-size:clamp(34px,5vw,52px);color:var(--navy);letter-spacing:2px;line-height:1;transition:color .3s;max-width:100%;overflow-wrap:anywhere;}
+.crono-time.running{color:var(--rust);}
+.crono-time.paused{color:var(--amber);}
+.crono-status{font-size:11px;font-weight:600;color:var(--text-soft);letter-spacing:1px;text-transform:uppercase;}
+.crono-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.crono-btn{padding:9px 20px;border-radius:10px;border:none;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;}
+.crono-btn.start{background:var(--green);color:white;box-shadow:0 4px 12px rgba(34,197,94,.3);}
+.crono-btn.start:hover{background:#16a34a;}
+.crono-btn.pause{background:var(--amber);color:var(--navy);}
+.crono-btn.pause:hover{filter:brightness(.92);}
+.crono-btn.stop{background:var(--red-bg);color:var(--red);border:1.5px solid #fca5a5;}
+.crono-btn.stop:hover{background:#fee2e2;}
+.crono-session-info{background:var(--bg);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:6px;}
+.crono-disc-select{display:flex;gap:8px;min-width:0;}
+.crono-disc-select select,.crono-disc-select input{flex:1;padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:12px;font-family:'Inter',sans-serif;color:var(--navy);outline:none;background:white;transition:border-color .18s;}
+.crono-disc-select select:focus,.crono-disc-select input:focus{border-color:var(--navy);}
+.crono-today-row{display:flex;justify-content:space-between;align-items:center;}
+.crono-today-lbl{font-size:11px;font-weight:600;color:var(--text-soft);}
+.crono-today-val{font-family:'Nunito',sans-serif;font-weight:800;font-size:15px;color:var(--navy);}
+.crono-divider{height:1px;background:var(--border);}
+.crono-manual{display:flex;flex-direction:column;gap:10px;}
+.crono-manual-title{font-size:11px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.8px;}
+.man-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;min-width:0;}
+.man-grid-wide{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:-2px;min-width:0;}
+.man-field{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.man-field label{font-size:9px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.6px;}
+.man-inp{padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:'Inter',sans-serif;color:var(--navy);outline:none;background:var(--bg);width:100%;transition:border-color .18s;}
+.man-inp:focus{border-color:var(--navy);background:white;}
+.man-topic-row{display:none;flex-direction:column;gap:3px;}
+.man-topic-row.visible{display:flex;}
+.crono-add-btn{width:100%;padding:9px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;transition:all .18s;margin-top:2px;}
+.crono-add-btn:hover{background:var(--navy-mid);}
+
+/* ── CALENDÁRIO ── */
+.cal-card{background:white;border-radius:16px;border:1.5px solid var(--border);padding:20px 22px;display:flex;flex-direction:column;gap:14px;min-width:0;max-width:100%;}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;}
+.cal-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;color:var(--navy);}
+.cal-nav-btns{display:flex;gap:4px;}
+.cal-nav-btn{width:28px;height:28px;border-radius:7px;border:1.5px solid var(--border);background:white;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;color:var(--text-mid);}
+.cal-nav-btn:hover{border-color:var(--navy);color:var(--navy);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;min-width:0;}
+.cal-dow{text-align:center;font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-soft);padding:4px 0;}
+.cal-day{border-radius:8px;padding:5px 4px;min-height:56px;border:1.5px solid transparent;cursor:pointer;transition:all .15s;background:var(--bg);}
+.cal-day:hover{border-color:var(--border);background:white;}
+.cal-day.today{border-color:var(--rust) !important;background:#fff5f6;}
+.cal-day.has-data{background:white;border-color:var(--border);}
+.cal-day.other-month{opacity:.3;pointer-events:none;}
+.cal-day-num{font-size:11px;font-weight:700;color:var(--text-mid);text-align:right;margin-bottom:3px;}
+.cal-day.today .cal-day-num{color:var(--rust);font-weight:900;}
+.cal-day-h{font-size:9px;font-weight:700;color:var(--green);}
+.cal-day-q{font-size:9px;font-weight:600;color:var(--navy);opacity:.7;}
+.cal-day-disc{font-size:8px;color:var(--text-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.cal-legend{display:flex;gap:12px;flex-wrap:wrap;}
+.cal-leg{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-soft);}
+.cal-leg-dot{width:8px;height:8px;border-radius:50%;}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(13,19,76,.35);z-index:500;display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:white;border-radius:16px;padding:24px;width:min(380px,calc(100vw - 32px));max-width:100%;box-shadow:0 20px 60px rgba(13,19,76,.25);display:flex;flex-direction:column;gap:14px;}
+.modal-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;color:var(--navy);}
+.modal-sub{font-size:12px;color:var(--text-soft);margin-top:-8px;}
+.modal-field{display:flex;flex-direction:column;gap:4px;}
+.modal-field label{font-size:10px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.7px;}
+.modal-inp{padding:9px 12px;border-radius:9px;border:1.5px solid var(--border);font-size:14px;font-family:'Inter',sans-serif;color:var(--navy);outline:none;background:var(--bg);width:100%;transition:border-color .18s;}
+.modal-inp:focus{border-color:var(--navy);background:white;}
+.modal-topic-field{display:none;flex-direction:column;gap:4px;}
+.modal-topic-field.visible{display:flex;}
+.modal-actions{display:flex;gap:8px;margin-top:4px;}
+.modal-btn-save{flex:1;padding:10px;background:var(--navy);color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;}
+.modal-btn-save:hover{background:var(--navy-mid);}
+.modal-btn-cancel{padding:10px 16px;background:transparent;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-mid);}
+.modal-btn-cancel:hover{border-color:var(--red);color:var(--red);}
+
+/* ── METAS ── */
+.metas-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.meta-card{background:white;border-radius:14px;padding:16px;border:1.5px solid var(--border);}
+.mc-top{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.mc-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.mc-name{font-size:11px;font-weight:700;color:var(--text-mid);}
+.mc-inputs{display:flex;gap:7px;align-items:flex-end;margin-bottom:11px;}
+.mc-ig{display:flex;flex-direction:column;gap:3px;flex:1;}
+.mc-ig label{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-soft);}
+.mc-inp{width:100%;padding:6px 8px;border-radius:8px;border:1.5px solid var(--border);font-size:17px;font-weight:800;font-family:'Nunito',sans-serif;color:var(--navy);outline:none;text-align:center;background:var(--bg);}
+.mc-inp:focus{border-color:var(--navy);background:white;}
+.mc-inp[readonly]{background:var(--green-bg);border-color:#bbf7d0;color:var(--green);cursor:default;}
+.mc-arrow{color:var(--text-soft);font-size:13px;padding-bottom:7px;}
+.mc-bar{height:5px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:5px;}
+.mc-fill{height:100%;border-radius:99px;transition:width .5s;min-width:0;}
+.mc-labels{display:flex;justify-content:space-between;font-size:10px;}
+.mc-pct{font-weight:700;}
+.mc-auto-badge{font-size:9px;background:var(--green-bg);color:var(--green);border-radius:4px;padding:1px 5px;font-weight:700;margin-left:4px;}
+
+/* ── FILTROS ── */
+.filter-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.flbl{font-size:10px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.5px;}
+.fbtn{padding:5px 13px;border-radius:99px;border:1.5px solid var(--border);background:white;font-size:12px;font-weight:600;color:var(--text-mid);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
+.fbtn:hover{border-color:var(--navy);color:var(--navy);}.fbtn.active{background:var(--navy);border-color:var(--navy);color:white;}
+
+/* ── DISCIPLINAS ── */
+.disc-list{display:flex;flex-direction:column;gap:12px;}
+.disc-card{background:white;border-radius:14px;border:1.5px solid var(--border);overflow:hidden;}
+.disc-hdr{display:flex;align-items:center;padding:14px 18px;cursor:pointer;user-select:none;gap:12px;border-left:5px solid var(--dc,var(--navy));transition:background .12s;}
+.disc-hdr:hover{background:#f9faff;}
+.dc-dot{width:10px;height:10px;border-radius:50%;background:var(--dc,var(--navy));flex-shrink:0;}
+.dc-info{flex:1;}
+.dc-name{font-family:'Nunito',sans-serif;font-weight:800;font-size:15px;color:var(--navy);}
+.dc-meta{display:flex;align-items:center;gap:8px;margin-top:4px;}
+.dc-sub{font-size:11px;color:var(--text-soft);}
+.dc-mini-bar{flex:1;max-width:110px;height:4px;background:var(--border);border-radius:99px;overflow:hidden;}
+.dc-mini-fill{height:100%;background:var(--dc,var(--navy));border-radius:99px;transition:width .5s;}
+.dc-stats{display:flex;gap:10px;align-items:center;flex-shrink:0;}
+.dcs{text-align:center;min-width:34px;}
+.dcs-v{font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;line-height:1;}
+.dcs-v.g{color:var(--green);}.dcs-v.r{color:var(--red);}.dcs-v.b{color:var(--navy);opacity:.7;}
+.dcs-l{font-size:8px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-soft);margin-top:1px;}
+.pct-pill{padding:4px 11px;border-radius:99px;font-family:'Nunito',sans-serif;font-weight:900;font-size:13px;min-width:50px;text-align:center;}
+.pct-pill.g{background:var(--green-bg);color:#15803d;}.pct-pill.y{background:var(--yellow-bg);color:#b45309;}.pct-pill.r{background:var(--red-bg);color:#b91c1c;}.pct-pill.n{background:var(--bg);color:var(--text-soft);}
+.dc-chevron{color:var(--text-soft);font-size:13px;transition:transform .25s;flex-shrink:0;}
+.disc-card.open .dc-chevron{transform:rotate(180deg);}
+.disc-body{display:none;padding:0 18px 16px;}
+.disc-card.open .disc-body{display:block;}
+.ctable{width:100%;border-collapse:collapse;font-size:13px;}
+.ctable thead tr{background:var(--bg);}
+.ctable th{padding:8px 10px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-soft);text-align:left;border-bottom:1.5px solid var(--border);white-space:nowrap;}
+.ctable th.c{text-align:center;}
+.ctable tbody tr{border-bottom:1px solid #f0f2f9;}
+.ctable tbody tr:last-child{border-bottom:none;}
+.ctable tbody tr:hover{background:#f9faff;}
+.ctable tbody tr.done{background:#f0fdf4;}
+.ctable tbody tr.done:hover{background:#dcfce7;}
+.ctable td{padding:9px 10px;vertical-align:middle;}
+.td-ck{width:42px;text-align:center;}
+.cbx{appearance:none;-webkit-appearance:none;width:19px;height:19px;border:2px solid var(--border);border-radius:5px;cursor:pointer;position:relative;transition:all .18s;background:white;}
+.cbx:checked{background:var(--green);border-color:var(--green);}
+.cbx:checked::after{content:'';position:absolute;top:1px;left:4px;width:6px;height:10px;border:2px solid white;border-top:none;border-left:none;transform:rotate(45deg);}
+.td-topic{min-width:180px;}.topic-nm{font-weight:500;color:var(--text);line-height:1.4;}
+tr.done .topic-nm{color:var(--text-mid);}
+.topic-dt{font-size:10px;color:var(--green);font-weight:600;margin-top:2px;display:none;}
+tr.done .topic-dt{display:block;}
+.td-dt{font-size:11px;color:var(--text-soft);white-space:nowrap;min-width:120px;}
+.td-q{min-width:148px;}
+.q-row{display:flex;align-items:center;gap:5px;}
+.qwrap{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.qwrap label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.qwrap.ac label{color:var(--green);}.qwrap.er label{color:var(--red);}
+.qinp{width:46px;text-align:center;padding:5px 3px;border-radius:7px;border:1.5px solid var(--border);font-size:14px;font-weight:700;font-family:'Nunito',sans-serif;color:var(--navy);outline:none;background:white;}
+.qinp:focus{border-color:var(--navy);}
+.qsep{color:var(--border);font-size:13px;}
+.td-tot{text-align:center;min-width:50px;}.tot-v{font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;color:var(--text-mid);}
+.td-pct{text-align:center;min-width:62px;}
+.grow td{background:#f4f5fc;font-size:10px;font-weight:700;color:var(--text-soft);letter-spacing:.5px;text-transform:uppercase;padding:6px 10px;border-bottom:1px solid var(--border);border-top:1.5px solid var(--border);}
+.grow td:first-child{border-left:3px solid var(--dc,var(--navy));}
+
+/* ── HISTÓRICO ── */
+.hist-filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px;}
+.hist-table-wrap{background:white;border-radius:14px;border:1.5px solid var(--border);overflow:hidden;}
+.hist-table{width:100%;border-collapse:collapse;font-size:13px;}
+.hist-table th{padding:10px 14px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-soft);text-align:left;border-bottom:1.5px solid var(--border);background:var(--bg);white-space:nowrap;}
+.hist-table td{padding:11px 14px;border-bottom:1px solid #f0f2f9;vertical-align:middle;}
+.hist-table tbody tr:last-child td{border-bottom:none;}
+.hist-table tbody tr:hover{background:#f9faff;}
+.hist-disc-badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;background:var(--bg);color:var(--text-mid);}
+.hist-empty{text-align:center;padding:48px;color:var(--text-soft);font-size:14px;}
+.hist-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:4px;}
+.hist-sum-card{background:white;border-radius:12px;border:1.5px solid var(--border);padding:14px 16px;}
+.hsc-val{font-family:'Nunito',sans-serif;font-weight:900;font-size:24px;color:var(--navy);line-height:1;}
+.hsc-lbl{font-size:10px;font-weight:600;color:var(--text-soft);margin-top:4px;}
+.btn-del{background:none;border:none;cursor:pointer;color:var(--text-soft);font-size:14px;padding:4px 6px;border-radius:5px;transition:all .15s;}
+.btn-del:hover{color:var(--red);background:var(--red-bg);}
+
+/* ── CHARTS → STATS PANEL ── */
+.stats-panel{background:white;border-radius:16px;border:1.5px solid var(--border);padding:18px 20px;display:flex;flex-direction:column;gap:16px;}
+.stats-panel-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.stats-panel-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;color:var(--navy);}
+.cf-select{padding:5px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:11px;font-family:'Inter',sans-serif;color:var(--navy);outline:none;background:var(--bg);}
+.cf-select:focus{border-color:var(--navy);}
+.stats-big-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.stat-big{background:var(--bg);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;border:1.5px solid var(--border);}
+.stat-big-val{font-family:'Nunito',sans-serif;font-weight:900;font-size:28px;line-height:1;}
+.stat-big-lbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-soft);}
+.stat-big-sub{font-size:10px;color:var(--text-soft);margin-top:2px;}
+.stats-disc-row{display:flex;flex-direction:column;gap:8px;}
+.stat-disc-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border-radius:10px;border:1.5px solid var(--border);}
+.stat-disc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.stat-disc-name{font-size:12px;font-weight:600;color:var(--navy);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.stat-disc-nums{display:flex;gap:12px;flex-shrink:0;align-items:center;}
+.stat-disc-num{text-align:center;}
+.stat-disc-num-val{font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;line-height:1;}
+.stat-disc-num-lbl{font-size:8px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-soft);}
+.stat-disc-bar-wrap{flex:1;max-width:100px;height:5px;background:var(--border);border-radius:99px;overflow:hidden;}
+.stat-disc-bar-fill{height:100%;border-radius:99px;transition:width .5s;}
+.chart-empty{text-align:center;padding:32px;color:var(--text-soft);font-size:13px;}
+
+/* ── REVISÕES ── */
+.rev-section{display:flex;flex-direction:column;gap:16px;}
+.rev-group{background:white;border-radius:14px;border:1.5px solid var(--border);overflow:hidden;}
+.rev-group-hdr{padding:10px 16px;background:var(--bg);border-bottom:1.5px solid var(--border);display:flex;align-items:center;gap:8px;}
+.rev-group-icon{font-size:15px;}
+.rev-group-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;color:var(--navy);}
+.rev-group-count{margin-left:auto;font-size:11px;font-weight:600;color:var(--text-soft);}
+.rev-disc-block{border-left:4px solid var(--dc,var(--navy));}
+.rev-disc-hdr{padding:10px 16px;display:flex;align-items:center;gap:8px;background:#fafbff;border-bottom:1px solid var(--border);}
+.rev-disc-dot{width:9px;height:9px;border-radius:50%;background:var(--dc,var(--navy));flex-shrink:0;}
+.rev-disc-name{font-family:'Nunito',sans-serif;font-weight:700;font-size:13px;color:var(--navy);}
+.rev-disc-cnt{font-size:11px;color:var(--text-soft);margin-left:auto;}
+.rev-topic-row{display:flex;align-items:center;padding:9px 16px 9px 28px;border-bottom:1px solid #f0f2f9;gap:10px;transition:background .12s;}
+.rev-topic-row:last-child{border-bottom:none;}
+.rev-topic-row:hover{background:#f9faff;}
+.rev-topic-name{font-size:12px;font-weight:500;color:var(--text);flex:1;line-height:1.4;}
+.rev-topic-meta{font-size:10px;color:var(--text-soft);margin-top:2px;}
+.rev-badges{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+.rev-badge{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;border:1.5px solid transparent;white-space:nowrap;}
+.rev-badge.pending{background:var(--yellow-bg);color:#b45309;border-color:#fde68a;}
+.rev-badge.done{background:var(--green-bg);color:#15803d;border-color:#bbf7d0;}
+.rev-badge.overdue{background:var(--red-bg);color:#b91c1c;border-color:#fca5a5;}
+.rev-empty{text-align:center;padding:48px 20px;color:var(--text-soft);font-size:13px;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--navy);color:white;padding:11px 18px;border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(13,19,76,.3);transform:translateY(80px);opacity:0;transition:all .3s;z-index:999;}
+.toast.show{transform:translateY(0);opacity:1;}
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+@media(max-width:900px){:root{--sidebar-w:0px;}.sidebar{display:none;}.content{margin-left:0;width:100%;max-width:100vw;}.topstrip{padding:0 16px;gap:12px;}.page{padding:18px 16px;}.metas-grid,.hist-summary{grid-template-columns:1fr 1fr;}}
+@media(max-width:760px){.tracker-row{grid-template-columns:1fr;}.prog-card{flex-direction:column;align-items:stretch;gap:16px;}.prog-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}.man-grid,.man-grid-wide{grid-template-columns:1fr;}.topstrip{height:auto;min-height:54px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px;}.strip-right{width:100%;justify-content:space-between;}.strip-actions{flex-shrink:0;}.tab-bar{flex:1;}.cal-day{min-height:48px;}}
+/* Ajuste de largura dos campos de lista suspensa */
+select{min-width:0;max-width:100%;}
+.crono-session-info{min-width:0;max-width:100%;}
+.crono-disc-select select,.crono-disc-select input{min-width:0;width:100%;max-width:100%;text-overflow:ellipsis;}
+.stats-panel{min-width:0;max-width:100%;}
+.stats-panel-header{min-width:0;}
+.stats-panel-header > div:last-child{min-width:0;max-width:100%;flex-wrap:wrap;}
+.cf-select{min-width:0;max-width:100%;text-overflow:ellipsis;}
+#chart-disc{flex:1 1 150px;width:min(220px,100%);}
+#chart-period{flex:0 1 140px;width:min(160px,100%);}
+@media(max-width:760px){.stats-panel-header > div:last-child{width:100%;}.cf-select,#chart-disc,#chart-period{flex:1 1 100%;width:100%;}}.sb-badge svg{width:100%;height:100%;display:block;}
+/* Etapa 2.2 — painel somente leitura; respeita as mesmas cores do sistema. */
+.neglect-panel{border-top:1px solid var(--border);padding-top:16px;margin-top:16px}
+.neglect-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.neglect-header strong{font-size:13px;color:var(--navy)}
+.neglect-header p,.neglect-note{font-size:11px;color:var(--text-soft);line-height:1.6;margin-top:4px}
+.neglect-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.neglect-row{border:1px solid var(--border);background:#f7f8fc;border-radius:10px;padding:10px 12px}
+.neglect-main{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.neglect-name{font-size:12px;font-weight:800;color:var(--navy);overflow-wrap:anywhere}
+.neglect-meta{font-size:10px;color:var(--text-soft);margin-top:4px;line-height:1.5}
+.neglect-tag{font-size:10px;font-weight:800;border-radius:7px;padding:4px 6px;white-space:nowrap;background:#eaf0ff;color:#35457c}
+.neglect-tag.warn{background:#fff0d6;color:#915600}.neglect-tag.urgent{background:#fee5e8;color:#aa2441}
+.neglect-track{height:6px;background:#e2e7f1;border-radius:8px;overflow:hidden;margin-top:8px}
+.neglect-fill{height:100%;background:#6884be;border-radius:8px}
+.neglect-empty{font-size:12px;color:var(--text-soft);padding:12px;background:#f7f8fc;border-radius:10px;margin-top:10px}
+.neglect-controls{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.neglect-controls label{font-size:10px;color:var(--text-mid);font-weight:700}
+@media(max-width:600px){.neglect-main{flex-wrap:wrap}.neglect-tag{white-space:normal}}
+
+/* Etapa 2.3: relatório semanal, sem alterar estilos existentes */
+.report-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}.report-head h2{font-size:20px;color:var(--navy);margin:6px 0}.report-sub,.report-note{color:var(--text-soft);font-size:12px;line-height:1.6}.report-note{margin:8px 0}.report-control{display:grid;gap:6px}.report-control label{font-size:11px;color:var(--text-soft);font-weight:700}.report-window{font-size:12px;color:var(--navy);font-weight:600}.report-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.report-kpi,.report-box{background:white;border:1px solid #e1e5f0;border-radius:14px;padding:18px;min-width:0}.report-kpi strong{display:block;font-size:22px;color:var(--navy);margin:10px 0 5px}.report-kpi span{font-size:11px;color:var(--text-soft)}.report-kpi small{font-size:11px;color:var(--text-soft)}.report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.report-box h3{font-size:14px;color:var(--navy);margin:0 0 12px}.report-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #edf0f5;font-size:12px}.report-row:last-child{border:0}.report-row span{overflow-wrap:anywhere}.report-row b{white-space:nowrap}.report-bar{height:6px;background:#eff1f7;border-radius:5px;overflow:hidden;margin:0 0 8px}.report-bar div{height:100%;background:#6489ba}.report-empty{font-size:12px;color:var(--text-soft);padding:10px 0}.report-guidance{margin:8px 0;padding:10px 12px;background:#f4f6fc;border-radius:9px;font-size:12px;color:var(--navy);line-height:1.5}@media(max-width:950px){.report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.report-grid{grid-template-columns:1fr}}@media(max-width:470px){.report-kpis{grid-template-columns:1fr}.report-head{align-items:stretch}}
+
+/* ETAPA 2.4 — Edição do histórico; sem alteração de schema */
+.hist-actions{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.btn-edit{border:1px solid var(--border);background:#edf3ff;color:var(--navy);border-radius:7px;padding:5px 8px;cursor:pointer;font-size:12px}
+.btn-edit:hover{background:#dce8ff}
+.edit-overlay{position:fixed;inset:0;z-index:10050;background:rgba(13,19,76,.55);display:none;align-items:center;justify-content:center;padding:16px}
+.edit-overlay.open{display:flex}
+.edit-panel{width:min(620px,100%);max-height:92vh;overflow:auto;border-radius:16px;background:white;padding:24px;box-shadow:0 18px 65px rgba(0,0,0,.22)}
+.edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.edit-field{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--text-mid);font-weight:600}
+.edit-field input,.edit-field select,.edit-field textarea{border:1px solid var(--border);border-radius:8px;padding:10px;font:inherit;color:var(--navy);width:100%;min-width:0;background:white}
+.edit-field.full{grid-column:1/-1}
+.edit-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:17px}
+.edit-actions button{border-radius:9px;border:1px solid var(--border);padding:10px 16px;cursor:pointer;font-weight:700;background:white}
+.edit-actions .edit-save{background:var(--navy);color:white}
+.edit-note{font-size:12px;line-height:1.5;color:var(--text-soft);margin:10px 0 15px}
+.edit-error{color:#b91c1c;font-size:12px;min-height:15px;margin-top:8px}
+@media(max-width:520px){.edit-grid{grid-template-columns:1fr}.edit-panel{padding:15px}}
+</style>
+<style>.phase-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.phase-tile{border:1px solid var(--border);background:#f5f7fb;padding:14px;border-radius:12px}.phase-tile b{font-size:11px;color:var(--navy)}.phase-tile p,.phase-foot{font-size:12px;line-height:1.6;color:var(--text-mid);margin-top:7px}.active-phase{background:#e7f7f0;border-color:#a9dfc6}@media(max-width:800px){.phase-grid{grid-template-columns:1fr}}.cycle-card{background:white;border:1.5px solid var(--border);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:17px}.cycle-head,.cycle-next,.cycle-footer{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.cycle-head h2{font:900 22px Nunito,sans-serif}.cycle-head p,.cycle-next p,.cycle-footer span{color:var(--text-soft);font-size:12px;margin-top:5px}.cycle-counter{border-radius:12px;background:#eaf2ff;color:#285da0;font-weight:800;padding:10px 14px}.cycle-next{background:var(--navy);color:white;border-radius:13px;padding:18px 20px}.cycle-next small{color:var(--mint);font-size:10px;font-weight:800;letter-spacing:1px}.cycle-next h3{font:900 20px Nunito,sans-serif;margin-top:5px}.cycle-next p{color:#b9c2e8}.cycle-done{background:var(--mint);border:0;border-radius:10px;padding:12px 16px;color:var(--navy);font-weight:800;cursor:pointer}.cycle-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.cycle-item{background:#f4f6fb;border:1px solid var(--border);padding:10px;border-radius:9px;font-size:11px;color:var(--text-mid);min-height:63px}.cycle-item strong{display:block;font-size:10px;margin-bottom:5px;color:var(--text-soft)}.cycle-item.current{border-color:#4686d5;background:#eaf2ff;color:#174a88}.cycle-item.passed{background:#e7f7f0;border-color:#b5e4cf}.notice-ti{background:#fff9e8;border:1px solid #f0dfac;border-radius:12px;padding:13px 16px;font-size:12px;line-height:1.6;color:#795b1e}@media(max-width:750px){.cycle-grid{grid-template-columns:repeat(2,minmax(0,1fr))}} </style>
+<style>
+.topic-insights{border-top:1px solid var(--border);padding-top:16px;margin-top:5px}.topic-insights-head{display:flex;justify-content:space-between;align-items:start;gap:10px;flex-wrap:wrap}.topic-insights-head strong{font-size:13px;color:var(--navy)}.topic-insights-head p,.topic-insights-foot{font-size:11px;color:var(--text-soft);line-height:1.6;margin-top:4px}.topic-insights-count{font-size:10px;font-weight:800;padding:5px 9px;border-radius:9px;background:#edf2fb;color:var(--navy)}.topic-insights-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}.topic-insights-controls label{font-size:10px;color:var(--text-mid);font-weight:700}.topic-insights-controls .cf-select{max-width:190px}.topic-insights-list{display:flex;flex-direction:column;gap:8px;max-height:365px;overflow:auto}.topic-insights-item{border:1px solid var(--border);background:#f7f8fc;border-radius:10px;padding:10px 12px}.topic-insights-line{display:flex;justify-content:space-between;gap:12px;align-items:center}.topic-insights-name{font-weight:800;color:var(--navy);font-size:12px;overflow-wrap:anywhere}.topic-insights-meta{font-size:10px;color:var(--text-soft);margin-top:4px}.topic-insights-pct{font-weight:900;font-size:15px;white-space:nowrap}.topic-insights-track{margin-top:9px;height:6px;border-radius:6px;background:#e4e8f2;overflow:hidden}.topic-insights-fill{height:100%;border-radius:6px}.topic-insights-empty{font-size:12px;color:var(--text-soft);padding:13px;background:#f7f8fc;border-radius:10px}@media(max-width:600px){.topic-insights-controls{align-items:stretch;flex-direction:column}.topic-insights-controls .cf-select{max-width:none;width:100%}}
+</style>
+<style>
+/* ETAPA 2.5 — registro rápido opcional */
+.quick-box{margin:14px 0 19px;border:1px solid #c9d9f2;border-radius:12px;padding:13px;background:#f5f8ff}
+.quick-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:9px}
+.quick-head strong{color:var(--navy);font-size:13px}
+.quick-head small{font-size:10px;color:var(--text-soft)}
+.quick-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 105px;gap:8px;align-items:end}
+.quick-box label{display:block;font-size:10px;color:var(--text-mid);font-weight:800;margin-bottom:4px}
+.quick-controls{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:10px}
+.quick-action{background:var(--navy);color:white;border:0;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer}
+.quick-secondary{background:white;color:var(--navy);border:1px solid var(--border);padding:8px 10px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer}
+.quick-msg{font-size:11px;color:#9b3434;margin-top:8px;min-height:0}
+@media(max-width:680px){.quick-grid{grid-template-columns:minmax(0,1fr)}.quick-box{padding:10px}}
+</style>
+<style>.cycle-editor{background:#f8faff;border:1px solid var(--border);border-radius:12px;padding:16px}.cycle-editor[hidden]{display:none!important}.cycle-edit-row{display:grid;grid-template-columns:minmax(130px,1fr) 100px 34px 34px 34px;gap:7px;margin:7px 0}.cycle-edit-row select,.cycle-edit-row input{width:100%;min-width:0;padding:9px;border:1px solid var(--border);border-radius:8px;background:white;color:var(--navy)}.cycle-edit-btn{border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;font-size:17px}.cycle-config-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px}.cycle-edit-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}@media(max-width:520px){.cycle-edit-row{grid-template-columns:minmax(95px,1fr) 75px 28px 28px 28px;gap:3px}.cycle-edit-row select,.cycle-edit-row input{font-size:11px;padding:6px}}</style><style id="visual-refinement-v2">
+
+/* ===========================================================================
+   REFINAMENTO VISUAL V2 — somente apresentação, sem dependências adicionais
+   Preserva classes, IDs, eventos, scripts, dados e fluxo de navegação original.
+   =========================================================================== */
+:root{
+  --bg:#f0f2f8;
+  --border:#dfe4ef;
+  --text-mid:#444f76;
+  --text-soft:#697396;
+  --ui-shadow:0 5px 20px rgba(17,26,72,.045);
+  --ui-shadow-hover:0 9px 26px rgba(17,26,72,.075);
+}
+html{scroll-behavior:smooth;}
+body{line-height:1.5;-webkit-font-smoothing:antialiased;}
+button,input,select,textarea{font:inherit;}
+button,select{touch-action:manipulation;}
+button{line-height:1.3;}
+button:disabled,[disabled]{cursor:not-allowed;opacity:.64;}
+:where(button,a,input,select,textarea,[tabindex]):focus-visible{
+  outline:3px solid rgba(48,106,201,.72);
+  outline-offset:3px;
+}
+:where(input,select,textarea):focus-visible{outline-offset:1px;}
+:where(input,select,textarea){max-width:100%;}
+:where(input,select,textarea)::placeholder{color:#7982a2;opacity:1;}
+.sidebar{box-shadow:3px 0 20px rgba(13,19,76,.12);}
+.sb-nav-lbl,.si-lbl{color:rgba(255,255,255,.58);}
+.nav-item{color:rgba(255,255,255,.76);}
+.nav-item.active{background:#c8102e;box-shadow:inset 3px 0 0 rgba(255,255,255,.58);font-weight:700;}
+.nav-item:hover{background:rgba(255,255,255,.115);}
+.nav-item.active:hover{background:#ba102b;}
+.topstrip{box-shadow:0 2px 10px rgba(13,19,76,.035);}
+.page{gap:19px;}
+.sec-lbl{color:#647098;letter-spacing:1.15px;}
+:where(.crono-card,.cal-card,.hist-table-wrap,.phase-tile,.quick-box,.cycle-editor,.backup-box){box-shadow:var(--ui-shadow);}
+.crono-card,.cal-card{border:1px solid var(--border);padding:22px 23px;gap:15px;}
+.crono-display{gap:7px;padding:4px 0 3px;}
+.crono-time{font-size:clamp(36px,4.5vw,50px);letter-spacing:1.3px;font-variant-numeric:tabular-nums;}
+.crono-status{font-size:10px;letter-spacing:.85px;color:#657194;}
+.crono-session-info{border:1px solid #e8ebf4;background:#f6f8fc;padding:13px;gap:9px;}
+.crono-btn,.btn,.crono-add-btn,.btn-save,.btn-backup,.tab-btn{transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease,color .16s ease,transform .16s ease;}
+.crono-btn:hover:not(:disabled),.crono-add-btn:hover:not(:disabled),.btn-save:hover:not(:disabled){transform:translateY(-1px);}
+.crono-btn:active:not(:disabled),.btn:active:not(:disabled){transform:translateY(0);}
+.crono-btn{min-height:38px;justify-content:center;}
+.crono-btn.start{box-shadow:0 3px 10px rgba(34,197,94,.19);}
+.tab-btn{white-space:nowrap;}
+.tab-btn.active{box-shadow:0 1px 5px rgba(13,19,76,.12);}
+.man-field{gap:5px;}
+.man-field label{font-size:10px;letter-spacing:.35px;color:#5f6c91;}
+.man-inp,.crono-disc-select select,.crono-disc-select input{border:1px solid #dbe1ee;background:#f7f9fd;min-height:35px;}
+.man-inp:hover,.crono-disc-select select:hover,.crono-disc-select input:hover{border-color:#acb7d0;}
+.man-inp:focus,.crono-disc-select select:focus,.crono-disc-select input:focus{background:#fff;border-color:#667bad;box-shadow:0 0 0 3px rgba(75,103,162,.09);}
+.crono-manual-title{color:#59688e;}
+.crono-today-lbl{color:#5c688d;}
+.prog-card{box-shadow:0 5px 18px rgba(13,19,76,.14);}
+.prog-sub,.prog-lbl,.ps-l{color:rgba(255,255,255,.69);}
+.hist-table-wrap{overflow-x:auto;max-width:100%;}
+.hist-table-wrap table{min-width:750px;}
+.hist-table-wrap :where(th,td){vertical-align:middle;}
+.hist-table-wrap tbody tr:hover{background:#f8faff;}
+.backup-box{max-width:calc(100vw - 30px);max-height:calc(100dvh - 32px);overflow-y:auto;}
+.toast{max-width:min(460px,calc(100vw - 32px));line-height:1.5;box-shadow:0 7px 22px rgba(13,19,76,.2);}
+.quick-box{border-color:#dae3f2;}
+.cycle-editor{background:#f9fafe;}
+.phase-tile{border-color:#e0e6f0;}
+:where(.quick-box,.cycle-editor,.phase-tile,.topic-insights,.report-head) p{line-height:1.55;}
+:where(.quick-box,.cycle-editor,.backup-box) button{min-height:33px;}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto;}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}
+}
+@media(max-width:1100px){
+  .topstrip{padding-left:18px;padding-right:18px;}
+  .page{padding:20px 18px;}
+  .strip-right{gap:6px;}
+  .tab-btn{padding:7px 10px;}
+}
+@media(max-width:900px){
+  .topstrip{gap:10px;}
+  .page{padding:18px 16px;}
+}
+@media(max-width:760px){
+  .page{gap:16px;}
+  .topstrip{align-items:flex-start;}
+  .strip-right{width:100%;justify-content:space-between;}
+  .tab-bar{flex:1;max-width:100%;}
+  .tracker-row{gap:12px;}
+  .crono-card,.cal-card{padding:17px 16px;}
+  .crono-time{font-size:clamp(34px,9vw,48px);}
+  .toast{left:16px;right:16px;bottom:16px;max-width:none;}
+}
+@media(max-width:480px){
+  .page{padding:13px 11px;}
+  .page-title{font-size:15px;}
+  .tab-btn{padding:7px 9px;font-size:11px;}
+  .crono-card,.cal-card{padding:15px 13px;}
+  .crono-btns{gap:7px;}
+  .crono-btn{flex:1 1 115px;padding:10px;}
+  .crono-disc-select{flex-direction:column;}
+  .crono-disc-select select,.crono-disc-select input{width:100%;}
+  .prog-card{padding:17px 15px;}
+  .prog-stats{gap:5px;}
+}
+
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-logo"><div class="sb-badge" aria-label="Logo Gran"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 428 457" role="img" aria-label="Logo Gran"><g transform="translate(0,457) scale(0.1,-0.1)" fill="currentColor" stroke="none"><path d="M2100 4398 c-728 -68 -1380 -523 -1694 -1180 -58 -120 -126 -297 -126 -327 0 -8 122 -11 453 -11 l452 0 38 65 c191 327 498 535 868 589 530 78 1044 -158 1285 -591 l36 -63 309 0 309 0 0 313 0 312 -89 111 c-446 555 -1138 849 -1841 782z"/><path d="M204 2448 c-15 -24 -8 -408 10 -517 57 -353 187 -664 399 -947 314 -421 753 -678 1297 -759 153 -22 424 -30 549 -16 257 30 482 136 728 342 51 44 95 79 98 79 3 0 5 -52 5 -115 l0 -115 370 0 370 0 0 1030 0 1030 -980 0 -980 0 0 -355 0 -355 608 -2 607 -3 3 -115 2 -115 -45 -60 c-66 -89 -188 -208 -272 -266 -468 -323 -1149 -243 -1580 188 -262 262 -379 605 -340 1001 l8 82 -425 0 c-324 0 -427 -3 -432 -12z"/></g></svg></div><div class="sb-words">Concursos TI<span>Central de Estudos</span></div></div>
+  <div class="sb-info" id="sb-info"></div>
+  <div class="sb-cd" style="display:none">
+    <div><div class="cd-lbl">Data da Prova</div><div class="cd-date" id="cd-date">—</div></div>
+    <div><div class="cd-num" id="cd-num">—</div><div class="cd-dias">dias</div></div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-nav-lbl">Seções</div>
+    <a class="nav-item" href="#" onclick="document.getElementById('ciclo-ti').scrollIntoView({behavior:'smooth'});return false;">🔄 &nbsp;Ciclo contínuo</a>
+    <a class="nav-item active" href="#" onclick="switchTab('estudos');return false;">⏱️ &nbsp;Cronômetro</a>
+    <a class="nav-item" href="#" onclick="switchTab('estudos');scrollToId('sec-metas');return false;">🎯 &nbsp;Metas de Estudo</a>
+    <a class="nav-item" href="#" onclick="switchTab('edital');return false;">📋 &nbsp;Conteúdos</a>
+    <a class="nav-item" href="#" onclick="switchTab('revisoes');return false;">🔁 &nbsp;Revisões</a>
+    <a class="nav-item" href="#" onclick="switchTab('historico');return false;">📅 &nbsp;Histórico</a>
+    <a class="nav-item" href="#" onclick="switchTab('relatorio');return false;">📊 &nbsp;Relatório semanal</a>
+    <div class="sb-nav-lbl" style="margin-top:14px">Disciplinas</div>
+    <div id="nav-discs"></div>
+  </nav>
+  <div class="sb-footer">
+    <button class="btn-save" onclick="saveData()">💾 Salvar Progresso</button>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn-backup" onclick="openBackupModal()" style="flex:1">⬆️ Exportar backup</button>
+      <button class="btn-backup" onclick="triggerImport()" style="flex:1">⬇️ Restaurar</button>
+    </div>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(this)">
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="content">
+  <div class="topstrip">
+    <div class="page-title">Central de Estudos TI</div>
+    <div class="strip-right">
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('estudos')">⏱ Estudos</button>
+        <button class="tab-btn" onclick="switchTab('edital')">📋 Conteúdos</button>
+        <button class="tab-btn" onclick="switchTab('revisoes')">🔁 Revisões</button>
+        <button class="tab-btn" onclick="switchTab('historico')">📅 Histórico</button>
+        <button class="tab-btn" onclick="switchTab('relatorio')">📊 Semanal</button>
+      </div>
+      <div class="strip-actions">
+        <button class="btn btn-ghost" id="btn-expand" onclick="expandAll()" style="display:none">↕ Expandir</button>
+        <button class="btn btn-ghost" id="btn-collapse" onclick="collapseAll()" style="display:none">↕ Recolher</button>
+        <button class="btn btn-navy" onclick="saveData()">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: ESTUDOS -->
+  <div class="page active" id="page-estudos">
+
+    <section class="cycle-card" id="phase-guide"><div class="cycle-head"><div><div class="sec-lbl">🎯 ESTRATÉGIA DE PREPARAÇÃO</div><h2>Base para 3 concursos • BB como prioridade próxima</h2><p>Plano inicial de 30 dias. BACEN e CGU ficam no horizonte de médio e longo prazo.</p></div><span class="cycle-counter">21h / ciclo</span></div><div class="phase-grid"><div class="phase-tile active-phase"><b>AGORA • DIAS 1–30</b><p>Banco de Dados, Português, Engenharia de Software, Redes, Segurança e Raciocínio Lógico.</p></div><div class="phase-tile"><b>DEPOIS • DIAS 31–60</b><p>Incluir Programação, Matemática, Probabilidade/Estatística, Inglês, Conhecimentos Bancários e Redação gradualmente, redistribuindo as 21h.</p></div><div class="phase-tile"><b>CONSOLIDAÇÃO • DIAS 61–90</b><p>Questões Cesgranrio, simulados e direcionamento ao Banco do Brasil, sem abandonar a base comum de TI.</p></div></div><p class="phase-foot">O ciclo não reinicia na segunda-feira. Se perder um dia, retome o próximo bloco. O edital abaixo é uma trilha orientativa pré-edital, não o texto oficial de um concurso.</p></section><section id="ciclo-ti" class="cycle-card"><div class="cycle-head"><div><div class="sec-lbl" style="margin:0 0 5px">🔄 PLANEJAMENTO FLEXÍVEL</div><h2>Ciclo contínuo de estudos</h2><p>Sem dias fixos. Se você faltar, retome exatamente o próximo bloco.</p></div><div class="cycle-counter" id="cycle-counter">1 / 12</div></div><div class="cycle-next"><div><small>PRÓXIMO BLOCO • <span id="cycle-duration">—</span></small><h3 id="cycle-name">Banco de Dados e SQL</h3><p id="cycle-tip">Teoria → recordação ativa → questões → correção</p></div><button class="cycle-done" onclick="completeCycle()">✓ Concluir bloco</button></div><div class="cycle-grid" id="cycle-grid"></div><div class="cycle-footer"><button class="btn btn-ghost" onclick="undoCycle()">↶ Voltar um bloco</button><div class="cycle-config-actions"><button class="btn btn-ghost" type="button" onclick="cycleEditorOpen()">⚙ Configurar ciclo</button><span>Meta configurada: <b id="cycle-total-duration">21h / ciclo</b></span></div></div><section id="cycle-editor" class="cycle-editor" hidden><div class="cycle-head"><div><h3>Personalizar ciclo de estudos</h3><p>Edite disciplinas, durações e ordem. Nenhum registro antigo será alterado.</p></div><strong id="cycle-edit-total"></strong></div><div id="cycle-edit-rows"></div><div class="cycle-edit-actions"><button class="btn btn-ghost" type="button" onclick="cycleDraftAdd()">+ Adicionar bloco</button><button class="btn btn-ghost" type="button" onclick="cycleDraftReset()">Restaurar padrão</button><button class="btn btn-ghost" type="button" onclick="cycleEditorClose()">Cancelar</button><button class="btn btn-navy" type="button" onclick="cycleDraftSave()">Salvar ciclo</button></div></section></section><div class="notice-ti">📌 <b>Plano de estudos personalizado, não transcrição de edital oficial.</b> Os tópicos são uma trilha inicial compartilhada entre BACEN, CGU e Banco do Brasil. Confira os editais oficiais e adapte os conhecimentos específicos quando escolher o cargo e a especialidade. O progresso fica salvo neste navegador; exporte backups regularmente.</div>
+    <!-- MEU PROGRESSO -->
+    <div class="prog-card">
+      <div class="prog-main">
+        <div class="prog-top">
+          <div><div class="prog-lbl">Meu Progresso</div><div class="prog-sub" id="prog-sub">0 de 0 tópicos concluídos</div></div>
+          <div class="prog-pct" id="prog-pct">0%</div>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="prog-stats">
+        <div class="ps"><div class="ps-v g" id="ps-ac">0</div><div class="ps-l">Acertos</div></div>
+        <div class="ps"><div class="ps-v r" id="ps-er">0</div><div class="ps-l">Erros</div></div>
+        <div class="ps"><div class="ps-v b" id="ps-tot">0</div><div class="ps-l">Questões</div></div>
+        <div class="ps"><div class="ps-v lime" id="ps-aprov">—</div><div class="ps-l">Aproveit.</div></div>
+      </div>
+    </div>
+
+    <!-- CRONÔMETRO + CALENDÁRIO -->
+    <div>
+      <div class="sec-lbl">⏱️ Cronômetro &amp; Calendário</div>
+      <div class="tracker-row">
+
+        <!-- CRONÔMETRO -->
+        <div class="crono-card">
+          <div class="crono-display">
+            <div class="crono-time" id="crono-display">00:00:00</div>
+            <div class="crono-status" id="crono-status">Pronto para iniciar</div>
+          </div>
+
+          <!-- Disciplina / assunto da sessão -->
+          <div class="crono-session-info">
+            <div class="crono-disc-select">
+              <select id="crono-disc" onchange="onCronoDiscChange()" style="flex:1">
+                <option value="">— Disciplina (opcional) —</option>
+              </select>
+            </div>
+            <div id="crono-topic-row" class="crono-disc-select" style="display:none">
+              <select id="crono-topic" style="flex:1" onchange="onTopicModeChange('crono')">
+                <option value="">— Assunto / Tópico —</option>
+              </select>
+            </div>
+            <div id="crono-custom-wrap" class="man-field" style="display:none"><label>Assunto personalizado</label><input id="crono-custom-topic" class="man-inp" maxlength="180" placeholder="Digite o assunto estudado"></div>
+            <div class="man-field">
+              <label style="font-size:9px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.6px">Tipo de Estudo</label>
+              <select id="crono-tipo" class="man-inp">
+                <option value="">— selecione —</option>
+                <option value="Teoria">📖 Teoria</option>
+                <option value="Questões">📝 Questões</option>
+                <option value="Simulado">🎯 Simulado</option>
+                <option value="Lei Seca">⚖️ Lei Seca</option>
+                <option value="Jurisprudência">🏛️ Jurisprudência</option>
+                <option value="Discursiva">✍️ Discursiva</option>
+              </select>
+            </div>
+            <div class="man-field">
+              <label style="font-size:9px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.6px">Agendar Revisão</label>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+                <button type="button" class="rev-badge pending" onclick="toggleRevBtn(this,1)" data-days="1">1 dia</button>
+                 <button type="button" class="rev-badge pending" onclick="toggleRevBtn(this,7)" data-days="7">7 dias</button>
+                <button type="button" class="rev-badge pending" onclick="toggleRevBtn(this,15)" data-days="15">15 dias</button>
+                <button type="button" class="rev-badge pending" onclick="toggleRevBtn(this,21)" data-days="21">21 dias</button>
+                <button type="button" class="rev-badge pending" onclick="toggleRevBtn(this,30)" data-days="30">30 dias</button>
+                <input type="number" id="crono-rev-custom" class="man-inp" min="1" max="365" placeholder="Custom (dias)" style="width:110px;text-align:center;font-size:12px;padding:4px 8px">
+              </div>
+              <div id="crono-rev-selected" style="font-size:10px;color:var(--text-soft);margin-top:4px"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div class="man-field">
+                <label style="font-size:9px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.6px">Acertos</label>
+                <input type="number" class="man-inp" id="crono-acertos" min="0" placeholder="0" style="text-align:center;border-color:#bbf7d0">
+              </div>
+              <div class="man-field">
+                <label style="font-size:9px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.6px">Erros</label>
+                <input type="number" class="man-inp" id="crono-erros" min="0" placeholder="0" style="text-align:center;border-color:#fca5a5">
+              </div>
+            </div>
+            <div class="man-field">
+              <label style="font-size:9px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.6px">Observação (opcional)</label>
+              <textarea id="crono-obs" class="man-inp" rows="2" placeholder="Ex: revisar os tópicos X e Y, dúvida sobre..." style="resize:none;min-height:unset;font-size:12px;line-height:1.5"></textarea>
+            </div>
+          </div>
+
+          <div class="crono-btns">
+            <button class="crono-btn start" id="btn-start" onclick="cronoStart()">▶ Iniciar</button>
+            <button class="crono-btn pause" id="btn-pause" onclick="cronoPause()" style="display:none">⏸ Pausar</button>
+            <button class="crono-btn stop" id="btn-stop" onclick="cronoStop()" style="display:none">⏹ Parar e Registrar</button>
+          </div>
+
+          <div class="crono-today-row" style="background:var(--bg);border-radius:10px;padding:10px 14px;">
+            <span class="crono-today-lbl">⏱ Horas registradas hoje</span>
+            <span class="crono-today-val" id="crono-today-val">0h 00min</span>
+          </div>
+
+          <div class="crono-divider"></div>
+
+          <!-- INSERÇÃO MANUAL -->
+          <div class="crono-manual">
+            <div class="crono-manual-title">✏️ Inserir manualmente</div>
+            <section class="quick-box" aria-label="Registro rápido de estudo">
+              <div class="quick-head"><strong>⚡ Registro rápido</strong><small>Hoje · duração e assunto obrigatórios</small></div>
+              <div class="quick-grid">
+                <div><label for="quick-disc">Disciplina</label><select id="quick-disc" class="man-inp" onchange="quickDiscChange()"><option value="">— Selecione —</option></select></div>
+                <div><label for="quick-topic">Assunto</label><select id="quick-topic" class="man-inp" onchange="quickTopicChange()"><option value="">— Selecione —</option></select></div>
+                <div><label for="quick-min">Minutos</label><input id="quick-min" class="man-inp" type="number" min="1" max="1440" step="1" value="30"></div>
+              </div>
+              <div id="quick-custom-wrap" style="display:none;margin-top:8px"><label for="quick-custom-topic">Novo assunto</label><input id="quick-custom-topic" class="man-inp" maxlength="180" placeholder="Digite um assunto"></div>
+              <div class="quick-controls">
+                <button type="button" id="quick-last" class="quick-secondary" onclick="quickUseLast()">↺ Usar último assunto</button>
+                <button type="button" id="quick-submit" class="quick-action" onclick="quickAdd()">+ Registrar estudo rápido</button>
+                <button type="button" id="quick-full" class="quick-secondary" onclick="quickUseFull()">Usar formulário completo ↓</button>
+              </div>
+              <div id="quick-error" class="quick-msg" role="status" aria-live="polite"></div>
+            </section>
+            <div class="man-grid">
+              <div class="man-field"><label>Data</label><input type="date" class="man-inp" id="man-data"></div>
+              <div class="man-field"><label>Horas</label><input type="number" class="man-inp" id="man-h" min="0" max="24" placeholder="0" style="text-align:center"></div>
+              <div class="man-field"><label>Minutos</label><input type="number" class="man-inp" id="man-m" min="0" max="59" placeholder="0" style="text-align:center"></div>
+            </div>
+            <div class="man-grid-wide">
+              <div class="man-field"><label>Disciplina</label>
+                <select class="man-inp" id="man-disc" onchange="onManDiscChange()"><option value="">— selecione —</option></select>
+              </div>
+              <div class="man-field" id="man-topic-wrap" style="display:none">
+                <label>Assunto / Tópico</label>
+                <select class="man-inp" id="man-topic" onchange="onTopicModeChange('man')"><option value="">— selecione —</option></select>
+              </div>
+            </div>
+            <div id="man-custom-wrap" class="man-field" style="display:none"><label>Assunto personalizado</label><input id="man-custom-topic" class="man-inp" maxlength="180" placeholder="Digite o assunto estudado"></div>
+            <div class="man-field">
+              <label style="font-size:9px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.6px">Tipo de Estudo</label>
+              <select id="man-tipo" class="man-inp">
+                <option value="">— selecione —</option>
+                <option value="Teoria">📖 Teoria</option>
+                <option value="Questões">📝 Questões</option>
+                <option value="Simulado">🎯 Simulado</option>
+                <option value="Lei Seca">⚖️ Lei Seca</option>
+                <option value="Jurisprudência">🏛️ Jurisprudência</option>
+                <option value="Discursiva">✍️ Discursiva</option>
+              </select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div class="man-field">
+                <label style="font-size:9px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.6px">Questões</label>
+                <input type="number" class="man-inp" id="man-q" min="0" placeholder="0" style="text-align:center">
+              </div>
+              <div class="man-field">
+                <label style="font-size:9px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.6px">Acertos</label>
+                <input type="number" class="man-inp" id="man-acertos" min="0" placeholder="0" style="text-align:center;border-color:#bbf7d0">
+              </div>
+              <div class="man-field">
+                <label style="font-size:9px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.6px">Erros</label>
+                <input type="number" class="man-inp" id="man-erros" min="0" placeholder="0" style="text-align:center;border-color:#fca5a5">
+              </div>
+            </div>
+            <div class="man-field">
+              <label style="font-size:9px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.6px">Observação (opcional)</label>
+              <textarea id="man-obs" class="man-inp" rows="2" placeholder="Ex: revisar tópico X, dúvida sobre Y..." style="resize:none;min-height:unset;font-size:12px;line-height:1.5"></textarea>
+            </div>
+            <div class="man-field"><label>Agendar revisões desta sessão</label><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label><input type="checkbox" class="manual-rev" value="1"> 1 dia</label><label><input type="checkbox" class="manual-rev" value="7"> 7 dias</label><label><input type="checkbox" class="manual-rev" value="21"> 21 dias</label><label><input type="checkbox" class="manual-rev" value="30"> 30 dias</label></div><small style="color:var(--text-soft)">Selecione uma disciplina e um assunto para agendar.</small></div>
+            <button class="crono-add-btn" onclick="manualAdd()">+ Adicionar registro</button>
+          </div>
+        </div>
+
+        <!-- CALENDÁRIO -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="cal-card">
+          <div class="cal-nav">
+            <div class="cal-title" id="cal-title">—</div>
+            <div class="cal-nav-btns">
+              <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+              <button class="cal-nav-btn" onclick="calNav(0)">●</button>
+              <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+            </div>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+          <div class="cal-legend">
+            <div class="cal-leg"><div class="cal-leg-dot" style="background:var(--navy)"></div>Horas estudadas</div>
+            <div class="cal-leg"><div class="cal-leg-dot" style="background:var(--rust)"></div>Hoje</div>
+          </div>
+        </div>
+
+        <!-- PAINEL DE ESTATÍSTICAS -->
+        <div class="stats-panel">
+          <div class="stats-panel-header">
+            <div class="stats-panel-title">📊 Análise de Desempenho</div>
+            <div style="display:flex;gap:6px">
+              <select class="cf-select" id="chart-disc" onchange="renderCharts()">
+                <option value="">Todas as disciplinas</option>
+              </select>
+              <select class="cf-select" id="chart-period" onchange="renderCharts()">
+                <option value="7">Últimos 7 dias</option>
+                <option value="14" selected>Últimos 14 dias</option>
+                <option value="30">Últimos 30 dias</option>
+                <option value="0">Todo o período</option>
+              </select>
+            </div>
+          </div>
+          <div class="stats-big-row" id="stats-big-row">
+            <div class="stat-big"><div class="stat-big-val" style="color:var(--navy)" id="sb-horas">0h</div><div class="stat-big-lbl">Horas estudadas</div><div class="stat-big-sub" id="sb-horas-sub">no período</div></div>
+            <div class="stat-big"><div class="stat-big-val" style="color:var(--green)" id="sb-acertos">0</div><div class="stat-big-lbl">Acertos</div><div class="stat-big-sub" id="sb-acertos-sub">no período</div></div>
+            <div class="stat-big"><div class="stat-big-val" style="color:var(--red)" id="sb-erros">0</div><div class="stat-big-lbl">Erros</div><div class="stat-big-sub" id="sb-erros-sub">no período</div></div>
+            <div class="stat-big"><div class="stat-big-val" id="sb-pct">—</div><div class="stat-big-lbl">% Aproveitamento</div><div class="stat-big-sub" id="sb-pct-sub">no período</div></div>
+          </div>
+          <!-- ETAPA 2.1: indicadores calculados sem mudar o armazenamento -->
+          <section class="topic-insights" aria-label="Desempenho por assunto">
+            <div class="topic-insights-head"><div><strong>Desempenho por assunto</strong><p>Identifique conteúdos que merecem reforço com base em questões registradas.</p></div><span id="topic-insights-count" class="topic-insights-count">0 assuntos</span></div>
+            <div class="topic-insights-controls">
+              <label for="topic-insights-min">Quantidade mínima de questões</label>
+              <select id="topic-insights-min" class="cf-select" onchange="renderTopicInsights()"><option value="1">1 questão</option><option value="5" selected>5 questões</option><option value="10">10 questões</option><option value="20">20 questões</option></select>
+              <label for="topic-insights-order">Ordenar por</label>
+              <select id="topic-insights-order" class="cf-select" onchange="renderTopicInsights()"><option value="weak">Menor aproveitamento</option><option value="recent">Estudo mais antigo</option><option value="volume">Mais questões</option></select>
+            </div>
+            <div id="topic-insights-list" class="topic-insights-list" aria-live="polite"><p class="topic-insights-empty">Registre questões para visualizar os resultados.</p></div>
+            <p class="topic-insights-foot">Questões do histórico e lançamentos diretos no edital são origens independentes. Se você registrar as mesmas questões nos dois lugares, elas poderão ser contadas duas vezes. Assuntos sem questões suficientes não recebem classificação.</p>
+          </section>
+
+          <!-- ETAPA 2.2: distribuição do estudo por disciplina, somente leitura -->
+          <section class="neglect-panel" aria-label="Disciplinas com atenção pendente">
+            <div class="neglect-header"><div><strong>Equilíbrio entre disciplinas</strong><p>Compare as horas registradas com a distribuição prevista no ciclo atual.</p></div><span id="neglect-summary" class="topic-insights-count">—</span></div>
+            <div class="neglect-controls"><label for="neglect-window">Período de análise</label><select id="neglect-window" class="cf-select" onchange="renderNeglectPanel()"><option value="7">Últimos 7 dias</option><option value="14">Últimos 14 dias</option><option value="30" selected>Últimos 30 dias</option></select></div>
+            <div id="neglect-list" class="neglect-list" aria-live="polite"><p class="neglect-empty">Aguardando dados de estudo...</p></div>
+            <p class="neglect-note">Os pesos vêm da configuração atual do ciclo. Considera somente horas do histórico, inclusive sessões com assuntos personalizados. Não inclui matérias previstas para fases posteriores. Sem registros suficientes, não presume abandono.</p>
+          </section>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Por disciplina</div>
+            <div class="stats-disc-row" id="stats-disc-row" style="max-height:320px;overflow-y:auto;padding-right:4px"><div class="chart-empty">Nenhum registro ainda</div></div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- METAS -->
+    <div id="sec-metas">
+      <div class="sec-lbl">🎯 Metas de Estudo</div>
+      <div class="metas-grid">
+        <div class="meta-card">
+          <div class="mc-top"><div class="mc-icon" style="background:#e8eaff">⏱️</div><div class="mc-name">Horas / Semana <span class="mc-auto-badge">auto</span></div></div>
+          <div class="mc-inputs">
+            <div class="mc-ig"><label>Meta</label><input class="mc-inp" type="number" id="meta-horas" min="0" placeholder="Ex: 20" oninput="updateAll();debouncedSave()"></div>
+            <div class="mc-arrow">→</div>
+            <div class="mc-ig"><label>Real (semana)</label><input class="mc-inp" type="number" id="real-horas" readonly title="Calculado automaticamente pelo cronômetro e inserções manuais"></div>
+          </div>
+          <div class="mc-bar"><div class="mc-fill" id="mf-h" style="width:0%;background:var(--navy)"></div></div>
+          <div class="mc-labels"><span id="ml-h" style="color:var(--text-soft)">0h estudadas</span><span class="mc-pct" id="mp-h" style="color:var(--navy)">0%</span></div>
+        </div>
+        <div class="meta-card">
+          <div class="mc-top"><div class="mc-icon" style="background:#fff0e6">📝</div><div class="mc-name">Questões / Semana <span class="mc-auto-badge">auto</span></div></div>
+          <div class="mc-inputs">
+            <div class="mc-ig"><label>Meta</label><input class="mc-inp" type="number" id="meta-questoes" min="0" placeholder="Ex: 100" oninput="updateAll();debouncedSave()"></div>
+            <div class="mc-arrow">→</div>
+            <div class="mc-ig"><label>Real (semana)</label><input class="mc-inp" type="number" id="real-questoes" readonly title="Calculado automaticamente"></div>
+          </div>
+          <div class="mc-bar"><div class="mc-fill" id="mf-q" style="width:0%;background:var(--rust)"></div></div>
+          <div class="mc-labels"><span id="ml-q" style="color:var(--text-soft)">0 resolvidas</span><span class="mc-pct" id="mp-q" style="color:var(--rust)">0%</span></div>
+        </div>
+        <div class="meta-card">
+          <div class="mc-top"><div class="mc-icon" style="background:#e6faf3">✅</div><div class="mc-name">Conclusão dos Conteúdos</div></div>
+          <div class="mc-inputs"><div class="mc-ig"><label>Meta %</label><input class="mc-inp" type="number" id="meta-conclusao" min="0" max="100" placeholder="Ex: 100" oninput="updateAll();debouncedSave()"></div></div>
+          <div class="mc-bar"><div class="mc-fill" id="mf-c" style="width:0%;background:var(--green)"></div></div>
+          <div class="mc-labels"><span id="ml-c" style="color:var(--text-soft)">0 concluídos</span><span class="mc-pct" id="mp-c" style="color:var(--green)">0%</span></div>
+        </div>
+        <div class="meta-card">
+          <div class="mc-top"><div class="mc-icon" style="background:#fff8ec">🏆</div><div class="mc-name">Aproveitamento</div></div>
+          <div class="mc-inputs"><div class="mc-ig"><label>Meta %</label><input class="mc-inp" type="number" id="meta-aprov" min="0" max="100" placeholder="Ex: 70" oninput="updateAll();debouncedSave()"></div></div>
+          <div class="mc-bar"><div class="mc-fill" id="mf-a" style="width:0%;background:var(--amber)"></div></div>
+          <div class="mc-labels"><span id="ml-a" style="color:var(--text-soft)">Sem questões</span><span class="mc-pct" id="mp-a" style="color:var(--amber)">0%</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page-estudos -->
+
+  <!-- PAGE: EDITAL -->
+  <div class="page" id="page-edital">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="sec-lbl" style="margin-bottom:0">📋 Conteúdos do Edital</div>
+      <div class="filter-row">
+        <span class="flbl">Filtrar:</span>
+        <button class="fbtn active" onclick="setFilter('todos',this)">Todos</button>
+        <button class="fbtn" onclick="setFilter('pendentes',this)">⬜ Pendentes</button>
+        <button class="fbtn" onclick="setFilter('concluidos',this)">✅ Concluídos</button>
+        <button class="fbtn" onclick="setFilter('questoes',this)">📊 Com Questões</button>
+      </div>
+    </div>
+    <div class="disc-list" id="disc-list"></div>
+  </div>
+
+  <!-- PAGE: REVISÕES -->
+  <div class="page" id="page-revisoes">
+    <div class="sec-lbl">🔁 Cronograma de Revisões</div>
+    <div class="hint blue" style="margin-bottom:4px">
+      <div class="hint-icon">💡</div>
+      <div>As revisões são agendadas automaticamente quando você para o cronômetro com uma revisão selecionada. Clique nos badges para marcar como concluída.</div>
+    </div>
+    <div id="rev-content"><div class="rev-empty">Nenhuma revisão agendada ainda.<br>Agende revisões pelo cronômetro ou no registro manual, selecionando matéria e assunto.</div></div>
+  </div>
+
+  <!-- ETAPA 2.3: Relatório semanal calculado sem escrita no armazenamento -->
+  <div class="page" id="page-relatorio">
+    <div class="report-head">
+      <div><div class="sec-lbl">📊 Relatório semanal</div><h2>Resumo da preparação</h2><p class="report-sub">Evolução por semana, questões, matérias, revisões agendadas e próximos focos.</p></div>
+      <div class="report-control"><label for="weekly-period">Semana analisada</label><select class="cf-select" id="weekly-period" onchange="renderWeeklyReport()"><option value="0">Semana atual</option><option value="1">Semana anterior</option><option value="2">Há duas semanas</option><option value="3">Há três semanas</option><option value="4">Há quatro semanas</option><option value="5">Há cinco semanas</option><option value="6">Há seis semanas</option><option value="7">Há sete semanas</option></select></div>
+    </div>
+    <p class="report-window" id="weekly-range"></p>
+    <div class="report-kpis" id="weekly-kpis"></div>
+    <div class="report-grid">
+      <section class="report-box"><h3>Tempo por disciplina</h3><div id="weekly-disciplines"></div></section>
+      <section class="report-box"><h3>Assuntos para reforçar</h3><p class="report-note">Questões registradas em sessões da semana, com pelo menos 5 questões por assunto.</p><div id="weekly-topics"></div></section>
+      <section class="report-box"><h3>Revisões com vencimento na semana</h3><div id="weekly-revisions"></div><p class="report-note">A conclusão indica o estado atual, não quando a revisão foi realizada. Revisões sem data de conclusão não permitem medir execução histórica.</p></section>
+      <section class="report-box"><h3>Leitura da semana</h3><div id="weekly-guidance"></div></section>
+    </div>
+    <p class="report-note">Os totais de questões utilizam apenas o histórico das sessões. Questões lançadas diretamente no edital não possuem histórico semanal confiável e não são somadas aqui. Metas semanais exibidas somente para a semana atual; metas anteriores não são armazenadas por período.</p>
+  </div>
+
+  <!-- PAGE: HISTÓRICO -->
+  <div class="page" id="page-historico">
+    <div class="sec-lbl">📅 Histórico de Estudos</div>
+
+    <div class="hist-summary">
+      <div class="hist-sum-card"><div class="hsc-val" id="hs-dias">0</div><div class="hsc-lbl">Dias estudados</div></div>
+      <div class="hist-sum-card"><div class="hsc-val" id="hs-horas">0h</div><div class="hsc-lbl">Total de horas</div></div>
+      <div class="hist-sum-card"><div class="hsc-val" id="hs-questoes">0</div><div class="hsc-lbl">Total de questões</div></div>
+      <div class="hist-sum-card"><div class="hsc-val" id="hs-media">0h</div><div class="hsc-lbl">Média diária</div></div>
+    </div>
+
+    <div class="hist-filters">
+      <span class="flbl">Filtrar por:</span>
+      <select class="man-inp" id="hist-filter-disc" onchange="renderHistorico()" style="max-width:200px;padding:6px 10px;font-size:12px">
+        <option value="">Todas as disciplinas</option>
+      </select>
+      <select class="man-inp" id="hist-filter-period" onchange="renderHistorico()" style="max-width:160px;padding:6px 10px;font-size:12px">
+        <option value="30">Últimos 30 dias</option>
+        <option value="7">Última semana</option>
+        <option value="0">Todo o período</option>
+      </select>
+    </div>
+
+    <div class="hist-table-wrap">
+      <table class="hist-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Disciplina</th>
+            <th>Assunto / Tópico</th>
+            <th>Tipo</th>
+            <th>Tempo</th>
+            <th>Questões</th>
+            <th>Acertos</th>
+            <th>Erros</th>
+            <th>% Acerto</th>
+            <th>Observação</th>
+            <th>Origem</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="hist-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+
+<!-- ETAPA 2.4: edição não destrutiva de registros -->
+<div class="edit-overlay" id="edit-overlay" role="dialog" aria-modal="true" aria-labelledby="edit-heading" onclick="if(event.target===this)closeEditRegistro()">
+ <div class="edit-panel">
+  <h3 id="edit-heading" style="font-size:19px;color:var(--navy)">Editar registro de estudo</h3>
+  <p class="edit-note">O registro mantém o identificador e a origem. Revisões vinculadas serão atualizadas; datas de revisões pendentes acompanharão alterações na data do estudo.</p>
+  <form id="edit-form" onsubmit="event.preventDefault();saveEditRegistro()" novalidate>
+   <div class="edit-grid">
+    <label class="edit-field">Data<input type="date" id="edit-date" required></label>
+    <label class="edit-field">Disciplina<select id="edit-disc" onchange="onEditDiscChange()" required></select></label>
+    <label class="edit-field full">Assunto<select id="edit-topic" onchange="onEditTopicChange()"></select></label>
+    <label class="edit-field full" id="edit-custom-wrap" style="display:none">Assunto personalizado<input type="text" id="edit-custom-topic" maxlength="180" placeholder="Digite o assunto"></label>
+    <label class="edit-field">Tipo de estudo<input type="text" id="edit-tipo" maxlength="120"></label>
+    <label class="edit-field">Duração (horas decimais)<input type="number" id="edit-horas" min="0" max="10000" step="any" required></label>
+    <label class="edit-field">Questões<input type="number" id="edit-questoes" min="0" step="1" required></label>
+    <label class="edit-field">Acertos<input type="number" id="edit-acertos" min="0" step="1" required></label>
+    <label class="edit-field">Erros<input type="number" id="edit-erros" min="0" step="1" required></label>
+    <label class="edit-field full">Observações<textarea id="edit-obs" rows="3" maxlength="3000"></textarea></label>
+   </div>
+   <div class="edit-error" id="edit-error" role="alert"></div>
+   <div class="edit-actions"><button type="button" onclick="closeEditRegistro()">Cancelar</button><button type="submit" class="edit-save">Salvar alterações</button></div>
+  </form>
+ </div>
+</div>
+
+<!-- MODAL DIA -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal-box">
+    <div class="modal-title">📅 Editar dia</div>
+    <div class="modal-sub" id="modal-date-lbl"></div>
+    <div class="modal-field"><label>Horas estudadas (ex: 1.5 = 1h30)</label><input type="number" class="modal-inp" id="modal-horas" min="0" step="0.1" placeholder="0"></div>
+    <div class="modal-field"><label>Questões resolvidas</label><input type="number" class="modal-inp" id="modal-questoes" min="0" placeholder="0"></div>
+    <div class="modal-field"><label>Disciplina</label>
+      <select class="modal-inp" id="modal-disc" onchange="onModalDiscChange()"><option value="">— selecione —</option></select>
+    </div>
+    <div class="modal-topic-field" id="modal-topic-field">
+      <label style="font-size:10px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.7px">Assunto / Tópico</label>
+      <select class="modal-inp" id="modal-topic"><option value="">— selecione —</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="modal-btn-save" onclick="saveModalDay()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- BACKUP MODAL -->
+<div class="backup-modal" id="backup-modal" onclick="closeBackupModal(event)">
+  <div class="backup-box">
+    <div class="backup-title">💾 Backup do Progresso</div>
+    <div class="backup-sub">Exporte seu progresso para um arquivo .json e salve em um local seguro. Se limpar o cache do navegador, você pode restaurar tudo pelo botão Restaurar.</div>
+    <div class="backup-warn">⚠️ O progresso fica salvo no navegador. Se limpar o histórico/cache, use o backup para não perder nada.</div>
+    <div class="backup-actions">
+      <button class="backup-btn-exp" onclick="exportBackup()">⬆️ Exportar backup (.json)</button>
+      <button class="backup-btn-imp" onclick="triggerImport()">⬇️ Restaurar backup (.json)</button>
+    </div>
+    <button class="backup-btn-close" onclick="closeBackupModal()">Fechar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="ti">✅</span><span id="tm">Salvo!</span></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONFIGURAÇÃO DO CONCURSO — EDITE AQUI
+// ═══════════════════════════════════════════════════════
+const CONCURSO_INFO={"concurso": "CONCURSOS TI", "cargo": "BACEN • CGU • Banco do Brasil", "banca": "Estratégia pré-edital", "dataProva": ""};
+const DISC_CORES = ['#C8102E','#0D134C','#E255BE','#A7C3BB','#EFBD7B','#AFE8D0','#7c3aed','#BAFF38','#0d9488','#ea580c'];
+
+// ═══════════════════════════════════════════════════════
+//  DADOS DO EDITAL — EDITE AQUI
+// ═══════════════════════════════════════════════════════
+const EDITAL=[{"id":"ti-0","nome":"BANCO DE DADOS E SQL","grupos":[{"nome":"Fundamentos e modelagem","topicos":["SGBD, dados e metadados","Modelo entidade-relacionamento","Modelo relacional, chaves e integridade","Normalização: 1FN, 2FN, 3FN e BCNF"]},{"nome":"SQL","topicos":["SELECT, WHERE, ORDER BY","JOINs e subconsultas","GROUP BY, HAVING e agregações","DDL, DML, transações e ACID"]},{"nome":"Avançado","topicos":["Índices e otimização de consultas","Data warehouse, OLAP e modelagem dimensional","NoSQL: modelos e consistência"]}]},{"id":"ti-1","nome":"ENGENHARIA DE SOFTWARE","grupos":[{"nome":"Fundamentos","topicos":["Ciclo de vida e processos de software","Requisitos funcionais e não funcionais","Modelos cascata, incremental e espiral"]},{"nome":"Desenvolvimento","topicos":["Scrum, Kanban e métodos ágeis","UML e modelagem de sistemas","Arquitetura, padrões de projeto e SOLID","Testes de software e qualidade","Git, integração e entrega contínuas"]}]},{"id":"ti-2","nome":"SEGURANÇA DA INFORMAÇÃO","grupos":[{"nome":"Conceitos","topicos":["Confidencialidade, integridade e disponibilidade","Autenticação, autorização e controle de acesso","Ameaças, vulnerabilidades e riscos"]},{"nome":"Controles","topicos":["Criptografia simétrica, assimétrica e hash","Certificados e assinatura digital","Segurança de redes, firewalls e VPN","Gestão de incidentes e continuidade","LGPD: conceitos fundamentais"]}]},{"id":"ti-3","nome":"REDES E INFRAESTRUTURA","grupos":[{"nome":"Redes","topicos":["Modelos OSI e TCP/IP","Endereçamento IPv4, IPv6 e sub-redes","TCP, UDP, DNS, DHCP e HTTP(S)","Roteamento, switching e VLANs"]},{"nome":"Infraestrutura","topicos":["Linux: comandos e permissões","Virtualização e contêineres","Computação em nuvem: IaaS, PaaS e SaaS","Backup, disponibilidade e monitoramento"]}]},{"id":"ti-4","nome":"PROGRAMAÇÃO E ALGORITMOS — ETAPA 2","grupos":[{"nome":"Fundamentos","topicos":["Tipos, variáveis, estruturas condicionais e repetição","Funções e recursão","Vetores, listas, pilhas e filas","Árvores, grafos e tabelas hash"]},{"nome":"Desenvolvimento","topicos":["Complexidade assintótica (Big O)","Busca e ordenação","Orientação a objetos","APIs REST, JSON e HTTP","Testes unitários e tratamento de erros"]}]},{"id":"ti-5","nome":"LÍNGUA PORTUGUESA","grupos":[{"nome":"Leitura","topicos":["Compreensão e interpretação de textos","Tipologia e gêneros textuais","Coesão, coerência e inferência"]},{"nome":"Gramática","topicos":["Classes de palavras","Sintaxe, concordância e regência","Pontuação e crase","Reescrita e equivalência de sentido","Morfologia"]}]},{"id":"ti-6","nome":"RACIOCÍNIO LÓGICO","grupos":[{"nome":"Primeiros 30 dias — fundamentos","topicos":["Proposições simples e compostas","Conectivos lógicos e tabelas-verdade","Negação de proposições","Equivalências e implicações lógicas","Argumentação e validade de argumentos","Conjuntos e diagramas lógicos"]}]},{"id":"ti-7","nome":"GOVERNANÇA E GESTÃO DE TI — ETAPA FUTURA","grupos":[{"nome":"Gestão","topicos":["ITIL: conceitos e práticas","COBIT: objetivos e governança","Gerenciamento de projetos","Gestão de serviços e indicadores"]}]},{"id":"ti-8","nome":"ESPECÍFICOS BACEN / CGU — ETAPA FUTURA","grupos":[{"nome":"CGU","topicos":["Administração pública, controle e auditoria (validar especialidade e edital)","Legislação específica da CGU (validar edital)"]},{"nome":"BACEN","topicos":["Sistema Financeiro Nacional e regulação (validar edital)","Economia e legislação específica (validar edital)"]}]},{"id":"ti-9","nome":"PROBABILIDADE E ESTATÍSTICA — ETAPA 2","grupos":[{"nome":"Base quantitativa","topicos":["Porcentagem, razão e proporção","Análise combinatória","Probabilidade básica e condicional","Média, mediana, moda e dispersão","Interpretação de tabelas e gráficos"]}]},{"id":"ti-10","nome":"INGLÊS — ETAPA 2","grupos":[{"nome":"Leitura instrumental","topicos":["Interpretação de textos em inglês","Vocabulário contextual","Conectivos e estruturas frequentes"]}]},{"id":"ti-11","nome":"CONHECIMENTOS BANCÁRIOS — ETAPA 2","grupos":[{"nome":"Banco do Brasil — conteúdos a validar no próximo edital","topicos":["Sistema Financeiro Nacional","Produtos e serviços bancários","Sistema de pagamentos e meios digitais","Atualidades do mercado financeiro"]}]},{"id":"ti-12","nome":"MATEMÁTICA — ETAPA 2","grupos":[{"nome":"Fundamentos","topicos":["Operações, frações e porcentagens","Razões, proporções e regra de três","Equações e funções básicas","Matemática financeira introdutória"]}]},{"id":"ti-13","nome":"REDAÇÃO — ETAPA 2","grupos":[{"nome":"Prática de escrita","topicos":["Estrutura de texto dissertativo-argumentativo","Planejamento e tese","Coesão e progressão argumentativa","Produção e correção de redações"]}]}];
+const KEY="central-ti-verticalizado-v1";
+let state={};
+let historico=[];
+let revisoes=[];
+let customTopics={};
+let calOffset=0;
+let modalDay=null;
+let curFilter="todos";
+
+// ── CRONÔMETRO ─────────────────────────────────────────
+let cronoStartTime = null;  // Date.now() quando iniciou/retomou
+let cronoAccumSecs = 0;     // segundos acumulados em pausas anteriores
+let cronoInterval  = null;
+let cronoRunning   = false;
+// Estado transitório isolado: não modifica o esquema histórico.
+const CRONO_DRAFT_KEY = KEY + '-cronometro-rascunho-v1';
+function saveCronoDraft() {
+  try {
+    const form={};
+    ['crono-disc','crono-topic','crono-custom-topic','crono-tipo','crono-acertos','crono-erros','crono-obs','crono-rev-custom'].forEach(id=>{
+      const el=document.getElementById(id); if(el) form[id]=el.value;
+    });
+    form.reviewDays=[...document.querySelectorAll('.rev-badge.active[data-days]')].map(el=>Number(el.dataset.days));
+    localStorage.setItem(CRONO_DRAFT_KEY, JSON.stringify({running:cronoRunning,startTime:cronoStartTime,accumSecs:cronoAccumSecs,form,updatedAt:Date.now()}));
+  } catch(e) { console.warn('Não foi possível salvar o cronômetro:',e); }
+}
+function clearCronoDraft() { try { localStorage.removeItem(CRONO_DRAFT_KEY); } catch(e) {} }
+function restoreCronoDraft() {
+  try {
+    const raw=localStorage.getItem(CRONO_DRAFT_KEY); if(!raw)return;
+    const d=JSON.parse(raw);
+    if(!d || !Number.isFinite(d.accumSecs) || d.accumSecs<0 || (d.running && (!Number.isFinite(d.startTime) || d.startTime>Date.now()))) return;
+    if (!d.running && d.accumSecs===0) return;
+    cronoAccumSecs=d.accumSecs;
+    cronoRunning=Boolean(d.running);
+    cronoStartTime=cronoRunning?d.startTime:null;
+    // Recuperar também a matéria e o assunto: sem eles uma sessão recuperada não pode ser registrada.
+    // Rascunhos antigos sem 'form' continuam válidos e não alteram os dados históricos.
+    const form=d.form;
+    if(form && typeof form==='object' && !Array.isArray(form)) {
+      const disc=document.getElementById('crono-disc');
+      if(typeof form['crono-disc']==='string' && [...disc.options].some(o=>o.value===form['crono-disc'])) {
+        disc.value=form['crono-disc']; onCronoDiscChange();
+        const topic=document.getElementById('crono-topic');
+        if(typeof form['crono-topic']==='string' && [...topic.options].some(o=>o.value===form['crono-topic'])) {
+          topic.value=form['crono-topic']; onTopicModeChange('crono');
+        }
+      }
+      ['crono-custom-topic','crono-tipo','crono-acertos','crono-erros','crono-obs','crono-rev-custom'].forEach(id=>{
+        const el=document.getElementById(id), v=form[id];
+        if(el && typeof v==='string') el.value=v;
+      });
+      if(Array.isArray(form.reviewDays)) document.querySelectorAll('.rev-badge[data-days]').forEach(el=>{
+        if(form.reviewDays.includes(Number(el.dataset.days))) el.classList.add('active');
+      });
+    }
+    if(cronoRunning) {
+      cronoInterval=setInterval(updateCronoDisplay,500);
+      document.getElementById('crono-display').className='crono-time running';
+      document.getElementById('crono-status').textContent='Sessão recuperada — em andamento';
+    } else {
+      document.getElementById('crono-display').className='crono-time paused';
+      document.getElementById('crono-status').textContent='Sessão pausada recuperada';
+      document.getElementById('btn-pause').textContent='▶ Retomar';
+      document.getElementById('btn-pause').className='crono-btn start';
+    }
+    document.getElementById('btn-start').style.display='none';
+    document.getElementById('btn-pause').style.display='';
+    document.getElementById('btn-stop').style.display='';
+    updateCronoDisplay();
+  } catch(e) { console.warn('Rascunho de cronômetro inválido:',e); }
+}
+window.addEventListener('pagehide',()=>{if(cronoRunning || cronoAccumSecs>0) saveCronoDraft(); else clearCronoDraft();});
+// Persistir alterações do formulário durante sessões para recuperação mesmo em fechamento inesperado.
+document.addEventListener('change', e=>{
+  if((cronoRunning || cronoAccumSecs>0) && e.target && e.target.id && e.target.id.startsWith('crono-')) saveCronoDraft();
+});
+document.addEventListener('input', e=>{
+  if((cronoRunning || cronoAccumSecs>0) && e.target && e.target.id && e.target.id.startsWith('crono-')) saveCronoDraft();
+});
+
+
+function getCronoSecs() {
+  let total = cronoAccumSecs;
+  if (cronoRunning && cronoStartTime) {
+    total += Math.floor((Date.now() - cronoStartTime) / 1000);
+  }
+  return total;
+}
+
+function cronoStart() {
+  cronoRunning   = true;
+  cronoStartTime = Date.now();
+  cronoInterval  = setInterval(updateCronoDisplay, 500);
+  document.getElementById('btn-start').style.display = 'none';
+  document.getElementById('btn-pause').style.display = '';
+  document.getElementById('btn-stop').style.display  = '';
+  document.getElementById('crono-display').className  = 'crono-time running';
+  document.getElementById('crono-status').textContent = 'Cronômetro em andamento...';
+  saveCronoDraft();
+}
+
+function cronoPause() {
+  if (!cronoRunning) { cronoResumeInternal(); return; }
+  cronoRunning    = false;
+  cronoAccumSecs += Math.floor((Date.now() - cronoStartTime) / 1000);
+  cronoStartTime  = null;
+  clearInterval(cronoInterval);
+  document.getElementById('btn-pause').textContent    = '▶ Retomar';
+  document.getElementById('btn-pause').className      = 'crono-btn start';
+  document.getElementById('crono-display').className   = 'crono-time paused';
+  document.getElementById('crono-status').textContent  = 'Pausado — clique Retomar para continuar';
+  saveCronoDraft();
+}
+
+function cronoResumeInternal() {
+  cronoRunning   = true;
+  cronoStartTime = Date.now();
+  cronoInterval  = setInterval(updateCronoDisplay, 500);
+  document.getElementById('btn-pause').textContent    = '⏸ Pausar';
+  document.getElementById('btn-pause').className      = 'crono-btn pause';
+  document.getElementById('crono-display').className   = 'crono-time running';
+  document.getElementById('crono-status').textContent  = 'Cronômetro em andamento...';
+  saveCronoDraft();
+}
+
+function cronoStop() {
+  const chosenDisc=document.getElementById('crono-disc').value;
+  const chosenTopic=resolveSessionTopic('crono',chosenDisc);
+  if (!chosenDisc || !chosenTopic) {
+    showToast('⚠️', 'Selecione a disciplina e informe o assunto antes de registrar.');
+    return;
+  }
+  cronoRunning = false;
+  clearInterval(cronoInterval);
+  if (cronoStartTime) {
+    cronoAccumSecs += Math.floor((Date.now() - cronoStartTime) / 1000);
+    cronoStartTime = null;
+  }
+
+  const totalSecs = cronoAccumSecs;
+
+  if (totalSecs > 0) {
+    const horas    = Math.round((totalSecs / 3600) * 1000000) / 1000000;
+    const disc     = document.getElementById('crono-disc').value;
+    const topic    = resolveSessionTopic('crono',disc);
+    const tipo     = document.getElementById('crono-tipo').value;
+    const acertos  = Number(document.getElementById('crono-acertos').value || 0);
+    const erros    = Number(document.getElementById('crono-erros').value || 0);
+    if (![acertos,erros].every(v=>Number.isSafeInteger(v)&&v>=0)) {
+      showToast('⚠️','Acertos e erros devem ser inteiros não negativos.');
+      cronoRunning=false; cronoStartTime=null; saveCronoDraft();
+      document.getElementById('crono-display').className='crono-time paused';
+      document.getElementById('crono-status').textContent='Sessão pausada — corrija as questões e finalize';
+      document.getElementById('btn-pause').textContent='▶ Retomar'; return;
+    }
+    const obs      = document.getElementById('crono-obs').value.trim();
+    const today    = todayKey();
+
+    const revDays = getSelectedRevDays();
+    persistSessionTopic(disc,topic);
+    addRegistro({ date: today, disc, topic, tipo, horas, questoes: acertos + erros, acertos, erros, obs, origem: 'cronômetro' });
+
+    if (revDays.length > 0) {
+      if (disc && topic) scheduleRevisoes(today, disc, topic, revDays, historico[historico.length-1].id);
+      else showToast('⚠️', 'Sessão salva. Para agendar revisões, escolha disciplina e assunto.');
+    }
+
+    document.getElementById('crono-acertos').value = '';
+    document.getElementById('crono-erros').value   = '';
+    document.getElementById('crono-obs').value     = '';
+    document.getElementById('crono-tipo').value    = '';
+    clearRevBtns();
+    document.getElementById('crono-rev-custom').value      = '';
+    document.getElementById('crono-rev-selected').textContent = '';
+    showToast('✅', secsToHMS(totalSecs) + ' registrados!' + (revDays.length ? ' ' + revDays.length + ' revisão(ões) agendada(s).' : ''));
+  }
+
+  cronoAccumSecs = 0;
+  clearCronoDraft();
+  updateCronoDisplay();
+  document.getElementById('btn-start').style.display  = '';
+  document.getElementById('btn-pause').style.display  = 'none';
+  document.getElementById('btn-stop').style.display   = 'none';
+  document.getElementById('btn-pause').textContent    = '⏸ Pausar';
+  document.getElementById('btn-pause').className      = 'crono-btn pause';
+  document.getElementById('crono-display').className  = 'crono-time';
+  document.getElementById('crono-status').textContent = 'Pronto para iniciar';
+}
+
+function updateCronoDisplay() {
+  document.getElementById('crono-display').textContent = secsToHMS(getCronoSecs());
+}
+
+const CUSTOM_TOPIC_VALUE = '__novo_assunto_personalizado__';
+function normalizeTopicName(value) { return String(value || '').trim().replace(/\s+/g,' '); }
+function topicIdentity(value) { return normalizeTopicName(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR'); }
+function topicOptions(disc) {
+  const all = getTopicsForDisc(disc);
+  const seen = new Set();
+  return all.filter(t => { const k=topicIdentity(t); if(!k || seen.has(k)) return false; seen.add(k); return true; });
+}
+function refreshTopicSelect(prefix) {
+  const disc=document.getElementById(prefix+'-disc').value;
+  const sel=document.getElementById(prefix+'-topic');
+  const row=document.getElementById(prefix==='crono'?'crono-topic-row':'man-topic-wrap');
+  const previous=sel.value;
+  sel.replaceChildren(new Option('— Selecione o assunto —',''));
+  if(disc) {
+    topicOptions(disc).forEach(t=>sel.add(new Option(t,t)));
+    sel.add(new Option('＋ Digitar novo assunto',CUSTOM_TOPIC_VALUE));
+    if([...sel.options].some(o=>o.value===previous)) sel.value=previous;
+  }
+  row.style.display=disc?(prefix==='crono'?'flex':''):'none';
+  onTopicModeChange(prefix);
+}
+function onCronoDiscChange() { refreshTopicSelect('crono'); }
+function onManDiscChange() { refreshTopicSelect('man'); }
+function onTopicModeChange(prefix) {
+  const custom=document.getElementById(prefix+'-topic').value===CUSTOM_TOPIC_VALUE;
+  document.getElementById(prefix+'-custom-wrap').style.display=custom?'flex':'none';
+}
+function resolveSessionTopic(prefix,disc) {
+  if(!disc) return '';
+  const selected=document.getElementById(prefix+'-topic').value;
+  const value=selected===CUSTOM_TOPIC_VALUE?document.getElementById(prefix+'-custom-topic').value:selected;
+  const cleaned=normalizeTopicName(value);
+  if(!cleaned) return '';
+  return topicOptions(disc).find(t=>topicIdentity(t)===topicIdentity(cleaned)) || cleaned;
+}
+function persistSessionTopic(disc,topic) {
+  if(!disc || !topic || topicOptions(disc).some(t=>topicIdentity(t)===topicIdentity(topic))) return;
+  if(!Array.isArray(customTopics[disc])) customTopics[disc]=[];
+  customTopics[disc].push(topic);
+  // Os tópicos personalizados ficam separados dos IDs do edital original.
+  ['crono','man'].forEach(prefix=>{
+    const select=document.getElementById(prefix+'-disc');
+    if(select && select.value===disc) refreshTopicSelect(prefix);
+  });
+}
+function onModalDiscChange() {
+  const disc = document.getElementById('modal-disc').value;
+  const field = document.getElementById('modal-topic-field');
+  const sel = document.getElementById('modal-topic');
+  if (disc) {
+    sel.innerHTML = '<option value="">— Assunto / Tópico —</option>' + getTopicsForDisc(disc).map(t => `<option value="${escapeHTML(t)}">${escapeHTML(t)}</option>`).join('');
+    field.classList.add('visible');
+  } else {
+    field.classList.remove('visible');
+  }
+}
+
+function getTopicsForDisc(discNome) {
+  const d = EDITAL.find(d => d.nome === discNome);
+  if (!d) return [];
+  return d.grupos.flatMap(g => g.topicos).concat(customTopics[discNome] || []);
+}
+
+function numericInput(id) {
+  const raw=document.getElementById(id).value.trim();
+  return raw === '' ? 0 : Number(raw);
+}
+function validISODate(value) {
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date=new Date(value+'T00:00:00');
+  return Number.isFinite(date.getTime()) && dateToKey(date)===value;
+}
+function manualAdd() {
+  const date    = document.getElementById('man-data').value;
+  const h       = numericInput('man-h');
+  const m       = numericInput('man-m');
+  const q       = numericInput('man-q');
+  const acertos = numericInput('man-acertos');
+  const erros   = numericInput('man-erros');
+  const disc    = document.getElementById('man-disc').value;
+  const topic   = resolveSessionTopic('man',disc);
+  const tipo    = document.getElementById('man-tipo').value;
+  const obs     = document.getElementById('man-obs').value.trim();
+  if (!validISODate(date)) { showToast('⚠️', 'Informe uma data válida.'); return; }
+  if ([h,m,q,acertos,erros].some(v=>!Number.isFinite(v)||v<0) || ![h,m,q,acertos,erros].every(Number.isSafeInteger) || m>=60) { showToast('⚠️', 'Valores inválidos: não use números negativos nem minutos acima de 59.'); return; }
+  if (!disc || !topic) { showToast('⚠️', 'Selecione a disciplina e informe o assunto.'); return; }
+  const horas = Math.round((h + m / 60) * 100) / 100;
+  if (horas === 0 && q === 0 && acertos === 0 && erros === 0) { showToast('⚠️', 'Informe horas ou questões.'); return; }
+  const totalQ = q || (acertos + erros);
+  if (acertos + erros > 0 && q > 0 && q !== acertos + erros) { showToast('⚠️', 'Questões deve ser igual a acertos + erros.'); return; }
+  const chosenDays = [...document.querySelectorAll('.manual-rev:checked')].map(e => Number(e.value));
+  if (chosenDays.length && (!disc || !topic)) { showToast('⚠️', 'Escolha disciplina e assunto para agendar revisões.'); return; }
+  persistSessionTopic(disc,topic);
+  addRegistro({ date, disc, topic, tipo, horas, questoes: totalQ, acertos, erros, obs, origem: 'manual' });
+  if (chosenDays.length) { scheduleRevisoes(date, disc, topic, chosenDays, historico[historico.length-1].id); document.querySelectorAll('.manual-rev').forEach(e=>e.checked=false); }
+  ['man-h','man-m','man-q','man-acertos','man-erros','man-obs'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('man-disc').value = '';
+  document.getElementById('man-topic').value = '';
+  document.getElementById('man-custom-topic').value='';
+  onTopicModeChange('man');
+  document.getElementById('man-tipo').value = '';
+  const wrap = document.getElementById('man-topic-wrap');
+  if (wrap) wrap.style.display = 'none';
+  showToast('✅', 'Registro adicionado!');
+}
+
+
+// ETAPA 2.5 — fluxo opcional; usa o mesmo histórico, os mesmos tópicos e as mesmas validações básicas.
+function quickError(message) {
+  const field=document.getElementById('quick-error');
+  if(field) field.textContent=message||'';
+  if(message) showToast('⚠️',message);
+}
+function quickDiscChange() {
+  const disc=document.getElementById('quick-disc').value;
+  const sel=document.getElementById('quick-topic');
+  sel.replaceChildren(new Option('— Selecione —',''));
+  if(disc){topicOptions(disc).forEach(t=>sel.add(new Option(t,t)));sel.add(new Option('＋ Digitar novo assunto',CUSTOM_TOPIC_VALUE));}
+  document.getElementById('quick-custom-topic').value='';
+  quickTopicChange();quickError('');
+}
+function quickTopicChange(){
+  document.getElementById('quick-custom-wrap').style.display=document.getElementById('quick-topic').value===CUSTOM_TOPIC_VALUE?'block':'none';
+  quickError('');
+}
+function quickChoose(disc,topic){
+  if(!EDITAL.some(d=>d.nome===disc)) return false;
+  document.getElementById('quick-disc').value=disc;
+  quickDiscChange();
+  const topicSelect=document.getElementById('quick-topic');
+  const known=topicOptions(disc).find(t=>topicIdentity(t)===topicIdentity(topic));
+  if(known) topicSelect.value=known;
+  else if(normalizeTopicName(topic)){
+    topicSelect.value=CUSTOM_TOPIC_VALUE;
+    document.getElementById('quick-custom-topic').value=normalizeTopicName(topic);
+  }
+  quickTopicChange();return true;
+}
+function quickUseLast(){
+  const last=[...historico].reverse().find(r=>r&&r.disc&&r.topic&&EDITAL.some(d=>d.nome===r.disc));
+  if(!last){quickError('Nenhum registro anterior encontrado. Selecione uma disciplina e assunto.');return;}
+  quickChoose(last.disc,last.topic);
+  quickError('');
+}
+function quickAdd(){
+  const disc=document.getElementById('quick-disc').value;
+  const sel=document.getElementById('quick-topic');
+  const topicRaw=sel.value===CUSTOM_TOPIC_VALUE?document.getElementById('quick-custom-topic').value:sel.value;
+  const name=normalizeTopicName(topicRaw);
+  const topic=topicOptions(disc).find(t=>topicIdentity(t)===topicIdentity(name))||name;
+  const raw=document.getElementById('quick-min').value.trim();
+  const minutes=Number(raw);
+  if(!EDITAL.some(d=>d.nome===disc)||!topic){quickError('Selecione disciplina e assunto para registrar.');return;}
+  if(!raw||!Number.isSafeInteger(minutes)||minutes<1||minutes>1440){quickError('Informe uma duração inteira entre 1 e 1440 minutos.');return;}
+  const key=todayKey();
+  if(!validISODate(key)){quickError('A data de hoje é inválida.');return;}
+  persistSessionTopic(disc,topic);
+  addRegistro({date:key,disc,topic,tipo:'',horas:Math.round(minutes/60*1000000)/1000000,questoes:0,acertos:0,erros:0,obs:'',origem:'rápido'});
+  if(typeof renderRevisoes==='function')renderRevisoes();
+  quickError('');
+  showToast('✅','Registro rápido salvo!');
+}
+function quickUseFull(){
+  const disc=document.getElementById('quick-disc').value;
+  const selected=document.getElementById('quick-topic').value;
+  const topic=selected===CUSTOM_TOPIC_VALUE?document.getElementById('quick-custom-topic').value:selected;
+  if(disc&&EDITAL.some(d=>d.nome===disc)){
+    document.getElementById('man-disc').value=disc;onManDiscChange();
+    const known=topicOptions(disc).find(t=>topicIdentity(t)===topicIdentity(topic));
+    if(known)document.getElementById('man-topic').value=known;
+    else if(normalizeTopicName(topic)){
+      document.getElementById('man-topic').value=CUSTOM_TOPIC_VALUE;
+      document.getElementById('man-custom-topic').value=normalizeTopicName(topic);
+    }
+    onTopicModeChange('man');
+  }
+  const m=Number(document.getElementById('quick-min').value);
+  if(Number.isSafeInteger(m)&&m>0&&m<=1440){document.getElementById('man-h').value=Math.floor(m/60);document.getElementById('man-m').value=m%60;}
+  document.getElementById('man-disc').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function quickInit(){
+  const sel=document.getElementById('quick-disc');
+  if(!sel)return;
+  sel.replaceChildren(new Option('— Selecione —',''));
+  EDITAL.forEach(d=>sel.add(new Option(d.nome,d.nome)));
+  quickUseLastSilently();
+}
+function quickUseLastSilently(){
+  const last=[...historico].reverse().find(r=>r&&r.disc&&r.topic&&EDITAL.some(d=>d.nome===r.disc));
+  if(last)quickChoose(last.disc,last.topic);
+}
+
+// ── REGISTROS (histórico + calendário unificados) ──────
+function addRegistro(r) {
+  r.id = Date.now() + Math.random();
+  historico.push(r);
+  if(document.getElementById('quick-disc') && !document.getElementById('quick-disc').value) quickChoose(r.disc,r.topic);
+  updateAll();
+  renderCal();
+  renderCharts();
+  renderHistorico();
+  saveData();
+}
+
+function deleteRegistro(id) {
+  const removed = historico.find(r => String(r.id) === String(id));
+  if (!removed) return;
+  historico = historico.filter(r => String(r.id) !== String(id));
+  // Somente revisões vinculadas explicitamente a esta sessão são removidas.
+  // Revisões antigas, sem vínculo, são preservadas para não apagar dados por engano.
+  revisoes = revisoes.filter(r => String(r.studyId ?? '') !== String(id));
+  renderRevisoes();
+  updateAll();
+  renderCal();
+  renderHistorico();
+  renderCharts();
+  saveData();
+  showToast('🗑️', 'Registro removido.');
+}
+
+// ── CALENDÁRIO ─────────────────────────────────────────
+function calNav(dir) { calOffset = dir === 0 ? 0 : calOffset + dir; renderCal(); }
+
+function renderCal() {
+  const now = new Date();
+  const target = new Date(now.getFullYear(), now.getMonth() + calOffset, 1);
+  const y = target.getFullYear(), m = target.getMonth();
+  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('cal-title').textContent = months[m] + ' ' + y;
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].forEach(d => {
+    const el = document.createElement('div'); el.className = 'cal-dow'; el.textContent = d; grid.appendChild(el);
+  });
+
+  const firstDay = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const daysInPrev = new Date(y, m, 0).getDate();
+  const todayStr = todayKey();
+
+  for (let i = 0; i < firstDay; i++) grid.appendChild(makeDayEl(y, m - 1, daysInPrev - firstDay + 1 + i, true));
+  for (let d = 1; d <= daysInMonth; d++) grid.appendChild(makeDayEl(y, m, d, false));
+  const rem = (firstDay + daysInMonth) % 7; if (rem > 0) for (let d = 1; d <= 7 - rem; d++) grid.appendChild(makeDayEl(y, m + 1, d, true));
+
+  updateCronoTodayVal();
+}
+
+function makeDayEl(y, m, d, other) {
+  const date = new Date(y, m, d);
+  const key = dateToKey(date);
+  const regs = historico.filter(r => r.date === key);
+  const totalH = regs.reduce((s, r) => s + (r.horas || 0), 0);
+  const totalQ = regs.reduce((s, r) => s + (r.questoes || 0), 0);
+  const discs = [...new Set(regs.map(r => r.disc).filter(Boolean))];
+
+  const el = document.createElement('div');
+  el.className = 'cal-day' + (other ? ' other-month' : '') + (key === todayKey() ? ' today' : '') + (regs.length ? ' has-data' : '');
+  el.innerHTML = `<div class="cal-day-num">${d}</div>`;
+  if (totalH > 0) el.innerHTML += `<div class="cal-day-h">⏱ ${horasLabel(totalH)}</div>`;
+  if (!other) el.onclick = () => openModal(key);
+  return el;
+}
+
+function updateCronoTodayVal() {
+  const today = todayKey();
+  const totalH = historico.filter(r => r.date === today).reduce((s, r) => s + (r.horas || 0), 0);
+  document.getElementById('crono-today-val').textContent = horasLabel(totalH);
+}
+
+// ── MODAL CALENDÁRIO ─────────────────────────────────────
+function openModal(key) {
+  modalDay = key;
+  const [y, m, d] = key.split('-');
+  document.getElementById('modal-date-lbl').textContent = `${d}/${m}/${y}`;
+  const regs = historico.filter(r => r.date === key);
+  const totalH = regs.reduce((s, r) => s + (r.horas || 0), 0);
+  const totalQ = regs.reduce((s, r) => s + (r.questoes || 0), 0);
+  document.getElementById('modal-horas').value = totalH > 0 ? totalH : '';
+  document.getElementById('modal-questoes').value = totalQ > 0 ? totalQ : '';
+  document.getElementById('modal-disc').value = '';
+  document.getElementById('modal-topic').value = '';
+  document.getElementById('modal-topic-field').classList.remove('visible');
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').classList.remove('open');
+    modalDay = null;
+  }
+}
+
+function saveModalDay() {
+  if (!modalDay) return;
+  const hoursRaw=document.getElementById('modal-horas').value.trim();
+  const questionsRaw=document.getElementById('modal-questoes').value.trim();
+  const horas=hoursRaw===''?0:Number(hoursRaw);
+  const questoes=questionsRaw===''?0:Number(questionsRaw);
+  if(!Number.isFinite(horas)||horas<0||!Number.isSafeInteger(questoes)||questoes<0){showToast('⚠️','Informe horas não negativas e questões inteiras não negativas.');return;}
+  const disc = document.getElementById('modal-disc').value;
+  const topic = document.getElementById('modal-topic').value;
+  // Remove apenas consolidações deste dia; nunca apaga registros de cronômetro/manuais.
+  const removedModalIds=new Set(historico.filter(r=>r.date===modalDay && r.origem==='modal').map(r=>String(r.id)));
+  historico=historico.filter(r=>!removedModalIds.has(String(r.id)));
+  revisoes=revisoes.filter(r=>!removedModalIds.has(String(r.studyId)));
+  if (horas > 0 || questoes > 0) addRegistro({ date: modalDay, disc, topic, horas, questoes, acertos:0, erros:0, origem: 'modal' });
+  renderRevisoes(); renderHistorico(); renderCharts(); updateAll(); saveData();
+  document.getElementById('modal-overlay').classList.remove('open');
+  modalDay = null;
+  showToast('✅', 'Dia atualizado!');
+}
+
+// ETAPA 2.4: editor de sessões; edição in-place e vínculo explícito com revisões.
+let editingRegistroId=null;
+const EDIT_CUSTOM_TOPIC='__edit_custom__';
+function editField(id){return document.getElementById('edit-'+id)}
+function onEditTopicChange(){
+  editField('custom-wrap').style.display=editField('topic').value===EDIT_CUSTOM_TOPIC?'flex':'none';
+}
+function onEditDiscChange(preferred=''){
+  const disc=editField('disc').value;
+  const sel=editField('topic');
+  sel.replaceChildren(new Option('— Selecione o assunto —',''));
+  if(disc){
+    topicOptions(disc).forEach(t=>sel.add(new Option(t,t)));
+    sel.add(new Option('＋ Digitar novo assunto',EDIT_CUSTOM_TOPIC));
+  }
+  if(preferred){
+    const match=topicOptions(disc).find(t=>topicIdentity(t)===topicIdentity(preferred));
+    if(match) sel.value=match;
+    else {sel.value=EDIT_CUSTOM_TOPIC;editField('custom-topic').value=preferred;}
+  }
+  onEditTopicChange();
+}
+function openEditRegistro(id){
+  const registro=historico.find(r=>String(r.id)===String(id));
+  if(!registro)return;
+  editingRegistroId=String(id);
+  editField('error').textContent='';
+  editField('disc').replaceChildren(new Option('— Selecione —',''));
+  EDITAL.forEach(d=>editField('disc').add(new Option(d.nome,d.nome)));
+  // Disciplinas de backups antigos permanecem editáveis.
+  if(registro.disc && ![...editField('disc').options].some(o=>o.value===registro.disc))
+    editField('disc').add(new Option(registro.disc,registro.disc));
+  editField('date').value=registro.date||'';
+  editField('disc').value=registro.disc||'';
+  editField('custom-topic').value='';
+  onEditDiscChange(registro.topic||'');
+  for(const k of ['tipo','obs']) editField(k).value=registro[k]||'';
+  for(const k of ['horas','questoes','acertos','erros']) editField(k).value=String(registro[k]??0);
+  editField('overlay').classList.add('open');
+}
+function closeEditRegistro(){
+  editField('overlay').classList.remove('open');
+  editingRegistroId=null;
+  editField('error').textContent='';
+}
+function saveEditRegistro(){
+  const fail=message=>{editField('error').textContent=message;return false};
+  if(editingRegistroId===null)return false;
+  const idx=historico.findIndex(r=>String(r.id)===editingRegistroId);
+  if(idx<0)return fail('Registro original não encontrado.');
+  const original=historico[idx];
+  const date=editField('date').value;
+  const disc=editField('disc').value;
+  const selected=editField('topic').value;
+  const candidate=selected===EDIT_CUSTOM_TOPIC?editField('custom-topic').value:selected;
+  const normalized=normalizeTopicName(candidate);
+  const topic=topicOptions(disc).find(t=>topicIdentity(t)===topicIdentity(normalized))||normalized;
+  if(!validISODate(date))return fail('Informe uma data válida.');
+  if(!disc || !topic || topic.length>180)return fail('Selecione uma disciplina e informe um assunto válido.');
+  const values={};
+  for(const key of ['horas','questoes','acertos','erros']){
+    const raw=editField(key).value.trim();
+    if(!raw || !Number.isFinite(Number(raw)) || Number(raw)<0)return fail('Informe valores numéricos válidos e não negativos.');
+    values[key]=Number(raw);
+  }
+  if(values.horas>10000)return fail('Duração acima do limite permitido.');
+  for(const key of ['questoes','acertos','erros'])
+    if(!Number.isSafeInteger(values[key]))return fail('Questões, acertos e erros precisam ser números inteiros.');
+  if(values.acertos+values.erros>values.questoes || (values.questoes>0 && values.acertos+values.erros>0 && values.questoes!==values.acertos+values.erros))
+    return fail('A soma de acertos e erros deve corresponder ao total de questões.');
+  const updated={...original,date,disc,topic,tipo:editField('tipo').value.trim(),obs:editField('obs').value.trim(),...values};
+  // Transação simples: só altera dados após todas as validações.
+  historico[idx]=updated;
+  revisoes.forEach(r=>{
+    if(r.studyId==null || String(r.studyId)!==editingRegistroId)return;
+    r.studyDate=date;r.disc=disc;r.topic=topic;
+    if(!r.done && Number.isFinite(Number(r.days)) && Number(r.days)>0)r.revDate=addDays(date,Number(r.days));
+  });
+  persistSessionTopic(disc,topic);
+  saveData();
+  renderRevisoes();renderHistorico();renderCal();renderCharts();updateAll();
+  if(typeof renderWeeklyReport==='function')renderWeeklyReport();
+  closeEditRegistro();
+  showToast('✅','Registro atualizado!');
+  return true;
+}
+
+// ── HISTÓRICO ──────────────────────────────────────────
+function renderHistorico() {
+  const discFilter = document.getElementById('hist-filter-disc').value;
+  const periodDays = parseInt(document.getElementById('hist-filter-period').value);
+  const cutoff = periodDays > 0 ? new Date(Date.now() - periodDays * 86400000) : null;
+
+  let filtered = [...historico].filter(r => {
+    if (discFilter && r.disc !== discFilter) return false;
+    if (cutoff && new Date(r.date + 'T00:00:00') < cutoff) return false;
+    return true;
+  }).sort((a, b) => b.date.localeCompare(a.date));
+
+  // Summary
+  const totalH = filtered.reduce((s, r) => s + (r.horas || 0), 0);
+  const totalQ = filtered.reduce((s, r) => s + (r.questoes || 0), 0);
+  const dias = new Set(filtered.map(r => r.date)).size;
+  document.getElementById('hs-dias').textContent = dias;
+  document.getElementById('hs-horas').textContent = horasLabel(totalH);
+  document.getElementById('hs-questoes').textContent = totalQ;
+  document.getElementById('hs-media').textContent = dias > 0 ? horasLabel(totalH / dias) : '0h';
+
+  const tbody = document.getElementById('hist-tbody');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="12" class="hist-empty">Nenhum registro encontrado.<br>Use o cronômetro ou inserção manual para começar.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => {
+    const discIdx = EDITAL.findIndex(d => d.nome === r.disc);
+    const cor = discIdx >= 0 ? DISC_CORES[discIdx % DISC_CORES.length] : 'var(--text-soft)';
+    const [y, m, d] = r.date.split('-');
+    const ac  = r.acertos || 0;
+    const er  = r.erros || 0;
+    const tot = ac + er;
+    const pct = tot > 0 ? Math.round(ac / tot * 100) : null;
+    const pctBadge = pct !== null
+      ? `<span style="padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;background:${pct>=70?'var(--green-bg)':pct>=50?'var(--yellow-bg)':'var(--red-bg)'};color:${pct>=70?'#15803d':pct>=50?'#b45309':'var(--red)'}">${pct}%</span>`
+      : '<span style="color:var(--text-soft)">—</span>';
+    const tipoBadge = r.tipo ? `<span style="font-size:10px;background:var(--bg);padding:2px 8px;border-radius:4px;color:var(--text-mid)">${escapeHTML(r.tipo)}</span>` : '<span style="color:var(--text-soft)">—</span>';
+    return `<tr>
+      <td style="font-weight:600;color:var(--navy);white-space:nowrap">${d}/${m}/${y}</td>
+      <td>${r.disc ? `<span class="hist-disc-badge" style="background:${cor}20;color:${cor}">${escapeHTML(r.disc)}</span>` : '<span style="color:var(--text-soft)">—</span>'}</td>
+      <td style="font-size:12px;color:var(--text-mid);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHTML(r.topic||'')}">${escapeHTML(r.topic || '—')}</td>
+      <td>${tipoBadge}</td>
+      <td style="font-weight:700;color:var(--navy);white-space:nowrap">${r.horas > 0 ? horasLabel(r.horas) : '—'}</td>
+      <td style="text-align:center;font-weight:700;color:var(--navy)">${r.questoes > 0 ? r.questoes : '—'}</td>
+      <td style="text-align:center;font-weight:700;color:var(--green)">${ac > 0 ? ac : '—'}</td>
+      <td style="text-align:center;font-weight:700;color:var(--red)">${er > 0 ? er : '—'}</td>
+      <td style="text-align:center">${pctBadge}</td>
+      <td style="font-size:11px;color:var(--text-mid);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHTML(r.obs||'')}">${r.obs ? `💬 ${escapeHTML(r.obs.length > 35 ? r.obs.slice(0,35)+'…' : r.obs)}` : '<span style="color:var(--text-soft)">—</span>'}</td>
+      <td><span style="font-size:10px;background:var(--bg);padding:2px 8px;border-radius:4px;color:var(--text-soft)">${escapeHTML(r.origem||'—')}</span></td>
+      <td><div class="hist-actions"><button class="btn-edit" data-id="${escapeHTML(r.id)}" onclick="openEditRegistro(this.dataset.id)" title="Editar registro">✎ Editar</button><button class="btn-del" data-id="${escapeHTML(r.id)}" onclick="deleteRegistro(this.dataset.id)" title="Remover">🗑</button></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function populateHistFilterDisc() {
+  const sel = document.getElementById('hist-filter-disc');
+  sel.innerHTML = '<option value="">Todas as disciplinas</option>' + EDITAL.map(d => `<option value="${d.nome}">${d.nome}</option>`).join('');
+}
+
+// ── SELECTS DE DISCIPLINA ─────────────────────────────
+function populateDiscSelects() {
+  const opts = '<option value="">— selecione —</option>' + EDITAL.map(d => `<option value="${d.nome}">${d.nome}</option>`).join('');
+  document.getElementById('crono-disc').innerHTML = opts;
+  document.getElementById('man-disc').innerHTML = opts;
+  document.getElementById('modal-disc').innerHTML = opts;
+}
+
+// ── TABS ───────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const t = b.textContent.toLowerCase();
+    if ((tab==='estudos'&&t.includes('estudo'))||(tab==='edital'&&t.includes('edital'))||(tab==='revisoes'&&t.includes('revis'))||(tab==='historico'&&t.includes('hist'))||(tab==='relatorio'&&t.includes('seman'))) b.classList.add('active');
+  });
+  document.getElementById('btn-expand').style.display  = tab==='edital' ? '' : 'none';
+  document.getElementById('btn-collapse').style.display = tab==='edital' ? '' : 'none';
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (tab==='historico') renderHistorico();
+  if (tab==='revisoes')  renderRevisoes();
+  if (tab==='estudos')   renderCharts();
+  if (tab==='relatorio') renderWeeklyReport();
+}
+
+function scrollToId(id) {
+  setTimeout(() => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+}
+
+// ── SIDEBAR ────────────────────────────────────────────
+function renderSidebar() {
+  const info = document.getElementById('sb-info');
+  const rows = [{l:'Concurso',v:CONCURSO_INFO.concurso},{l:'Cargo',v:CONCURSO_INFO.cargo},{l:'Banca',v:CONCURSO_INFO.banca}];
+  info.innerHTML = rows.map((r,i) => `${i>0?'<div class="si-div"></div>':''}<div class="si-row"><div class="si-lbl">${r.l}</div><div class="si-val${r.v?'':' empty'}">${r.v||'—'}</div></div>`).join('');
+  const cd = document.getElementById('cd-date'), cn = document.getElementById('cd-num');
+  if (CONCURSO_INFO.dataProva) {
+    const p = new Date(CONCURSO_INFO.dataProva + 'T00:00:00'), h = new Date(); h.setHours(0,0,0,0);
+    const diff = Math.ceil((p-h)/86400000);
+    cd.textContent = p.toLocaleDateString('pt-BR');
+    cn.textContent = diff > 0 ? diff : diff === 0 ? 'Hoje!' : 'Passou';
+  }
+  document.getElementById('nav-discs').innerHTML = EDITAL.map((d,i) =>
+    `<a class="nav-item" href="#" onclick="switchTab('edital');goDisc('${d.id}');return false;" style="gap:8px"><div class="nav-dot" style="background:${DISC_CORES[i%DISC_CORES.length]}"></div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${d.nome}</span></a>`
+  ).join('');
+}
+
+function goDisc(id) {
+  const el = document.getElementById('disc-' + id);
+  if (el) { el.classList.add('open'); setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }
+}
+
+// ── DISCIPLINAS ────────────────────────────────────────
+function renderDiscs() {
+  const list = document.getElementById('disc-list'); list.innerHTML = '';
+  EDITAL.forEach((disc, di) => {
+    const cor = DISC_CORES[di % DISC_CORES.length];
+    const s = getDiscStats(disc);
+    const card = document.createElement('div'); card.className = 'disc-card'; card.id = 'disc-' + disc.id; card.style.setProperty('--dc', cor);
+    const cp = s.totalTopicos > 0 ? Math.round(s.concluidos / s.totalTopicos * 100) : 0;
+    const hdr = document.createElement('div'); hdr.className = 'disc-hdr'; hdr.onclick = () => card.classList.toggle('open');
+    hdr.innerHTML = `<div class="dc-dot"></div><div class="dc-info"><div class="dc-name">${disc.nome}</div><div class="dc-meta"><span class="dc-sub" id="dcsub0-${disc.id}">${s.concluidos}/${s.totalTopicos} concluídos</span><div class="dc-mini-bar"><div class="dc-mini-fill" id="dcmf-${disc.id}" style="width:${cp}%"></div></div><span class="dc-sub" id="dcsub1-${disc.id}">${s.total>0?s.pct+'% acertos':'Sem questões'}</span></div></div><div class="dc-stats"><div class="dcs"><div class="dcs-v g" id="dcac-${disc.id}">${s.acertos}</div><div class="dcs-l">Acertos</div></div><div class="dcs"><div class="dcs-v r" id="dcer-${disc.id}">${s.erros}</div><div class="dcs-l">Erros</div></div><div class="dcs"><div class="dcs-v b" id="dcto-${disc.id}">${s.total}</div><div class="dcs-l">Total</div></div><div class="pct-pill ${pc(s.pct,s.total)}" id="dcpct-${disc.id}">${s.total>0?s.pct+'%':'—'}</div></div><div class="dc-chevron">▼</div>`;
+    const body = document.createElement('div'); body.className = 'disc-body';
+    const tbl = document.createElement('table'); tbl.className = 'ctable';
+    tbl.innerHTML = `<thead><tr><th class="c">✓</th><th>Tópico / Conteúdo</th><th>Concluído em</th><th class="c">Questões (Acertos × Erros)</th><th class="c">Total</th><th class="c">% Acerto</th></tr></thead><tbody id="tb-${disc.id}"></tbody>`;
+    const tbody = tbl.querySelector('tbody');
+    disc.grupos.forEach(g => {
+      const gr = document.createElement('tr'); gr.className = 'grow'; gr.style.setProperty('--dc', cor);
+      gr.innerHTML = `<td colspan="6">${g.nome}</td>`; tbody.appendChild(gr);
+      g.topicos.forEach((tp, ti) => {
+        const tid = disc.id + '_' + slug(g.nome) + '_' + ti, ts = getTS(tid);
+        const tot = (ts.acertos||0) + (ts.erros||0), tpct = tot > 0 ? Math.round((ts.acertos||0)/tot*100) : null;
+        const tr = document.createElement('tr'); tr.id = 'row-' + tid; if (ts.done) tr.classList.add('done');
+        tr.innerHTML = `<td class="td-ck"><input class="cbx" type="checkbox" ${ts.done?'checked':''} onchange="toggleT('${tid}',this)"></td><td class="td-topic"><div class="topic-nm">${tp}</div><div class="topic-dt" id="tdt-${tid}">${escapeHTML(ts.datetime||'')}</div></td><td class="td-dt" id="dt-${tid}">${ts.done&&ts.datetime?escapeHTML(ts.datetime):'<span style="color:var(--border)">—</span>'}</td><td class="td-q"><div class="q-row"><div class="qwrap ac"><label>Acertos</label><input class="qinp" type="number" min="0" value="${ts.acertos||''}" placeholder="0" oninput="updateQ('${tid}','acertos',this.value)"></div><span class="qsep">×</span><div class="qwrap er"><label>Erros</label><input class="qinp" type="number" min="0" value="${ts.erros||''}" placeholder="0" oninput="updateQ('${tid}','erros',this.value)"></div></div></td><td class="td-tot"><span class="tot-v" id="tot-${tid}">${tot>0?tot:'—'}</span></td><td class="td-pct"><span class="pct-pill ${pc(tpct,tot)}" id="pct-${tid}">${tpct!==null?tpct+'%':'—'}</span></td>`;
+        tbody.appendChild(tr);
+      });
+    });
+    body.appendChild(tbl); card.appendChild(hdr); card.appendChild(body); list.appendChild(card);
+  });
+}
+
+function toggleT(tid, cb) {
+  setTS(tid,'done',cb.checked);
+  const now = cb.checked ? fmtDt(new Date()) : null; setTS(tid,'datetime',now);
+  const row = document.getElementById('row-'+tid), dtc = document.getElementById('dt-'+tid), tdt = document.getElementById('tdt-'+tid);
+  if (cb.checked) { row.classList.add('done'); dtc.innerHTML=now; if(tdt)tdt.textContent=now; }
+  else { row.classList.remove('done'); dtc.innerHTML='<span style="color:var(--border)">—</span>'; if(tdt)tdt.textContent=''; }
+  updateAll(); debouncedSave();
+}
+function updateQ(tid, field, val) {
+  // Não truncar decimais nem aceitar números negativos no edital.
+  // Em uma entrada inválida, conservar o último valor válido e não alterar qDate.
+  if (field !== 'acertos' && field !== 'erros') return;
+  const cleaned = String(val).trim();
+  const quantity = cleaned === '' ? 0 : Number(cleaned);
+  if (!/^(?:0|[1-9]\d*)$/.test(cleaned) && cleaned !== '') {
+    showToast('⚠️','Informe um número inteiro não negativo.');
+    return;
+  }
+  if (!Number.isSafeInteger(quantity) || quantity < 0) {
+    showToast('⚠️','Quantidade de questões inválida.');
+    return;
+  }
+  setTS(tid,field,quantity);
+  const ts=getTS(tid),tot=(ts.acertos||0)+(ts.erros||0),tpct=tot>0?Math.round((ts.acertos||0)/tot*100):null;
+  document.getElementById('tot-'+tid).textContent=tot>0?tot:'—';
+  const p=document.getElementById('pct-'+tid); p.textContent=tpct!==null?tpct+'%':'—'; p.className='pct-pill '+pc(tpct,tot);
+  ts.qDate=todayKey();
+  updateAll(); renderCharts(); debouncedSave();
+}
+function setFilter(f,btn){curFilter=f;document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyFilter();}
+function applyFilter(){EDITAL.forEach(d=>d.grupos.forEach(g=>g.topicos.forEach((t,i)=>{const tid=d.id+'_'+slug(g.nome)+'_'+i,row=document.getElementById('row-'+tid);if(!row)return;const ts=getTS(tid);let show=true;if(curFilter==='pendentes')show=!ts.done;else if(curFilter==='concluidos')show=!!ts.done;else if(curFilter==='questoes')show=(ts.acertos||0)+(ts.erros||0)>0;row.style.display=show?'':'none';})));}
+function expandAll(){document.querySelectorAll('.disc-card').forEach(c=>c.classList.add('open'));}
+function collapseAll(){document.querySelectorAll('.disc-card').forEach(c=>c.classList.remove('open'));}
+
+// ── UPDATE ALL ──────────────────────────────────────────
+function updateAll() {
+  // Progresso edital — checkboxes
+  let tot=0,conc=0,acEdital=0,erEdital=0;
+  EDITAL.forEach(d=>{const s=getDiscStats(d);tot+=s.totalTopicos;conc+=s.concluidos;acEdital+=s.acertos;erEdital+=s.erros;});
+  const pct=tot>0?Math.round(conc/tot*100):0;
+
+  // Aproveitamento TOTAL = edital + cronômetro + inserção manual
+  const acHist = historico.reduce((s,r)=>s+(r.acertos||0),0);
+  const erHist = historico.reduce((s,r)=>s+(r.erros||0),0);
+  // Evitar dupla contagem: usa só o histórico se tiver registros, senão usa edital
+  // Na prática o aluno usa um ou outro — mas somamos os dois para ser abrangente
+  const acTotal = acEdital + acHist;
+  const erTotal = erEdital + erHist;
+  const totQ    = acTotal + erTotal;
+  const aprov   = totQ > 0 ? Math.round(acTotal / totQ * 100) : null;
+
+  document.getElementById('prog-pct').textContent=pct+'%';
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-sub').textContent=conc+' de '+tot+' tópicos concluídos';
+  document.getElementById('ps-ac').textContent=acTotal;
+  document.getElementById('ps-er').textContent=erTotal;
+  document.getElementById('ps-tot').textContent=totQ;
+  document.getElementById('ps-aprov').textContent=aprov!==null?aprov+'%':'—';
+
+  // Metas — horas e questões da semana atual (automático)
+  const weekStart = getWeekStart();
+  const weekRegs = historico.filter(r => r.date >= weekStart);
+  const weekH = weekRegs.reduce((s,r)=>s+(r.horas||0),0);
+  const weekQ = weekRegs.reduce((s,r)=>s+(r.questoes||0),0);
+  document.getElementById('real-horas').value = Math.round(weekH * 10) / 10;
+  document.getElementById('real-questoes').value = weekQ;
+
+  const mH=parseFloat(document.getElementById('meta-horas').value)||0,pH=mH>0?Math.min(Math.round(weekH/mH*100),100):0;
+  document.getElementById('mf-h').style.width=pH+'%';
+  document.getElementById('ml-h').textContent=horasLabel(weekH)+' esta semana';
+  document.getElementById('mp-h').textContent=pH+'%';
+
+  const mQ=parseInt(document.getElementById('meta-questoes').value)||0,pQ=mQ>0?Math.min(Math.round(weekQ/mQ*100),100):0;
+  document.getElementById('mf-q').style.width=pQ+'%';
+  document.getElementById('ml-q').textContent=weekQ+' esta semana';
+  document.getElementById('mp-q').textContent=pQ+'%';
+
+  const mC=parseInt(document.getElementById('meta-conclusao').value)||0,rC=tot>0?Math.round(conc/tot*100):0,pC=mC>0?Math.min(Math.round(rC/mC*100),100):rC;
+  document.getElementById('mf-c').style.width=pC+'%';
+  document.getElementById('ml-c').textContent=mC>0?conc+'/'+tot+' concluídos ('+rC+'% do edital; meta '+mC+'%)':conc+'/'+tot+' concluídos ('+rC+'% do edital)';
+  document.getElementById('mp-c').textContent=pC+'%';
+
+  const mA=parseInt(document.getElementById('meta-aprov').value)||0,rA=totQ>0?Math.round(acTotal/totQ*100):0,pA=mA>0?Math.min(Math.round(rA/mA*100),100):0;
+  document.getElementById('mf-a').style.width=pA+'%';
+  document.getElementById('ml-a').textContent=totQ>0?acTotal+' acertos de '+totQ:'Sem questões';
+  document.getElementById('mp-a').textContent=rA+'%';
+
+  // Disc headers
+  EDITAL.forEach(d=>{
+    const s=getDiscStats(d),cp=s.totalTopicos>0?Math.round(s.concluidos/s.totalTopicos*100):0,g=id=>document.getElementById(id);
+    if(g('dcac-'+d.id))g('dcac-'+d.id).textContent=s.acertos;if(g('dcer-'+d.id))g('dcer-'+d.id).textContent=s.erros;if(g('dcto-'+d.id))g('dcto-'+d.id).textContent=s.total;
+    if(g('dcmf-'+d.id))g('dcmf-'+d.id).style.width=cp+'%';
+    if(g('dcsub0-'+d.id))g('dcsub0-'+d.id).textContent=s.concluidos+'/'+s.totalTopicos+' concluídos';
+    if(g('dcsub1-'+d.id))g('dcsub1-'+d.id).textContent=s.total>0?s.pct+'% acertos':'Sem questões';
+    const badge=g('dcpct-'+d.id);if(badge){badge.textContent=s.total>0?s.pct+'%':'—';badge.className='pct-pill '+pc(s.pct,s.total);}
+  });
+
+  updateCronoTodayVal();
+}
+
+function getWeekStart() {
+  const d = new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - d.getDay()); // domingo
+  return dateToKey(d);
+}
+
+// ── STATE ───────────────────────────────────────────────
+function getTS(tid){return state[tid]||{};}
+function setTS(tid,k,v){if(!state[tid])state[tid]={};state[tid][k]=v;}
+function getDiscStats(disc){
+  let ac=0,er=0,c=0,t=0;
+  disc.grupos.forEach(g=>g.topicos.forEach((tp,i)=>{const ts=getTS(disc.id+'_'+slug(g.nome)+'_'+i);ac+=parseInt(ts.acertos)||0;er+=parseInt(ts.erros)||0;if(ts.done)c++;t++;}));
+  const tot=ac+er,pct=tot>0?Math.round(ac/tot*100):0;return{acertos:ac,erros:er,total:tot,pct,concluidos:c,totalTopicos:t};
+}
+
+// ── STORAGE ─────────────────────────────────────────────
+function loadStorage() {
+  try {
+    const raw = localStorage.getItem(KEY); if (!raw) return;
+    const s = JSON.parse(raw);
+    state = s.state && typeof s.state==='object' && !Array.isArray(s.state) ? s.state : {};
+    historico = Array.isArray(s.historico) ? s.historico : [];
+    revisoes = Array.isArray(s.revisoes) ? s.revisoes : [];
+    customTopics = s.customTopics && typeof s.customTopics === "object" && !Array.isArray(s.customTopics) ? s.customTopics : {};
+    ['meta-horas','meta-questoes','meta-conclusao','meta-aprov'].forEach(id => {
+      if (s[id] !== undefined) { const el = document.getElementById(id); if (el) el.value = s[id]; }
+    });
+  } catch(e) {}
+}
+let saveTimer;
+function debouncedSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveData,1200);}
+function saveData() {
+  try {
+    const data = { state, historico, revisoes, customTopics };
+    ['meta-horas','meta-questoes','meta-conclusao','meta-aprov'].forEach(id => {
+      const el = document.getElementById(id); if (el) data[id] = el.value;
+    });
+    localStorage.setItem(KEY, JSON.stringify(data));
+    showToast('✅', 'Progresso salvo!');
+  } catch(e) { showToast('⚠️', 'Erro ao salvar.'); }
+}
+
+// ── BACKUP / RESTORE ──────────────────────────────────
+function openBackupModal() {
+  document.getElementById('backup-modal').classList.add('open');
+}
+function closeBackupModal(e) {
+  if (!e || e.target === document.getElementById('backup-modal')) {
+    document.getElementById('backup-modal').classList.remove('open');
+  }
+}
+function exportBackup() {
+  try {
+    const data = { state, historico, revisoes, customTopics, tiCycle:TI_CYCLE.map(b=>({...b})),tiCycleIndex, exportedAt: new Date().toISOString() };
+    try { data.concurso = CONCURSO_INFO.concurso; } catch(e) {}
+    ['meta-horas','meta-questoes','meta-conclusao','meta-aprov'].forEach(function(id) {
+      var el = document.getElementById(id); if (el) data[id] = el.value;
+    });
+    data.schemaVersion=2;
+    var json = JSON.stringify(data, null, 2);
+    var blob = new Blob([json], { type: 'application/json' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    var date = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+    var nome = 'gran';
+    try { nome = slugify(CONCURSO_INFO.concurso || 'gran'); } catch(e) {}
+    a.href     = url;
+    a.download = 'backup-edital-' + nome + '-' + date + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    document.getElementById('backup-modal').classList.remove('open');
+    showToast('✅', 'Backup exportado com sucesso!');
+  } catch(e) {
+    console.error('exportBackup error:', e);
+    showToast('⚠️', 'Erro ao exportar: ' + e.message);
+  }
+}
+function triggerImport() {
+  document.getElementById('backup-modal').classList.remove('open');
+  document.getElementById('import-file').click();
+}
+function importBackup(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || typeof data!=='object' || Array.isArray(data)) throw new Error('Arquivo inválido');
+      if (!validBackupPayload({...data, revisoes:data.revisoes||[]})) throw new Error('Arquivo inválido');
+      if(data.tiCycle!==undefined && !validTiCycle(data.tiCycle))throw new Error('Ciclo inválido');
+      if(data.tiCycle!==undefined && data.tiCycleIndex!==undefined && (!Number.isInteger(data.tiCycleIndex)||data.tiCycleIndex<0||data.tiCycleIndex>=data.tiCycle.length))throw new Error('Posição do ciclo inválida');
+      const previousRaw=localStorage.getItem(KEY);
+      const previousCycle=TI_CYCLE.map(b=>({...b})), previousCycleIndex=tiCycleIndex;
+      const previous={state,historico,revisoes,customTopics};
+      const previousMeta={};
+      ['meta-horas','meta-questoes','meta-conclusao','meta-aprov'].forEach(id=>{const el=document.getElementById(id);if(el)previousMeta[id]=el.value;});
+      state     = data.state     || {};
+      historico = data.historico || [];
+      revisoes  = data.revisoes  || [];
+      customTopics = data.customTopics && typeof data.customTopics === "object" && !Array.isArray(data.customTopics) ? data.customTopics : {};
+      ['meta-horas','meta-questoes','meta-conclusao','meta-aprov'].forEach(id => {
+        if (data[id] !== undefined) { const el = document.getElementById(id); if (el) el.value = data[id]; }
+      });
+      try {
+        if(previousRaw!==null) localStorage.setItem(KEY+'-pre-restauracao',previousRaw);
+        localStorage.setItem(KEY, JSON.stringify({ state, historico, revisoes, customTopics, 'meta-horas': data['meta-horas'], 'meta-questoes': data['meta-questoes'], 'meta-conclusao': data['meta-conclusao'], 'meta-aprov': data['meta-aprov'] }));
+        if(data.tiCycle!==undefined)cycleSetConfig(data.tiCycle,data.tiCycleIndex===undefined?0:data.tiCycleIndex);
+      } catch(storageError) {
+        ({state,historico,revisoes,customTopics}=previous);
+        TI_CYCLE=previousCycle;tiCycleIndex=previousCycleIndex;
+        try{if(previousRaw===null)localStorage.removeItem(KEY);else localStorage.setItem(KEY,previousRaw);}catch(_){}
+        Object.entries(previousMeta).forEach(([id,value])=>{const el=document.getElementById(id);if(el)el.value=value;});
+        throw storageError;
+      }
+      renderTiCycle();renderDiscs();
+      onCronoDiscChange();
+      onManDiscChange();
+      renderCal();
+      renderCharts();
+      renderRevisoes();
+      renderHistorico();
+      updateAll();
+      showToast('✅', 'Backup restaurado com sucesso!');
+    } catch(err) {
+      showToast('⚠️', 'Arquivo inválido. Use um backup exportado por este edital.');
+    }
+    input.value = '';
+  };
+  reader.onerror = () => { showToast('⚠️','Não foi possível ler o arquivo de backup.'); input.value=''; };
+  reader.readAsText(file);
+}
+function showToast(icon,msg){document.getElementById('ti').textContent=icon;document.getElementById('tm').textContent=msg;const t=document.getElementById('toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
+
+// ── UTILS ────────────────────────────────────────────────
+function slug(s){return s.toLowerCase().replace(/[^a-z0-9]/g,'-').replace(/-+/g,'-');}
+function fmtDt(d){return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+function pc(pct,tot){if(!tot||tot===0)return'n';if(pct>=70)return'g';if(pct>=50)return'y';return'r';}
+function secsToHMS(s){const h=Math.floor(s/3600).toString().padStart(2,'0'),m=Math.floor((s%3600)/60).toString().padStart(2,'0'),ss=(s%60).toString().padStart(2,'0');return`${h}:${m}:${ss}`;}
+function horasLabel(h){const hh=Math.floor(h),mm=Math.round((h-hh)*60);return`${hh}h ${mm.toString().padStart(2,'0')}min`;}
+function dateToKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function todayKey(){return dateToKey(new Date());}
+
+// ── REVISÕES ───────────────────────────────────────────
+function toggleRevBtn(btn, days) {
+  btn.classList.toggle('done'); updateRevSelected();
+}
+function clearRevBtns() {
+  document.querySelectorAll('[data-days]').forEach(b => b.classList.remove('done')); updateRevSelected();
+}
+function getSelectedRevDays() {
+  const days = [];
+  document.querySelectorAll('[data-days].done').forEach(b => days.push(parseInt(b.dataset.days)));
+  const custom = parseInt(document.getElementById('crono-rev-custom').value);
+  if (custom > 0) days.push(custom);
+  return [...new Set(days)].sort((a,b)=>a-b);
+}
+function updateRevSelected() {
+  const days = getSelectedRevDays();
+  const el = document.getElementById('crono-rev-selected'); if (!el) return;
+  el.textContent = days.length ? 'Revisão em: ' + days.map(d=>d+'d').join(', ') : '';
+}
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00'); d.setDate(d.getDate() + n); return dateToKey(d);
+}
+function scheduleRevisoes(date, disc, topic, days, studyId=null) {
+  if (!disc || !topic || !days.length) return 0;
+  let count=0;
+  days.forEach(day => {
+    const revDate=addDays(date,day);
+    if (!revisoes.some(r=>r.studyDate===date && r.disc===disc && r.topic===topic && r.days===day && (r.studyId==null || studyId==null || String(r.studyId)===String(studyId)))) {
+      revisoes.push({id:Date.now()+Math.random(),disc,topic,studyDate:date,revDate,days:day,done:false,studyId}); count++;
+    }
+  });
+  renderRevisoes(); saveData(); return count;
+}
+function escapeHTML(value) { return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function validBackupPayload(d) {
+  return d && typeof d==='object' && !Array.isArray(d)
+    && d.state && typeof d.state==='object' && !Array.isArray(d.state)
+    && Array.isArray(d.historico) && Array.isArray(d.revisoes)
+    && d.historico.every(r=>r && typeof r==='object' && (r.id===undefined || (typeof r.id==='number' && Number.isFinite(r.id)) || (typeof r.id==='string' && /^[\w.-]+$/.test(r.id))) && validISODate(r.date) && Number.isFinite(Number(r.horas)) && Number(r.horas)>=0 && ['questoes','acertos','erros'].every(k=>r[k]===undefined||(Number.isSafeInteger(Number(r[k]))&&Number(r[k])>=0)))
+    && d.revisoes.every(r=>r && typeof r==='object' && (r.id===undefined || (typeof r.id==='number' && Number.isFinite(r.id)) || (typeof r.id==='string' && /^[\w.-]+$/.test(r.id))) && validISODate(r.revDate) && (r.studyDate===undefined||validISODate(r.studyDate)))
+    && (d.customTopics===undefined || (d.customTopics && typeof d.customTopics==='object' && !Array.isArray(d.customTopics) && Object.values(d.customTopics).every(v=>Array.isArray(v)&&v.every(t=>typeof t==='string'))));
+}
+function renderRevisoes() {
+  const el = document.getElementById('rev-content'); if (!el) return;
+  if (!revisoes || !revisoes.length) {
+    el.innerHTML = '<div class="rev-empty">Nenhuma revisão agendada ainda.<br>Agende revisões pelo cronômetro ou no registro manual, selecionando matéria e assunto.</div>'; return;
+  }
+  const today = todayKey();
+
+  // Classify each revisao
+  const groups = { overdue: [], today: [], week: [], later: [], done: [] };
+  revisoes.forEach(r => {
+    if (r.done) { groups.done.push(r); return; }
+    const daysLeft = Math.ceil((new Date(r.revDate+'T00:00:00') - new Date(today+'T00:00:00'))/86400000);
+    if (daysLeft < 0)      groups.overdue.push(r);
+    else if (daysLeft === 0) groups.today.push(r);
+    else if (daysLeft <= 7) groups.week.push(r);
+    else                    groups.later.push(r);
+  });
+
+  const groupDefs = [
+    { key:'overdue', icon:'🔴', title:'Atrasadas',    color:'#b91c1c' },
+    { key:'today',   icon:'🟡', title:'Revisar Hoje', color:'#b45309' },
+    { key:'week',    icon:'🔵', title:'Esta Semana',  color:'#0D134C' },
+    { key:'later',   icon:'⚪', title:'Próximas',     color:'#8a90b8' },
+    { key:'done',    icon:'🟢', title:'Concluídas',   color:'#15803d' },
+  ];
+
+  let html = '';
+  groupDefs.forEach(gd => {
+    const items = groups[gd.key];
+    if (!items.length) return;
+
+    // Group by disc within this group
+    const byDisc = {};
+    items.forEach(r => {
+      const k = r.disc || 'Sem disciplina';
+      if (!byDisc[k]) byDisc[k] = [];
+      byDisc[k].push(r);
+    });
+
+    html += `<div class="rev-group">
+      <div class="rev-group-hdr">
+        <span class="rev-group-icon">${gd.icon}</span>
+        <span class="rev-group-title">${gd.title}</span>
+        <span class="rev-group-count">${items.length} tópico${items.length!==1?'s':''}</span>
+      </div>`;
+
+    Object.keys(byDisc).sort().forEach(disc => {
+      const discItems = byDisc[disc];
+      const discIdx = EDITAL.findIndex(d => d.nome === disc);
+      const cor = discIdx >= 0 ? DISC_CORES[discIdx % DISC_CORES.length] : '#8a90b8';
+
+      html += `<div class="rev-disc-block" style="--dc:${cor}">
+        <div class="rev-disc-hdr">
+          <div class="rev-disc-dot"></div>
+          <div class="rev-disc-name">${escapeHTML(disc)}</div>
+          <div class="rev-disc-cnt">${discItems.length} tópico${discItems.length!==1?'s':''}</div>
+        </div>`;
+
+      discItems.forEach(r => {
+        const daysLeft = Math.ceil((new Date(r.revDate+'T00:00:00') - new Date(today+'T00:00:00'))/86400000);
+        const [,rm,rd] = r.revDate.split('-');
+        let badgeClass, badgeLabel;
+        if (r.done)         { badgeClass='done';    badgeLabel='✓ Concluída'; }
+        else if (daysLeft<0){ badgeClass='overdue'; badgeLabel=`${Math.abs(daysLeft)}d atrasada`; }
+        else if (daysLeft===0){ badgeClass='pending'; badgeLabel='Hoje!'; }
+        else                { badgeClass='pending'; badgeLabel=`${daysLeft}d — ${rd}/${rm}`; }
+
+        html += `<div class="rev-topic-row">
+          <div>
+            <div class="rev-topic-name">${escapeHTML(r.topic || '—')}</div>
+            <div class="rev-topic-meta">Estudo: ${r.studyDate?r.studyDate.split('-').reverse().join('/'):'—'} &bull; Agendada ${r.days}d</div>
+          </div>
+          <div class="rev-badges">
+            <span class="rev-badge ${badgeClass}" onclick="toggleRevDone('${r.id}')">${badgeLabel}</span>
+            <button class="btn-del" onclick="deleteRevisao('${r.id}')" title="Remover">🗑</button>
+          </div>
+        </div>`;
+      });
+      html += '</div>'; // rev-disc-block
+    });
+    html += '</div>'; // rev-group
+  });
+
+  el.innerHTML = html;
+}
+function toggleRevDone(id) {
+  const r = revisoes.find(r => String(r.id)===String(id)); if (r) { r.done=!r.done; renderRevisoes(); debouncedSave(); }
+}
+function deleteRevisao(id) {
+  revisoes = revisoes.filter(r => String(r.id)!==String(id)); renderRevisoes(); debouncedSave();
+}
+
+
+// ETAPA 2.1 — análise derivada. Não altera historico, state ou revisoes.
+function topicInsightData(registros, edital, topicState, cutoffKey, discFilter, minQuestions) {
+  const results = new Map();
+  function push(disc, topic, a, e, date, source) {
+    if (!disc || !topic || (discFilter && disc !== discFilter)) return;
+    const ac = Number(a), er = Number(e);
+    if (!Number.isFinite(ac) || !Number.isFinite(er) || ac < 0 || er < 0 || !Number.isInteger(ac) || !Number.isInteger(er) || ac + er === 0) return;
+    if (typeof date !== 'string' || date < cutoffKey || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    const key = JSON.stringify([disc, topicIdentity(topic)]);
+    let row = results.get(key);
+    if (!row) { row = { disc, topic: String(topic).trim(), ac:0, er:0, last:'', sources:new Set() }; results.set(key,row); }
+    row.ac += ac; row.er += er; row.last = row.last > date ? row.last : date; row.sources.add(source);
+  }
+  registros.forEach(r=>push(r.disc,r.topic,r.acertos||0,r.erros||0,r.date,'histórico'));
+  edital.forEach(d=>d.grupos.forEach(g=>g.topicos.forEach((topic,i)=>{
+    const ts=topicState[d.id+'_'+slug(g.nome)+'_'+i] || {};
+    // Dados do edital não possuem histórico de alterações: qDate corresponde à última edição.
+    push(d.nome,topic,ts.acertos||0,ts.erros||0,ts.qDate||todayKey(),'edital');
+  })));
+  return [...results.values()].map(r=>({ ...r, sources:[...r.sources], q:r.ac+r.er, pct:Math.round(100*r.ac/(r.ac+r.er)) })).filter(r=>r.q>=minQuestions);
+}
+function renderTopicInsights() {
+  const target=document.getElementById('topic-insights-list'); if(!target) return;
+  const discFilter=document.getElementById('chart-disc').value;
+  const period=parseInt(document.getElementById('chart-period').value,10)||0;
+  const cutoff=period>0?addDays(todayKey(),-(period-1)):'0000-00-00';
+  const min=Number(document.getElementById('topic-insights-min').value)||1;
+  const order=document.getElementById('topic-insights-order').value;
+  const rows=topicInsightData(historico,EDITAL,state,cutoff,discFilter,min);
+  if(order==='recent') rows.sort((a,b)=>a.last.localeCompare(b.last)||a.pct-b.pct);
+  else if(order==='volume') rows.sort((a,b)=>b.q-a.q||a.pct-b.pct);
+  else rows.sort((a,b)=>a.pct-b.pct||b.q-a.q);
+  document.getElementById('topic-insights-count').textContent=rows.length+' assunto'+(rows.length===1?'':'s');
+  if(!rows.length){target.innerHTML='<p class="topic-insights-empty">Nenhum assunto com questões suficientes neste período. Altere o filtro ou registre questões com assunto identificado.</p>';return;}
+  target.innerHTML=rows.slice(0,30).map(r=>{
+    const color=r.pct>=70?'#15803d':r.pct>=50?'#b45309':'#b91c1c';
+    return '<div class="topic-insights-item"><div class="topic-insights-line"><div><div class="topic-insights-name">'+escapeHTML(r.topic)+'</div><div class="topic-insights-meta">'+escapeHTML(r.disc)+' · '+r.q+' questões ('+r.ac+' acertos, '+r.er+' erros) · último registro: '+escapeHTML(r.last)+' · '+escapeHTML(r.sources.join(' + '))+'</div></div><span class="topic-insights-pct" style="color:'+color+'">'+r.pct+'%</span></div><div class="topic-insights-track"><div class="topic-insights-fill" style="width:'+r.pct+'%;background:'+color+'"></div></div></div>';
+  }).join('');
+}
+
+// ── PAINEL DE ESTATÍSTICAS ─────────────────────────────
+function renderCharts() {
+  const discEl   = document.getElementById('chart-disc');
+  const periodEl = document.getElementById('chart-period');
+  if (!discEl || !periodEl) return;
+
+  const discFilter = discEl.value;
+  const period     = parseInt(periodEl.value) || 0;
+  const cutoffKey  = period > 0 ? addDays(todayKey(), -(period-1)) : '0000-00-00';
+
+  let regs = historico.filter(r => r.date >= cutoffKey);
+  // Questões inseridas diretamente no edital também alimentam o painel.
+  const editalRegs=[];
+  EDITAL.forEach(d=>d.grupos.forEach(g=>g.topicos.forEach((t,i)=>{
+    const ts=getTS(d.id+'_'+slug(g.nome)+'_'+i);
+    const ac=Number(ts.acertos)||0, er=Number(ts.erros)||0;
+    if(ac+er) editalRegs.push({date:ts.qDate||todayKey(),disc:d.nome,horas:0,acertos:ac,erros:er});
+  })));
+  regs=regs.concat(editalRegs.filter(r=>r.date>=cutoffKey));
+  if (discFilter) regs = regs.filter(r => r.disc === discFilter);
+
+  const totalH  = regs.reduce((s,r)=>s+(r.horas||0),0);
+  const totalAc = regs.reduce((s,r)=>s+(r.acertos||0),0);
+  const totalEr = regs.reduce((s,r)=>s+(r.erros||0),0);
+  const totQ    = totalAc + totalEr;
+  const pct     = totQ > 0 ? Math.round(totalAc/totQ*100) : null;
+
+  const pctColor = pct===null ? 'var(--text-soft)' : pct>=70 ? '#15803d' : pct>=50 ? '#b45309' : '#b91c1c';
+
+  // Big numbers
+  document.getElementById('sb-horas').textContent    = horasLabel(totalH);
+  document.getElementById('sb-acertos').textContent  = totalAc;
+  document.getElementById('sb-erros').textContent    = totalEr;
+  document.getElementById('sb-pct').textContent      = pct !== null ? pct + '%' : '—';
+  document.getElementById('sb-pct').style.color      = pctColor;
+
+  const periodLabel = period > 0 ? `últimos ${period} dias` : 'todo o período';
+  ['sb-horas-sub','sb-acertos-sub','sb-erros-sub','sb-pct-sub'].forEach(id => {
+    document.getElementById(id).textContent = periodLabel;
+  });
+
+  // Per-discipline breakdown — always show all disciplines
+  const discRow = document.getElementById('stats-disc-row');
+  const discData = EDITAL.map((d, i) => {
+    let dRegs = historico.concat(editalRegs).filter(r => r.disc === d.nome && r.date >= cutoffKey);
+    const h  = dRegs.reduce((s,r)=>s+(r.horas||0),0);
+    const ac = dRegs.reduce((s,r)=>s+(r.acertos||0),0);
+    const er = dRegs.reduce((s,r)=>s+(r.erros||0),0);
+    const q  = ac + er;
+    const p  = q > 0 ? Math.round(ac/q*100) : null;
+    return { nome: d.nome, cor: DISC_CORES[i % DISC_CORES.length], h, ac, er, q, p };
+  });
+
+  // Show all, sorted: with data first
+  discData.sort((a,b) => (b.h+b.q) - (a.h+a.q));
+
+  const maxH = Math.max(...discData.map(d => d.h), 0.01);
+  const maxQ = Math.max(...discData.map(d => d.q), 0.01);
+
+  discRow.innerHTML = discData.map(d => {
+    const hasData = d.h > 0 || d.q > 0;
+    const pctColor = d.p===null ? 'var(--text-soft)' : d.p>=70 ? '#15803d' : d.p>=50 ? '#b45309' : '#b91c1c';
+    const barW = hasData ? Math.max(4, Math.round((d.h / maxH) * 100)) : 0;
+    const opacity = hasData ? '1' : '0.4';
+    return `<div class="stat-disc-item" style="opacity:${opacity}">
+      <div class="stat-disc-dot" style="background:${d.cor}"></div>
+      <div class="stat-disc-name" title="${d.nome}">${d.nome}</div>
+      <div class="stat-disc-bar-wrap" title="${horasLabel(d.h)}"><div class="stat-disc-bar-fill" style="width:${barW}%;background:${d.cor}"></div></div>
+      <div class="stat-disc-nums">
+        <div class="stat-disc-num"><div class="stat-disc-num-val" style="color:var(--navy)">${hasData ? horasLabel(d.h) : '—'}</div><div class="stat-disc-num-lbl">Horas</div></div>
+        <div class="stat-disc-num"><div class="stat-disc-num-val" style="color:var(--green)">${d.ac > 0 ? d.ac : '—'}</div><div class="stat-disc-num-lbl">Acertos</div></div>
+        <div class="stat-disc-num"><div class="stat-disc-num-val" style="color:var(--red)">${d.er > 0 ? d.er : '—'}</div><div class="stat-disc-num-lbl">Erros</div></div>
+        <div class="stat-disc-num"><div class="stat-disc-num-val" style="color:${pctColor}">${d.p !== null ? d.p+'%' : '—'}</div><div class="stat-disc-num-lbl">% Acerto</div></div>
+      </div>
+    </div>`;
+  }).join('');
+  renderTopicInsights();
+  if (typeof renderNeglectPanel === 'function') renderNeglectPanel();
+}
+function populateChartDisc() {
+  const sel = document.getElementById('chart-disc'); if (!sel) return;
+  sel.innerHTML = '<option value="">Todas as disciplinas</option>' + EDITAL.map(d=>`<option value="${d.nome}">${d.nome}</option>`).join('');
+}
+
+// ── INIT ─────────────────────────────────────────────────
+function init() {
+  loadStorage();
+  renderSidebar();
+  renderDiscs();
+  populateDiscSelects();
+  quickInit();
+  populateHistFilterDisc();
+  populateChartDisc();
+  document.getElementById('man-data').value = todayKey();
+  renderCal();
+  renderCharts();
+  renderRevisoes();
+  updateAll();
+}
+init();
+</script>
+<script>
+const TI_CYCLE_DEFAULT=[{"nome": "Banco de Dados e SQL", "min": 120}, {"nome": "Língua Portuguesa", "min": 120}, {"nome": "Engenharia de Software", "min": 105}, {"nome": "Redes e Infraestrutura", "min": 90}, {"nome": "Segurança da Informação", "min": 90}, {"nome": "Raciocínio Lógico", "min": 105}, {"nome": "Banco de Dados e SQL", "min": 120}, {"nome": "Língua Portuguesa", "min": 120}, {"nome": "Engenharia de Software", "min": 105}, {"nome": "Redes e Infraestrutura", "min": 90}, {"nome": "Segurança da Informação", "min": 90}, {"nome": "Raciocínio Lógico", "min": 105}];
+const TI_CYCLE_KEY='ti-cycle-position-v1';
+const TI_CYCLE_CONFIG_KEY='ti-cycle-config-v1';
+function validTiCycle(cycle){
+ return Array.isArray(cycle)&&cycle.length>=1&&cycle.length<=60&&cycle.every(b=>b&&typeof b.nome==='string'&&b.nome.trim().length>0&&b.nome.length<=100&&Number.isSafeInteger(b.min)&&b.min>=15&&b.min<=480);
+}
+function readTiCycle(){try{const raw=localStorage.getItem(TI_CYCLE_CONFIG_KEY);if(raw){const data=JSON.parse(raw);if(validTiCycle(data))return data.map(b=>({nome:b.nome.trim(),min:b.min}));}}catch(e){console.warn('Configuração do ciclo inválida:',e);}return TI_CYCLE_DEFAULT.map(b=>({...b}));}
+let TI_CYCLE=readTiCycle();
+let tiCycleIndex=(Number(localStorage.getItem(TI_CYCLE_KEY)||0)%TI_CYCLE.length+TI_CYCLE.length)%TI_CYCLE.length;
+let tiCycleDraft=null;
+function cycleMinutesLabel(min){return (Math.floor(min/60)?Math.floor(min/60)+'h':'')+(min%60?' '+String(min%60).padStart(2,'0')+'min':'')||'0min';}
+function cycleConfiguredMinutes(){return TI_CYCLE.reduce((s,b)=>s+b.min,0);}
+function cycleSetConfig(next, index){
+ if(!validTiCycle(next))throw Error('O ciclo precisa ter de 1 a 60 blocos válidos (15 a 480 minutos).');
+ if(!Number.isInteger(index)||index<0||index>=next.length)throw Error('Posição inválida.');
+ const serialized=JSON.stringify(next.map(b=>({nome:b.nome.trim(),min:b.min})));
+ const prevConfig=localStorage.getItem(TI_CYCLE_CONFIG_KEY),prevIndex=localStorage.getItem(TI_CYCLE_KEY);
+ try{localStorage.setItem(TI_CYCLE_CONFIG_KEY,serialized);localStorage.setItem(TI_CYCLE_KEY,String(index));}
+ catch(e){try{if(prevConfig===null)localStorage.removeItem(TI_CYCLE_CONFIG_KEY);else localStorage.setItem(TI_CYCLE_CONFIG_KEY,prevConfig);if(prevIndex===null)localStorage.removeItem(TI_CYCLE_KEY);else localStorage.setItem(TI_CYCLE_KEY,prevIndex);}catch(_){}throw e;}
+ TI_CYCLE=JSON.parse(serialized);tiCycleIndex=index;renderTiCycle();if(typeof renderNeglectPanel==='function')renderNeglectPanel();
+}
+function cycleEditorOpen(){tiCycleDraft=TI_CYCLE.map(b=>({...b}));document.getElementById('cycle-editor').hidden=false;renderCycleEditor();}
+function cycleEditorClose(){tiCycleDraft=null;document.getElementById('cycle-editor').hidden=true;}
+function renderCycleEditor(){
+ const holder=document.getElementById('cycle-edit-rows');if(!holder||!tiCycleDraft)return;
+ holder.replaceChildren();
+ tiCycleDraft.forEach((block,i)=>{
+ const row=document.createElement('div');row.className='cycle-edit-row';
+ const subject=document.createElement('select');subject.setAttribute('aria-label','Disciplina do bloco '+(i+1));
+ EDITAL.forEach(d=>{const option=new Option(d.nome,d.nome);subject.add(option);});
+ if(![...subject.options].some(o=>o.value===block.nome))subject.add(new Option(block.nome,block.nome));
+ subject.value=block.nome;subject.addEventListener('change',()=>{block.nome=subject.value;});
+ const min=document.createElement('input');min.type='number';min.min='15';min.max='480';min.step='5';min.value=block.min;min.setAttribute('aria-label','Minutos do bloco '+(i+1));min.addEventListener('input',()=>{block.min=Number(min.value);});
+ row.append(subject,min);
+ [['↑',()=>cycleDraftMove(i,-1)],['↓',()=>cycleDraftMove(i,1)],['×',()=>{if(tiCycleDraft.length===1){showToast('⚠️','O ciclo deve ter ao menos um bloco.');return;}tiCycleDraft.splice(i,1);renderCycleEditor();}]].forEach(([label,action])=>{const btn=document.createElement('button');btn.type='button';btn.textContent=label;btn.className='cycle-edit-btn';btn.setAttribute('aria-label',label==='×'?'Remover bloco '+(i+1):'Mover bloco '+(i+1)+(label==='↑'?' para cima':' para baixo'));btn.addEventListener('click',action);row.append(btn);});
+ holder.append(row);
+ });
+ const total=tiCycleDraft.reduce((s,b)=>s+(Number.isFinite(b.min)?b.min:0),0);
+ document.getElementById('cycle-edit-total').textContent=tiCycleDraft.length+' blocos · '+cycleMinutesLabel(total);
+}
+function cycleDraftMove(i,delta){const dest=i+delta;if(dest<0||dest>=tiCycleDraft.length)return;[tiCycleDraft[i],tiCycleDraft[dest]]=[tiCycleDraft[dest],tiCycleDraft[i]];renderCycleEditor();}
+function cycleDraftAdd(){if(tiCycleDraft.length>=60){showToast('⚠️','Limite de 60 blocos.');return;}tiCycleDraft.push({nome:EDITAL[0].nome,min:60});renderCycleEditor();}
+function cycleDraftSave(){
+ if(!validTiCycle(tiCycleDraft)){showToast('⚠️','Revise disciplinas e durações (15 a 480 minutos inteiros).');return;}
+ const selected=TI_CYCLE[tiCycleIndex];let newIndex=Math.min(tiCycleIndex,tiCycleDraft.length-1);
+ // A edição da duração do próprio bloco não deve fazer avançar para outra ocorrência da disciplina.
+ if(selected){
+   if(tiCycleDraft[newIndex] && tiCycleDraft[newIndex].nome===selected.nome){
+     // Mantém a posição atual quando o usuário apenas modifica duração ou outros blocos.
+   }else{
+     const candidates=tiCycleDraft.map((b,i)=>({b,i})).filter(x=>x.b.nome===selected.nome);
+     if(candidates.length){
+       candidates.sort((a,b)=>Number(b.b.min===selected.min)-Number(a.b.min===selected.min)||Math.abs(a.i-tiCycleIndex)-Math.abs(b.i-tiCycleIndex));
+       newIndex=candidates[0].i;
+     }
+   }
+ }
+ try{cycleSetConfig(tiCycleDraft,newIndex);cycleEditorClose();showToast('✅','Ciclo personalizado salvo.');}catch(e){showToast('⚠️','Não foi possível salvar o ciclo.');}
+}
+function cycleDraftReset(){if(!confirm('Restaurar os 12 blocos padrão? O histórico e o edital não serão alterados.'))return;tiCycleDraft=TI_CYCLE_DEFAULT.map(b=>({...b}));renderCycleEditor();}
+function renderTiCycle(){
+ const c=TI_CYCLE[tiCycleIndex];
+ document.getElementById('cycle-counter').textContent=(tiCycleIndex+1)+' / '+TI_CYCLE.length;
+ document.getElementById('cycle-name').textContent=c.nome;document.getElementById('cycle-total-duration').textContent=cycleMinutesLabel(cycleConfiguredMinutes())+' / ciclo';
+ const badge=document.querySelector('#phase-guide .cycle-counter');if(badge)badge.textContent=cycleMinutesLabel(cycleConfiguredMinutes())+' / ciclo';
+ document.getElementById('cycle-duration').textContent=(c.min>=60?Math.floor(c.min/60)+'h':'')+(c.min%60?' '+String(c.min%60).padStart(2,'0')+'min':'');
+ document.getElementById('cycle-grid').innerHTML=TI_CYCLE.map((s,i)=>'<div class="cycle-item '+(i===tiCycleIndex?'current':i<tiCycleIndex?'passed':'')+'"><strong>BLOCO '+(i+1)+' • '+Math.floor(s.min/60)+'h'+(s.min%60?String(s.min%60).padStart(2,'0'):'')+'</strong>'+escapeHTML(s.nome)+'</div>').join('');
+}
+
+// ETAPA 2.2 — métricas derivadas do histórico; não gravam nem alteram dados.
+// A distribuição esperada é ponderada pela duração dos blocos do ciclo.
+function disciplineBalanceData(records, cycle, asOf, days) {
+  const weights = new Map();
+  for (const block of cycle) {
+    const key = topicIdentity(block.nome);
+    const minutes = Number(block.min);
+    if (!key || !Number.isFinite(minutes) || minutes <= 0) continue;
+    const previous = weights.get(key);
+    if (previous) previous.plannedMinutes += minutes;
+    else weights.set(key, {disc:block.nome,plannedMinutes:minutes,hours:0,last:null,sessions:0});
+  }
+  const totalWeight=[...weights.values()].reduce((sum,row)=>sum+row.plannedMinutes,0);
+  if (!totalWeight || !validISODate(asOf) || !Number.isSafeInteger(days) || days < 1) return [];
+  const cutoff=addDays(asOf,1-days);
+  const totals = new Map();
+  for (const record of records) {
+    if (!record || !validISODate(record.date) || record.date>asOf) continue;
+    const row=weights.get(topicIdentity(record.disc));
+    if (!row) continue;
+    const h=Number(record.horas);
+    if (!Number.isFinite(h) || h<0) continue;
+    if (h>0 && (!row.last || record.date>row.last)) row.last=record.date;
+    if (record.date>=cutoff && h>0) {
+      row.hours+=h; row.sessions++;
+      totals.set(row.disc, (totals.get(row.disc)||0)+h);
+    }
+  }
+  const sumHours=[...weights.values()].reduce((sum,row)=>sum+row.hours,0);
+  return [...weights.values()].map(row=>{
+    const expected=row.plannedMinutes/totalWeight;
+    const actual=sumHours>0?row.hours/sumHours:0;
+    const age=row.last?Math.round((Date.parse(asOf+'T00:00:00Z')-Date.parse(row.last+'T00:00:00Z'))/86400000):null;
+    // Se não houver volume comparável, não classificar a distribuição como insuficiente.
+    const lowShare=sumHours>=3 && actual<expected*0.7;
+    const notRecent=age!==null && age>=7;
+    const neverStudied=row.last===null;
+    const flagged=sumHours>=3 && (lowShare || notRecent || neverStudied);
+    return {...row,expected,actual,age,sumHours,lowShare,notRecent,neverStudied,flagged};
+  }).sort((a,b)=>Number(b.flagged)-Number(a.flagged) || Number(b.neverStudied)-Number(a.neverStudied) || (b.age??-1)-(a.age??-1) || (a.expected-a.actual)-(b.expected-b.actual));
+}
+function renderNeglectPanel() {
+  const holder=document.getElementById('neglect-list');
+  if(!holder || typeof TI_CYCLE==='undefined') return;
+  const windowEl=document.getElementById('neglect-window');
+  const period=Number(windowEl?.value)||30;
+  const rows=disciplineBalanceData(historico,TI_CYCLE,todayKey(),period);
+  const label=document.getElementById('neglect-summary');
+  if(!rows.length){holder.innerHTML='<p class="neglect-empty">O ciclo não contém disciplinas válidas para análise.</p>';label.textContent='—';return;}
+  const total=rows[0].sumHours;
+  const highlighted=rows.filter(r=>r.flagged).length;
+  label.textContent=total<3?'Dados insuficientes':highlighted+' atenção'+(highlighted===1?'':'ões');
+  const fmt=h=>h.toLocaleString('pt-BR',{maximumFractionDigits:1,minimumFractionDigits:1});
+  holder.innerHTML=rows.map(row=>{
+    const expected=Math.round(row.expected*100);
+    const actual=Math.round(row.actual*100);
+    const delta=total>=3?' · '+actual+'% das horas (meta proporcional: '+expected+'%)':' · meta proporcional: '+expected+'%';
+    const recency=row.last?(row.age===0?'estudada hoje':row.age===1?'há 1 dia':'há '+row.age+' dias'):'sem estudo registrado';
+    const status=total<3?'Aguardando histórico':row.flagged?(row.lowShare?'Abaixo do ciclo':'Sem estudo recente'):'Em acompanhamento';
+    const tag=row.flagged?'warn':'';
+    const width=total>0?Math.min(100,Math.max(0,row.actual*100)):0;
+    return '<div class="neglect-row"><div class="neglect-main"><div><div class="neglect-name">'+escapeHTML(row.disc)+'</div><div class="neglect-meta">'+fmt(row.hours)+'h nos últimos '+period+' dias'+delta+'<br>Último estudo: '+escapeHTML(recency)+'</div></div><span class="neglect-tag '+tag+'">'+escapeHTML(status)+'</span></div><div class="neglect-track"><div class="neglect-fill" style="width:'+width+'%"></div></div></div>';
+  }).join('');
+}
+
+
+// ETAPA 2.3 — dados derivados, sem mutação do histórico, revisão ou edital.
+function weeklyReportData(records, reviews, reference, offset, goals={}) {
+  if (!validISODate(reference) || !Number.isInteger(offset) || offset<0 || offset>52) return null;
+  const date=new Date(reference+'T12:00:00');
+  const sunday=date.getDay();
+  const start=addDays(reference,-sunday-offset*7);
+  const end=addDays(start,6);
+  const prevStart=addDays(start,-7),prevEnd=addDays(start,-1);
+  const isValidRecord=r=>r && validISODate(r.date) && typeof r.disc==='string' && r.disc.trim() && Number.isFinite(Number(r.horas)) && Number(r.horas)>=0;
+  const inCurrent=(r)=>r.date>=start && r.date<=end;
+  const inPrevious=(r)=>r.date>=prevStart && r.date<=prevEnd;
+  const selected=records.filter(r=>isValidRecord(r)&&inCurrent(r));
+  const previous=records.filter(r=>isValidRecord(r)&&inPrevious(r));
+  const sum=arr=>arr.reduce((acc,r)=>({hours:acc.hours+Number(r.horas),ac:acc.ac+(Number.isSafeInteger(Number(r.acertos))&&Number(r.acertos)>=0?Number(r.acertos):0),er:acc.er+(Number.isSafeInteger(Number(r.erros))&&Number(r.erros)>=0?Number(r.erros):0)}),{hours:0,ac:0,er:0});
+  const now=sum(selected),prev=sum(previous);
+  const disc=new Map(),topics=new Map();
+  selected.forEach(r=>{
+    const d=r.disc.trim();disc.set(d,(disc.get(d)||0)+Number(r.horas));
+    const ac=Number(r.acertos||0),er=Number(r.erros||0);
+    if(typeof r.topic!=='string'||!r.topic.trim()||!Number.isSafeInteger(ac)||!Number.isSafeInteger(er)||ac<0||er<0||!ac&&!er)return;
+    const key=JSON.stringify([d,topicIdentity(r.topic)]);
+    if(!topics.has(key))topics.set(key,{disc:d,topic:r.topic.trim(),ac:0,er:0});
+    const row=topics.get(key);row.ac+=ac;row.er+=er;
+  });
+  const byDisc=[...disc].map(([name,hours])=>({name,hours})).sort((a,b)=>b.hours-a.hours);
+  const weak=[...topics.values()].map(r=>({...r,total:r.ac+r.er,pct:Math.round(r.ac/(r.ac+r.er)*100)})).filter(r=>r.total>=5).sort((a,b)=>a.pct-b.pct||b.total-a.total).slice(0,5);
+  const due=reviews.filter(r=>r && validISODate(r.revDate)&&r.revDate>=start&&r.revDate<=end);
+  const done=due.filter(r=>r.done===true).length;
+  const hoursGoal=offset===0&&Number(goals.hours)>0?Number(goals.hours):null;
+  const questionsGoal=offset===0&&Number(goals.questions)>0?Number(goals.questions):null;
+  return {start,end,offset,hours:now.hours,previousHours:prev.hours,questions:now.ac+now.er,previousQuestions:prev.ac+prev.er,ac:now.ac,er:now.er,accuracy:now.ac+now.er?Math.round(now.ac/(now.ac+now.er)*100):null,studyDays:new Set(selected.filter(r=>Number(r.horas)>0).map(r=>r.date)).size,byDisc,weak,due:due.length,done,overdue:due.filter(r=>!r.done&&r.revDate<reference).length,hoursGoal,questionsGoal};
+}
+function renderWeeklyReport(){
+  const target=document.getElementById('weekly-kpis'); if(!target)return;
+  const offset=Number(document.getElementById('weekly-period').value)||0;
+  const data=weeklyReportData(historico,revisoes,todayKey(),offset,{hours:document.getElementById('meta-horas').value,questions:document.getElementById('meta-questoes').value});
+  if(!data)return;
+  const fmtDate=d=>d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4);
+  const fmtH=h=>h.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'h';
+  const pct=(x,y)=>y>0?Math.round(x/y*100)+'%':'—';
+  document.getElementById('weekly-range').textContent=fmtDate(data.start)+' a '+fmtDate(data.end)+(offset===0?' · semana em andamento':' · semana encerrada');
+  const change=data.previousHours>0?' · '+(data.hours>=data.previousHours?'+':'')+Math.round((data.hours-data.previousHours)/data.previousHours*100)+'% vs. anterior':' · semana anterior: '+fmtH(data.previousHours);
+  const items=[['Horas estudadas',fmtH(data.hours),change],['Questões respondidas',String(data.questions),'Anterior: '+data.previousQuestions],['Aproveitamento',data.accuracy===null?'—':data.accuracy+'%',data.ac+' acertos / '+data.er+' erros'],['Dias estudados',String(data.studyDays),'Dias com tempo registrado']];
+  target.innerHTML=items.map(a=>'<article class="report-kpi"><span>'+escapeHTML(a[0])+'</span><strong>'+escapeHTML(a[1])+'</strong><small>'+escapeHTML(a[2])+'</small></article>').join('');
+  const discEl=document.getElementById('weekly-disciplines');
+  discEl.innerHTML=data.byDisc.length?data.byDisc.map(r=>'<div class="report-row"><span>'+escapeHTML(r.name)+'</span><b>'+fmtH(r.hours)+'</b></div><div class="report-bar"><div style="width:'+Math.min(100,data.hours?100*r.hours/data.hours:0)+'%"></div></div>').join(''):'<p class="report-empty">Nenhuma sessão de estudo nesta semana.</p>';
+  const weakEl=document.getElementById('weekly-topics');
+  weakEl.innerHTML=data.weak.length?data.weak.map(r=>'<div class="report-row"><span>'+escapeHTML(r.topic)+'<br><small>'+escapeHTML(r.disc)+' · '+r.total+' questões</small></span><b>'+r.pct+'%</b></div>').join(''):'<p class="report-empty">Sem assuntos com pelo menos cinco questões registradas nas sessões da semana.</p>';
+  document.getElementById('weekly-revisions').innerHTML='<div class="report-row"><span>Agendadas para o período</span><b>'+data.due+'</b></div><div class="report-row"><span>Marcadas como concluídas (estado atual)</span><b>'+data.done+'</b></div><div class="report-row"><span>Agendamentos vencidos e não concluídos até hoje</span><b>'+data.overdue+'</b></div>';
+  const guidance=[];
+  if(!data.hours)guidance.push('Não há horas registradas para esta semana. Confira se os estudos foram salvos com a data correta.');
+  else {
+    if(data.hoursGoal!==null)guidance.push('Meta de horas da semana atual: '+pct(data.hours,data.hoursGoal)+' ('+fmtH(data.hours)+' de '+fmtH(data.hoursGoal)+').');
+    if(data.questionsGoal!==null)guidance.push('Meta de questões da semana atual: '+pct(data.questions,data.questionsGoal)+' ('+data.questions+' de '+data.questionsGoal+').');
+    if(data.weak.length)guidance.push('Considere reforçar '+data.weak[0].topic+' ('+data.weak[0].pct+'% em '+data.weak[0].total+' questões nesta semana).');
+    if(data.byDisc.length===1)guidance.push('Todo o tempo registrado ficou em uma disciplina. Compare essa distribuição com seu ciclo de estudos.');
+    if(data.hours<data.previousHours)guidance.push('As horas registradas diminuíram em relação à semana anterior. Verifique se o tempo planejado continua viável.');
+  }
+  if(data.overdue)guidance.push('Há '+data.overdue+' revisão(ões) com vencimento nesta semana ainda não concluída(s).');
+  if(!guidance.length)guidance.push('Mantenha os registros de estudos e questões para acompanhar sua evolução nas próximas semanas.');
+  document.getElementById('weekly-guidance').innerHTML=guidance.map(t=>'<p class="report-guidance">'+escapeHTML(t)+'</p>').join('');
+}
+
+function completeCycle(){tiCycleIndex=(tiCycleIndex+1)%TI_CYCLE.length;localStorage.setItem(TI_CYCLE_KEY,tiCycleIndex);renderTiCycle()}
+function undoCycle(){tiCycleIndex=(tiCycleIndex-1+TI_CYCLE.length)%TI_CYCLE.length;localStorage.setItem(TI_CYCLE_KEY,tiCycleIndex);renderTiCycle()}
+renderTiCycle();
+renderNeglectPanel();
+
+// Recuperação do cronômetro após inicialização dos elementos da interface.
+restoreCronoDraft();
+</script>
+</body>
+</html>
