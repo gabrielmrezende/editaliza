@@ -1,26 +1,63 @@
 @import "tailwindcss";
 
+/*
+ * Editaliza: papel frio, tinta de caneta azul (a das folhas de resposta) e um único
+ * marca-texto para o que é "agora" (hoje, progresso). Tema escuro fica para a Task do tema.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f6f8;
+  --foreground: #16213a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-papel: #f5f6f8;
+  --color-folha: #ffffff;
+  --color-tinta: #16213a;
+  --color-tinta-suave: #556079;
+  --color-caneta: #1f44c2;
+  --color-caneta-escura: #17338f;
+  --color-caneta-clara: #e8edfb;
+  --color-marca: #eef36a;
+  --color-linha: #d7dce6;
+  --color-erro: #b42318;
+  --color-erro-claro: #fdecea;
+  --font-sans: var(--font-atkinson);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-atkinson), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-caneta);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Marca-texto que percorre as linhas enquanto o edital é lido. */
+@keyframes grifar {
+  0% { width: 0; opacity: 1; }
+  60% { width: 100%; opacity: 1; }
+  100% { width: 100%; opacity: 0; }
+}
+.grifo {
+  width: 0;
+  animation: grifar 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .grifo { animation: none; width: 45%; }
 }
