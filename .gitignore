@@ -48,3 +48,7 @@ supabase/.branches/
 # superpowers
 .superpowers/
 editais-teste/
+
+# worktrees e área de trabalho dos agentes
+/.claude/worktrees/
+/.superpowers/
