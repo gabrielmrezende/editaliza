@@ -2,19 +2,19 @@ import { diaDaSemana, diasEntre, somarDias } from '@/lib/datas';
 import type { DisciplinaPlano } from '@/lib/dominio/tipos';
 
 /**
- * Posição no ciclo (modo sem data de prova): quantos dias de estudo (dias da semana com
- * minutos > 0) houve desde o início do plano até ontem. Dias livres não avançam o ciclo.
+ * Deslocamento no ciclo (modo sem data de prova), em minutos: a soma dos minutos de estudo de cada
+ * dia desde o início do plano até ontem. Dias livres não avançam o ciclo.
  */
-export function posicaoNoCiclo(inicio: string, hoje: string, minutosPorDia: number[]): number {
+export function minutosNoCiclo(inicio: string, hoje: string, minutosPorDia: number[]): number {
   const total = diasEntre(inicio, hoje);
   if (total <= 0) return 0;
-  const porSemana = minutosPorDia.filter((m) => m > 0).length;
+  const porSemana = minutosPorDia.reduce((s, m) => s + Math.max(0, m), 0);
   const semanas = Math.floor(total / 7);
-  let posicao = semanas * porSemana;
+  let minutos = semanas * porSemana;
   for (let i = semanas * 7; i < total; i++) {
-    if (minutosPorDia[diaDaSemana(somarDias(inicio, i))] > 0) posicao++;
+    minutos += Math.max(0, minutosPorDia[diaDaSemana(somarDias(inicio, i))] ?? 0);
   }
-  return posicao;
+  return minutos;
 }
 
 /** Hoje é dia de estudo? (no ciclo, dia sem horas fica livre). */

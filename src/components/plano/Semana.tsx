@@ -7,20 +7,16 @@ type ItemCiclo = { disciplinaId: string; minutos: number };
 
 const ROTULO_TIPO = { revisao_geral: 'Revisão geral', simulado: 'Simulado' } as const;
 
-/** Os próximos 7 dias (modo prazo) ou a ordem do ciclo (sem data de prova). */
+/** Os próximos 7 dias; sem data de prova, os dias seguem o ciclo e a ordem dele aparece abaixo. */
 export function Semana({
   hoje,
   dias,
   ciclo,
-  posicaoCiclo,
-  diaDeEstudo,
   nomes,
 }: {
   hoje: string;
   dias: DiaPlano[];
   ciclo: ItemCiclo[] | null;
-  posicaoCiclo: number;
-  diaDeEstudo: boolean;
   nomes: Map<string, DisciplinaPlano>;
 }) {
   const id = useId();
@@ -31,7 +27,9 @@ export function Semana({
       <h2 id={`${id}-titulo`} className="text-2xl font-bold tracking-tight">
         Semana
       </h2>
-      {ciclo ? <Ciclo ciclo={ciclo} atual={ciclo.length ? posicaoCiclo % ciclo.length : -1} marca={diaDeEstudo ? 'hoje' : 'próximo'} nome={nome} /> : (
+      {ciclo && ciclo.length === 0 ? (
+        <p className="text-tinta-suave">Sem horas de estudo na semana, o ciclo fica vazio.</p>
+      ) : (
         <ol className="flex flex-col divide-y divide-linha rounded-xl border border-linha bg-folha">
           {dias.map((dia) => {
             const total = dia.blocos.reduce((s, b) => s + b.minutos, 0);
@@ -71,25 +69,23 @@ export function Semana({
           })}
         </ol>
       )}
+      {ciclo && ciclo.length > 0 && <Ciclo ciclo={ciclo} nome={nome} />}
     </section>
   );
 }
 
-function Ciclo({ ciclo, atual, marca, nome }: { ciclo: ItemCiclo[]; atual: number; marca: string; nome: (id: string) => string }) {
-  if (ciclo.length === 0) {
-    return <p className="text-tinta-suave">Sem horas de estudo na semana, o ciclo fica vazio.</p>;
-  }
+function Ciclo({ ciclo, nome }: { ciclo: ItemCiclo[]; nome: (id: string) => string }) {
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-tinta-suave">Uma matéria por dia de estudo, nesta ordem; ao fim, o ciclo recomeça.</p>
+      <p className="text-tinta-suave">
+        As matérias seguem esta ordem, no tempo que você tem a cada dia: quando o tempo de uma acaba, começa a
+        próxima; ao fim, o ciclo recomeça.
+      </p>
       <ol className="flex flex-col divide-y divide-linha rounded-xl border border-linha bg-folha">
         {ciclo.map((item, i) => (
-          <li key={`${item.disciplinaId}-${i}`} aria-current={i === atual ? 'step' : undefined} className="flex items-center gap-4 px-4 py-3">
+          <li key={`${item.disciplinaId}-${i}`} className="flex items-center gap-4 px-4 py-3">
             <span className="w-6 shrink-0 text-right text-sm text-tinta-suave">{i + 1}</span>
-            <span className={`min-w-0 flex-1 ${i === atual ? 'font-bold' : ''}`}>
-              {nome(item.disciplinaId)}
-              {i === atual && <span className="ml-2 rounded bg-marca px-1.5 text-sm">{marca}</span>}
-            </span>
+            <span className="min-w-0 flex-1">{nome(item.disciplinaId)}</span>
             <span className="shrink-0 text-sm text-tinta-suave">{formatarMinutos(item.minutos)}</span>
           </li>
         ))}

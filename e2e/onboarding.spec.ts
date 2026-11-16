@@ -126,6 +126,12 @@ test.describe('onboarding', () => {
     await page.waitForURL(/\/app\/plano$/);
 
     const hoje = page.getByRole('region', { name: 'Hoje' });
+    // Hoje mostra exatamente o tempo do dia (1 h), não a cota semanal da matéria.
+    await expect(hoje.getByText(/, 1 h de estudo$/)).toBeVisible();
+    // A semana segue o ciclo: 7 dias, cada um com 1 h.
+    const dias = page.getByRole('region', { name: 'Semana' }).locator('ol').first().locator(':scope > li');
+    await expect(dias).toHaveCount(7);
+    for (let i = 0; i < 7; i++) await expect(dias.nth(i)).toHaveText(/1 h$/);
     const caixa = hoje.getByLabel('Concluí este tópico');
     await expect(caixa).toHaveCount(1);
     const nomeTopico = hoje.getByRole('listitem').locator('p').nth(1);

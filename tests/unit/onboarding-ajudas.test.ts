@@ -63,17 +63,18 @@ describe('hojeEmSaoPaulo', () => {
   });
 });
 
-describe('posicaoNoCiclo', () => {
+describe('minutosNoCiclo', () => {
   // 2026-11-16 é segunda; só estuda seg–sex
-  const semFimDeSemana = [0, 60, 60, 60, 60, 60, 0];
+  const semFimDeSemana = [0, 60, 60, 60, 60, 120, 0];
 
-  it('conta so os dias de estudo desde o inicio', async () => {
-    const { posicaoNoCiclo, ehDiaDeEstudo } = await import('@/lib/planos/ciclo');
-    expect(posicaoNoCiclo('2026-11-16', '2026-11-16', semFimDeSemana)).toBe(0);
-    expect(posicaoNoCiclo('2026-11-16', '2026-11-17', semFimDeSemana)).toBe(1);
-    expect(posicaoNoCiclo('2026-11-16', '2026-11-23', semFimDeSemana)).toBe(5); // seg seguinte
-    expect(posicaoNoCiclo('2026-11-16', '2026-11-25', semFimDeSemana)).toBe(7);
-    expect(posicaoNoCiclo('2026-11-21', '2026-11-23', semFimDeSemana)).toBe(0); // sáb e dom não contam
+  it('soma os minutos dos dias de estudo desde o inicio ate ontem', async () => {
+    const { minutosNoCiclo, ehDiaDeEstudo } = await import('@/lib/planos/ciclo');
+    expect(minutosNoCiclo('2026-11-16', '2026-11-16', semFimDeSemana)).toBe(0);
+    expect(minutosNoCiclo('2026-11-16', '2026-11-17', semFimDeSemana)).toBe(60);
+    expect(minutosNoCiclo('2026-11-16', '2026-11-23', semFimDeSemana)).toBe(360); // seg seguinte
+    expect(minutosNoCiclo('2026-11-16', '2026-11-25', semFimDeSemana)).toBe(480);
+    expect(minutosNoCiclo('2026-11-21', '2026-11-23', semFimDeSemana)).toBe(0); // sáb e dom não contam
+    expect(minutosNoCiclo('2026-11-16', '2026-11-10', semFimDeSemana)).toBe(0); // início no futuro
     expect(ehDiaDeEstudo('2026-11-22', semFimDeSemana)).toBe(false);
     expect(ehDiaDeEstudo('2026-11-23', semFimDeSemana)).toBe(true);
   });

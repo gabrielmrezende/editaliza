@@ -1,6 +1,6 @@
 'use client';
 
-import { dataPorExtenso, diasEntre } from '@/lib/datas';
+import { dataPorExtenso, diaDaSemana, diasEntre } from '@/lib/datas';
 import type { DisciplinaPlano, PlanoGerado } from '@/lib/dominio/tipos';
 import { semana, tarefasDoDia } from '@/lib/plano/consultas';
 import { alerta } from '../estilos';
@@ -19,11 +19,11 @@ type Props = {
   gerado: PlanoGerado;
   concluidosIniciais: string[];
   hoje: string;
-  posicaoCiclo: number;
-  /** Hoje tem horas de estudo? (no ciclo, dia sem horas fica livre). */
-  diaDeEstudo: boolean;
-  /** No ciclo: tópico de hoje, fixo no dia (calculado no servidor) para poder ser desmarcado. */
-  topicoDoCiclo: string | null;
+  minutosPorDia: number[];
+  /** No ciclo: minutos de estudo já percorridos no ciclo até ontem. */
+  offsetCiclo: number;
+  /** No ciclo: tópico de hoje de cada matéria, fixo no dia (calculado no servidor) para poder ser desmarcado. */
+  topicosDoCiclo: Record<string, string | null>;
 };
 
 /** Tela do plano: hoje, semana e progresso; marcar um tópico grava na hora (otimista). */
@@ -31,11 +31,11 @@ export function PainelPlano(p: Props) {
   const { concluidos, marcar, erro, anuncio } = useMarcacoes(p.planoId, p.concluidosIniciais);
   const porId = new Map(p.disciplinas.map((d) => [d.id, d]));
 
-  const blocos = p.gerado.modo === 'ciclo' && !p.diaDeEstudo ? [] : tarefasDoDia(p.gerado, p.hoje, p.posicaoCiclo);
+  const blocos = tarefasDoDia(p.gerado, p.hoje, p.offsetCiclo, p.minutosPorDia[diaDaSemana(p.hoje)] ?? 0);
   const itens: ItemHoje[] = blocos.map((b, i) => {
     const d = porId.get(b.disciplinaId);
-    // No ciclo o bloco não traz tópico: usa o tópico do dia, fixo (não pula ao marcar).
-    const idTopico = b.topicoId ?? (b.tipo === 'estudo' ? p.topicoDoCiclo : null);
+    // No ciclo o bloco não traz tópico: usa o tópico do dia da matéria, fixo (não pula ao marcar).
+    const idTopico = b.topicoId ?? (b.tipo === 'estudo' ? (p.topicosDoCiclo[b.disciplinaId] ?? null) : null);
     const topico = idTopico ? d?.topicos.find((t) => t.id === idTopico) : undefined;
     return {
       chave: `${i}-${b.disciplinaId}-${b.topicoId ?? ''}`,
@@ -60,7 +60,7 @@ export function PainelPlano(p: Props) {
             ? faltam > 0
               ? `Prova em ${dataPorExtenso(p.dataProva, { day: 'numeric', month: 'long', year: 'numeric' })}. Faltam ${faltam} ${faltam === 1 ? 'dia' : 'dias'}.`
               : `A prova foi em ${dataPorExtenso(p.dataProva, { day: 'numeric', month: 'long', year: 'numeric' })}.`
-            : 'Sem data de prova: você estuda em ciclo, uma matéria por dia.'}
+            : 'Sem data de prova: você estuda em ciclo, matéria após matéria, no tempo que tem a cada dia.'}
         </p>
       </div>
 
@@ -85,10 +85,8 @@ export function PainelPlano(p: Props) {
         <div className="min-w-0 lg:col-start-1 lg:row-start-2">
           <Semana
             hoje={p.hoje}
-            dias={semana(p.gerado, p.hoje)}
+            dias={semana(p.gerado, p.hoje, { offsetMinutos: p.offsetCiclo, minutosPorDia: p.minutosPorDia })}
             ciclo={p.gerado.modo === 'ciclo' ? p.gerado.ciclo : null}
-            posicaoCiclo={p.posicaoCiclo}
-            diaDeEstudo={p.diaDeEstudo}
             nomes={porId}
           />
         </div>

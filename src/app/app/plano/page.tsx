@@ -3,10 +3,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Marca } from '@/components/Marca';
 import { PainelPlano } from '@/components/plano/PainelPlano';
-import { hojeEmSaoPaulo } from '@/lib/datas';
+import { diaDaSemana, hojeEmSaoPaulo } from '@/lib/datas';
 import type { DisciplinaPlano, PlanoGerado } from '@/lib/dominio/tipos';
 import { tarefasDoDia } from '@/lib/plano/consultas';
-import { ehDiaDeEstudo, posicaoNoCiclo, topicoDoCicloHoje } from '@/lib/planos/ciclo';
+import { minutosNoCiclo, topicoDoCicloHoje } from '@/lib/planos/ciclo';
 import { criarClienteServidor, exigirUsuario } from '@/lib/supabase/servidor';
 
 type LinhaPlano = {
@@ -44,13 +44,15 @@ async function Plano() {
     topicoId: f.topico_id as string,
     dia: hojeEmSaoPaulo(new Date(f.concluido_em as string)),
   }));
-  const posicaoCiclo = posicaoNoCiclo(hojeEmSaoPaulo(new Date(plano.created_at)), hoje, plano.minutos_por_dia);
-  const diaDeEstudo = ehDiaDeEstudo(hoje, plano.minutos_por_dia);
-  let topicoDoCiclo: string | null = null;
-  if (plano.gerado.modo === 'ciclo' && diaDeEstudo) {
-    const bloco = tarefasDoDia(plano.gerado, hoje, posicaoCiclo)[0];
-    const disciplina = bloco && plano.conteudo.find((d) => d.id === bloco.disciplinaId);
-    if (disciplina) topicoDoCiclo = topicoDoCicloHoje(disciplina, concluidos, hoje);
+  const offsetCiclo = minutosNoCiclo(hojeEmSaoPaulo(new Date(plano.created_at)), hoje, plano.minutos_por_dia);
+  // No ciclo, cada matéria de hoje tem um tópico fixo no dia (para poder ser desmarcado).
+  const topicosDoCiclo: Record<string, string | null> = {};
+  if (plano.gerado.modo === 'ciclo') {
+    const minutosHoje = plano.minutos_por_dia[diaDaSemana(hoje)] ?? 0;
+    for (const bloco of tarefasDoDia(plano.gerado, hoje, offsetCiclo, minutosHoje)) {
+      const disciplina = plano.conteudo.find((d) => d.id === bloco.disciplinaId);
+      if (disciplina) topicosDoCiclo[disciplina.id] = topicoDoCicloHoje(disciplina, concluidos, hoje);
+    }
   }
   const cargo = plano.edital_cargos;
   const origem = [cargo?.editais?.orgao, cargo?.editais?.ano].filter(Boolean).join(' ');
@@ -64,9 +66,9 @@ async function Plano() {
       gerado={plano.gerado}
       concluidosIniciais={concluidos.map((c) => c.topicoId)}
       hoje={hoje}
-      posicaoCiclo={posicaoCiclo}
-      diaDeEstudo={diaDeEstudo}
-      topicoDoCiclo={topicoDoCiclo}
+      minutosPorDia={plano.minutos_por_dia}
+      offsetCiclo={offsetCiclo}
+      topicosDoCiclo={topicosDoCiclo}
     />
   );
 }
