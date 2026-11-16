@@ -82,22 +82,44 @@ describe('RLS', () => {
     expect(error).not.toBeNull();
   });
 
-  it('topicos_concluidos so pelo dono do plano', async () => {
+  it('topicos_concluidos: dono so le; ninguem grava direto (so a API)', async () => {
     const { data: p } = await admin()
       .from('planos')
       .insert(novoPlano(a.id, { ativo: false }))
       .select('id')
       .single();
-    const { error: eB } = await b.cliente
-      .from('topicos_concluidos')
-      .insert({ plano_id: p!.id, topico_id: 't1' });
-    expect(eB).not.toBeNull();
-    const { error: eA } = await a.cliente
-      .from('topicos_concluidos')
-      .insert({ plano_id: p!.id, topico_id: 't1' });
-    expect(eA).toBeNull();
-    const { data } = await b.cliente.from('topicos_concluidos').select('topico_id');
-    expect(data).toEqual([]);
+    for (const cli of [a.cliente, b.cliente]) {
+      const { error } = await cli.from('topicos_concluidos').insert({ plano_id: p!.id, topico_id: 't1' });
+      expect(error?.code).toBe('42501');
+    }
+    await admin().from('topicos_concluidos').insert({ plano_id: p!.id, topico_id: 't2' });
+    const { data: deA } = await a.cliente.from('topicos_concluidos').select('topico_id').eq('plano_id', p!.id);
+    expect(deA).toEqual([{ topico_id: 't2' }]);
+    const { data: deB } = await b.cliente.from('topicos_concluidos').select('topico_id');
+    expect(deB).toEqual([]);
+    const up = await a.cliente.from('topicos_concluidos').update({ topico_id: 'x' }).eq('plano_id', p!.id);
+    expect(up.error?.code).toBe('42501');
+    const del = await a.cliente.from('topicos_concluidos').delete().eq('plano_id', p!.id);
+    expect(del.error?.code).toBe('42501');
+    const { data: restou } = await admin().from('topicos_concluidos').select('topico_id').eq('plano_id', p!.id);
+    expect(restou).toEqual([{ topico_id: 't2' }]);
+  });
+
+  it('planos: cliente nao insere nem altera nem o proprio (so a API); pode apagar o proprio', async () => {
+    const ins = await a.cliente.from('planos').insert(novoPlano(a.id, { ativo: false }));
+    expect(ins.error?.code).toBe('42501');
+    const { data: p } = await admin()
+      .from('planos')
+      .insert(novoPlano(a.id, { ativo: false, edital_versao: 1 }))
+      .select('id')
+      .single();
+    const up = await a.cliente.from('planos').update({ edital_versao: 99 }).eq('id', p!.id);
+    expect(up.error?.code).toBe('42501');
+    const { data: igual } = await admin().from('planos').select('edital_versao').eq('id', p!.id);
+    expect(igual).toEqual([{ edital_versao: 1 }]);
+    const del = await a.cliente.from('planos').delete().eq('id', p!.id).select('id');
+    expect(del.error).toBeNull();
+    expect(del.data).toEqual([{ id: p!.id }]);
   });
 
   it('B nao insere plano com user_id de A', async () => {
@@ -116,8 +138,7 @@ describe('RLS', () => {
       .update({ edital_versao: 99 })
       .eq('id', p!.id)
       .select('id');
-    expect(up.error).toBeNull();
-    expect(up.data).toEqual([]);
+    expect(up.error?.code).toBe('42501');
     const del = await b.cliente.from('planos').delete().eq('id', p!.id).select('id');
     expect(del.error).toBeNull();
     expect(del.data).toEqual([]);
@@ -204,13 +225,18 @@ describe('RLS', () => {
     expect(data).toHaveLength(1);
   });
 
-  it('storage: A envia para tmp/{uid}/ mas nao le, lista nem sobrescreve', async () => {
+  it('storage: A so envia por URL assinada e nao le, lista nem sobrescreve', async () => {
     const pdf = () => new Blob(['%PDF-1.4'], { type: 'application/pdf' });
     const caminho = `tmp/${a.id}/${randomUUID()}.pdf`;
     const st = a.cliente.storage.from('editais');
 
-    const ok = await st.upload(caminho, pdf());
-    expect(ok.error).toBeNull(); // controle positivo
+    // Envio direto, sem URL assinada, nem na própria pasta.
+    const direto = await st.upload(caminho, pdf());
+    expect(direto.error?.message).toMatch(/row-level security|unauthorized|not authorized/i);
+    // Com a URL assinada criada pelo servidor (controle positivo).
+    const { data: assinada } = await admin().storage.from('editais').createSignedUploadUrl(caminho);
+    const ok = await st.uploadToSignedUrl(caminho, assinada!.token, pdf());
+    expect(ok.error).toBeNull();
 
     const dl = await st.download(caminho);
     expect(dl.error).not.toBeNull();
@@ -227,11 +253,11 @@ describe('RLS', () => {
     expect(raiz.error?.message).toMatch(/row-level security|unauthorized|not authorized/i);
   });
 
-  it('storage: rejeita mime nao-PDF', async () => {
+  it('storage: rejeita mime nao-PDF mesmo com URL assinada', async () => {
     const txt = new Blob(['oi'], { type: 'text/plain' });
-    const { error } = await a.cliente.storage
-      .from('editais')
-      .upload(`tmp/${a.id}/${randomUUID()}.txt`, txt);
+    const caminho = `tmp/${a.id}/${randomUUID()}.txt`;
+    const { data: assinada } = await admin().storage.from('editais').createSignedUploadUrl(caminho);
+    const { error } = await a.cliente.storage.from('editais').uploadToSignedUrl(caminho, assinada!.token, txt);
     expect(error?.message).toMatch(/mime/i);
   });
 });

@@ -7,7 +7,7 @@ import { admin, criarUsuarioTeste, emailUnico } from './ajuda';
 
 process.env.EXTRACAO_MODO = 'fake';
 
-const { receberEdital, processarCargos, processarConteudo, iniciarConteudo, reiniciarEdital, lerEdital, lerCargo, EnvioInvalidoError } = await import(
+const { receberEdital, processarCargos, processarConteudo, iniciarConteudo, reiniciarEdital, lerEdital, lerCargo, criarUrlEnvio, EnvioInvalidoError } = await import(
   '@/lib/editais/servico'
 );
 
@@ -20,12 +20,14 @@ async function pdfUnico(titulo = 'EDITAL TESTE'): Promise<Buffer> {
 
 type Usuario = Awaited<ReturnType<typeof criarUsuarioTeste>>;
 
-/** Sobe os bytes para tmp/{uid}/ como o navegador faria e devolve o caminho. */
+/** Sobe os bytes para tmp/{uid}/ como o navegador faria (URL assinada) e devolve o caminho. */
 async function enviarTmp(usuario: Usuario, bytes: Buffer): Promise<string> {
   const caminho = `tmp/${usuario.id}/${randomUUID()}.pdf`;
+  const { data, error: errUrl } = await admin().storage.from('editais').createSignedUploadUrl(caminho);
+  if (errUrl) throw errUrl;
   const { error } = await usuario.cliente.storage
     .from('editais')
-    .upload(caminho, bytes, { contentType: 'application/pdf' });
+    .uploadToSignedUrl(caminho, data.token, bytes, { contentType: 'application/pdf' });
   if (error) throw error;
   return caminho;
 }
@@ -344,6 +346,45 @@ describe('editais (serviço)', () => {
       );
       expect(r.every((x) => x.error === null)).toBe(true);
       expect(r.filter((x) => x.data === true)).toHaveLength(15);
+    });
+  });
+
+  describe('envios para tmp/', () => {
+    it('url de envio: 20 por hora, a 21a responde 429', async () => {
+      const u = await criarUsuarioTeste(emailUnico('editais-urls'));
+      for (let i = 0; i < 20; i++) {
+        const r = await criarUrlEnvio(u.id);
+        expect(r.caminho).toMatch(new RegExp(`^tmp/${u.id}/[0-9a-f-]+\\.pdf$`));
+        expect(r.url).toContain('/object/upload/sign/editais/');
+      }
+      await expect(criarUrlEnvio(u.id)).rejects.toMatchObject({
+        status: 429,
+        message: 'Você fez muitos envios na última hora. Aguarde um pouco e tente de novo.',
+      });
+    });
+
+    it('limpeza apaga pelo Storage os envios de tmp/ esquecidos', async () => {
+      const u = await criarUsuarioTeste(emailUnico('editais-limpeza'));
+      const caminho = await enviarTmp(u, await pdfUnico());
+      const pasta = `tmp/${u.id}`;
+      const listar = async () => (await admin().storage.from('editais').list(pasta)).data ?? [];
+      expect(await listar()).toHaveLength(1);
+      // Recente demais: fica.
+      const { data: nenhum, error: e1 } = await admin().rpc('limpar_envios_tmp', { p_minutos: 60, p_prefixo: `${pasta}/` });
+      expect(e1).toBeNull();
+      expect(nenhum).toBe(0);
+      // Com idade mínima 0, sai (a remoção é assíncrona, via Storage API).
+      const { data: n, error } = await admin().rpc('limpar_envios_tmp', { p_minutos: 0, p_prefixo: `${pasta}/` });
+      expect(error).toBeNull();
+      expect(n).toBe(1);
+      await expect.poll(listar, { timeout: 15_000 }).toEqual([]);
+      const { error: errDl } = await admin().storage.from('editais').download(caminho);
+      expect(errDl).not.toBeNull();
+    });
+
+    it('limpeza so aceita prefixos dentro de tmp/', async () => {
+      const { error } = await admin().rpc('limpar_envios_tmp', { p_minutos: 0, p_prefixo: '' });
+      expect(error).not.toBeNull();
     });
   });
 });

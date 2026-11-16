@@ -1,4 +1,5 @@
 import 'server-only';
+import { randomUUID } from 'node:crypto';
 import { PDFDocument } from 'pdf-lib';
 import { atribuirIds } from '@/lib/dominio/esquemas';
 import { consumirCota } from '@/lib/cotas';
@@ -8,11 +9,14 @@ import { sha256Hex } from './hash';
 import {
   JANELA_HORAS,
   JANELA_IA_MINUTOS,
+  JANELA_URLS_MINUTOS,
   MAX_BYTES,
   MAX_CHAMADAS_IA,
+  MAX_URLS_ENVIO,
   MAX_NOVOS_POR_JANELA,
   MAX_PAGINAS,
   MSG_COTA_IA,
+  MSG_COTA_URLS,
   MSG_EDITAL_INVALIDO,
   MSG_ERRO_GENERICO,
   PROCESSANDO_MAX_MINUTOS,
@@ -47,6 +51,20 @@ async function cobrarChamadaIA(userId: string, liberar: () => PromiseLike<unknow
 
 const liberarEdital = (editalId: string) => () =>
   criarClienteAdmin().from('editais').update({ status: 'erro', erro: MSG_COTA_IA }).eq('id', editalId);
+
+/**
+ * URL assinada para o navegador enviar o PDF a tmp/{userId}/ (o cliente não tem permissão de
+ * INSERT no storage). Até 20 por usuário por hora; acima disso, 429.
+ */
+export async function criarUrlEnvio(userId: string): Promise<{ caminho: string; url: string }> {
+  if (!(await consumirCota(userId, 'url_envio', MAX_URLS_ENVIO, JANELA_URLS_MINUTOS))) {
+    throw new EnvioInvalidoError(MSG_COTA_URLS, 429);
+  }
+  const caminho = `tmp/${userId}/${randomUUID()}.pdf`;
+  const { data, error } = await criarClienteAdmin().storage.from(BUCKET).createSignedUploadUrl(caminho);
+  if (error || !data) throw error ?? new Error('sem URL assinada');
+  return { caminho, url: data.signedUrl };
+}
 
 /**
  * Valida e registra o PDF enviado para tmp/. O agendamento do processamento
