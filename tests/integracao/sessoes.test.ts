@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { hojeEmSaoPaulo } from '@/lib/datas';
 import { admin, criarUsuarioTeste, emailUnico } from './ajuda';
 import { EsquemaEdicaoSessao, EsquemaNovaSessao } from '@/lib/dominio/esquemas';

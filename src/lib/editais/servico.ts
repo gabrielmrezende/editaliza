@@ -20,6 +20,7 @@ import {
   MSG_COTA_URLS,
   MSG_EDITAL_INVALIDO,
   MSG_ERRO_GENERICO,
+  MSG_LEITURA_INTERROMPIDA,
   PROCESSANDO_MAX_MINUTOS,
 } from './limites';
 
@@ -42,7 +43,8 @@ function mensagemDeErro(erro: unknown): string {
 
 /**
  * Cobra uma chamada de IA do usuário que a provocou, antes da chamada. Acima da cota, `liberar`
- * desfaz a reivindicação (o item volta a 'erro' com a mensagem da cota) e a rota responde 429.
+ * desfaz a reivindicação (o item volta a 'erro' com mensagem neutra, pois a linha é compartilhada
+ * com outros alunos) e só quem pediu recebe o 429 com a mensagem da cota.
  */
 async function cobrarChamadaIA(userId: string, liberar: () => PromiseLike<unknown>): Promise<void> {
   if (await consumirCota(userId, 'ia', MAX_CHAMADAS_IA, JANELA_IA_MINUTOS)) return;
@@ -51,7 +53,7 @@ async function cobrarChamadaIA(userId: string, liberar: () => PromiseLike<unknow
 }
 
 const liberarEdital = (editalId: string) => () =>
-  criarClienteAdmin().from('editais').update({ status: 'erro', erro: MSG_COTA_IA }).eq('id', editalId);
+  criarClienteAdmin().from('editais').update({ status: 'erro', erro: MSG_LEITURA_INTERROMPIDA }).eq('id', editalId);
 
 /**
  * URL assinada para o navegador enviar o PDF a tmp/{userId}/ (o cliente não tem permissão de
@@ -310,7 +312,7 @@ export async function iniciarConteudo(userId: string, cargoId: string): Promise<
   if (error) throw error;
   if ((data?.length ?? 0) === 0) return false;
   await cobrarChamadaIA(userId, () =>
-    db.from('edital_cargos').update({ status_conteudo: 'erro', erro: MSG_COTA_IA }).eq('id', cargoId),
+    db.from('edital_cargos').update({ status_conteudo: 'erro', erro: MSG_LEITURA_INTERROMPIDA }).eq('id', cargoId),
   );
   return true;
 }

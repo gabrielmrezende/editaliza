@@ -1,4 +1,4 @@
-﻿import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { admin, criarUsuarioTeste, emailUnico } from './ajuda';
 import type { ConteudoCargo, DisciplinaPlano, MinutosPorDia, PlanoGerado } from '@/lib/dominio/tipos';

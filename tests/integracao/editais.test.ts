@@ -271,6 +271,7 @@ describe('editais (serviço)', () => {
   });
   describe('custo e cota de IA', () => {
     const MSG_COTA = 'Você atingiu o limite de leituras por hoje. Tente novamente amanhã.';
+    const MSG_LEITURA = 'A leitura foi interrompida. Tente de novo.';
 
     /** Simula `n` chamadas de IA já feitas pelo usuário (opcionalmente há `horasAtras`). */
     async function gastarCota(userId: string, n: number, horasAtras = 0) {
@@ -310,7 +311,14 @@ describe('editais (serviço)', () => {
       const decimoSexto = cargos![15].id;
       await expect(iniciarConteudo(u.id, decimoSexto)).rejects.toMatchObject({ status: 429, message: MSG_COTA });
       const { data } = await admin().from('edital_cargos').select('status_conteudo, erro').eq('id', decimoSexto).single();
-      expect(data).toEqual({ status_conteudo: 'erro', erro: MSG_COTA });
+      expect(data).toEqual({ status_conteudo: 'erro', erro: MSG_LEITURA });
+
+      // Outro aluno com acesso ao mesmo edital não vê a mensagem de cota e consegue tentar de novo.
+      const b = await criarUsuarioTeste(emailUnico('editais-cota-b'));
+      await admin().from('edital_acessos').insert({ user_id: b.id, edital_id: editalId });
+      const visao = await lerCargo(decimoSexto);
+      expect(visao).toMatchObject({ statusConteudo: 'erro', erro: MSG_LEITURA });
+      expect(await iniciarConteudo(b.id, decimoSexto)).toBe(true);
     });
 
     it('tentar novamente tambem conta na cota', async () => {
@@ -319,7 +327,9 @@ describe('editais (serviço)', () => {
       await admin().from('editais').update({ status: 'erro', erro: 'x' }).eq('id', editalId);
       await gastarCota(u.id, 14); // + 1 do envio = 15
       await expect(reiniciarEdital(u.id, editalId)).rejects.toMatchObject({ status: 429, message: MSG_COTA });
-      expect((await linhaEdital(editalId)).status).toBe('erro');
+      const linha = await linhaEdital(editalId);
+      expect(linha.status).toBe('erro');
+      expect(linha.erro).toBe(MSG_LEITURA);
     });
 
     it('envio de edital novo acima da cota responde 429; chamadas antigas nao contam', async () => {

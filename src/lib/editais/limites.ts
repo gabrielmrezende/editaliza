@@ -12,7 +12,10 @@ export const MSG_EDITAL_INVALIDO = 'Este arquivo não parece ser um edital de co
 /** Chamadas de IA (listar cargos + extrair conteúdo, inclusive novas tentativas) por usuário na janela. */
 export const MAX_CHAMADAS_IA = 15;
 export const JANELA_IA_MINUTOS = 24 * 60;
+/** Só na resposta 429 de quem estourou a cota; nunca gravada na linha compartilhada do edital/cargo. */
 export const MSG_COTA_IA = 'Você atingiu o limite de leituras por hoje. Tente novamente amanhã.';
+/** Gravada na linha compartilhada quando a leitura não começou por causa da cota de quem pediu. */
+export const MSG_LEITURA_INTERROMPIDA = 'A leitura foi interrompida. Tente de novo.';
 
 /** URLs assinadas de envio por usuário na janela. */
 export const MAX_URLS_ENVIO = 20;
