@@ -230,4 +230,32 @@ describe('editais (serviço)', () => {
     expect(await reiniciarEdital(editalId)).toBe(true);
     expect((await linhaEdital(editalId)).status).toBe('processando');
   });
+
+  it('reenvio do mesmo pdf repara edital que ficou sem arquivo', async () => {
+    const u = await criarUsuarioTeste(emailUnico('editais-reparo'));
+    const bytes = await pdfUnico();
+    const { editalId } = await receberEdital(u.id, await enviarTmp(u, bytes));
+    // Simula falha após a reserva: sem arquivo no storage nem na IA, em erro.
+    const { data: linha } = await admin().from('editais').select('storage_path').eq('id', editalId).single();
+    await admin().storage.from('editais').remove([linha!.storage_path]);
+    await admin()
+      .from('editais')
+      .update({ anthropic_file_id: null, status: 'erro', erro: 'Não conseguimos ler este edital. Tente de novo ou envie outro arquivo.' })
+      .eq('id', editalId);
+
+    const r = await receberEdital(u.id, await enviarTmp(u, bytes));
+    expect(r.editalId).toBe(editalId);
+    expect(r.novo).toBe(true); // precisa ser processado de novo
+    const reparado = await linhaEdital(editalId);
+    expect(reparado.status).toBe('processando');
+    expect(reparado.anthropic_file_id).toBe('fake-ok');
+    const { data: arquivo } = await admin().storage.from('editais').download(linha!.storage_path);
+    expect(arquivo).not.toBeNull();
+
+    await processarCargos(editalId);
+    expect((await linhaEdital(editalId)).status).toBe('pronto');
+    // Não consumiu limite extra: continua 1 edital deste usuário.
+    const { count } = await admin().from('editais').select('id', { count: 'exact', head: true }).eq('enviado_por', u.id);
+    expect(count).toBe(1);
+  });
 });

@@ -82,7 +82,19 @@ export async function receberEdital(
     }
     const editalId = r.edital_id!;
     await registrarAcesso(userId, editalId);
-    if (!r.novo) return { editalId, novo: false };
+    if (!r.novo) {
+      // Reparo: reserva anterior ficou sem arquivo (falha no envio ou função morta).
+      // Reivindica atomicamente; o mesmo edital, então não conta no limite.
+      const { data: reivindicado, error: errRep } = await db
+        .from('editais')
+        .update({ status: 'processando', erro: null, processando_desde: new Date().toISOString() })
+        .eq('id', editalId)
+        .is('anthropic_file_id', null)
+        .or(`status.eq.erro,and(status.eq.processando,processando_desde.lt.${limiteExpirado()})`)
+        .select('id');
+      if (errRep) throw errRep;
+      if (!reivindicado?.length) return { editalId, novo: false };
+    }
 
     try {
       const { error: errUp } = await armazem.upload(destino, bytes, {
