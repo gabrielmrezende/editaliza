@@ -20,10 +20,10 @@ type Props = {
   concluidosIniciais: string[];
   hoje: string;
   minutosPorDia: number[];
-  /** No ciclo: minutos de estudo já percorridos no ciclo até ontem. */
+  /** No ciclo: posição no ciclo, em minutos, pelo estudo registrado até ontem. */
   offsetCiclo: number;
-  /** No ciclo: tópico de hoje de cada matéria, fixo no dia (calculado no servidor) para poder ser desmarcado. */
-  topicosDoCiclo: Record<string, string | null>;
+  /** No ciclo: tópico de cada bloco de hoje (mesmo índice dos blocos), distinto por bloco e fixo no dia. */
+  topicosDosBlocos: (string | null)[];
 };
 
 /** Tela do plano: hoje, semana e progresso; marcar um tópico grava na hora (otimista). */
@@ -35,7 +35,7 @@ export function PainelPlano(p: Props) {
   const itens: ItemHoje[] = blocos.map((b, i) => {
     const d = porId.get(b.disciplinaId);
     // No ciclo o bloco não traz tópico: usa o tópico do dia da matéria, fixo (não pula ao marcar).
-    const idTopico = b.topicoId ?? (b.tipo === 'estudo' ? (p.topicosDoCiclo[b.disciplinaId] ?? null) : null);
+    const idTopico = b.topicoId ?? (b.tipo === 'estudo' ? (p.topicosDosBlocos[i] ?? null) : null);
     const topico = idTopico ? d?.topicos.find((t) => t.id === idTopico) : undefined;
     return {
       chave: `${i}-${b.disciplinaId}-${b.topicoId ?? ''}`,

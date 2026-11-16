@@ -1,7 +1,5 @@
 import { diaDaSemana, somarDias } from '@/lib/datas';
-import type { BlocoEstudo, DiaPlano, DisciplinaPlano, PlanoGerado } from '@/lib/dominio/tipos';
-
-type ItemCiclo = { disciplinaId: string; minutos: number };
+import type { BlocoEstudo, DiaPlano, DisciplinaPlano, ItemCiclo, PlanoGerado } from '@/lib/dominio/tipos';
 
 const inteiroNaoNegativo = (n: number) => (Number.isInteger(n) && n > 0 ? n : 0);
 

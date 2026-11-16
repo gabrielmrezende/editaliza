@@ -16,6 +16,8 @@ export type EditalVisao = {
   resumo: { orgao: string | null; banca: string | null; ano: number | null; dataProva: string | null };
   cargos: { id: string; nome: string; statusConteudo: string }[];
 };
+export type ItemCiclo = { disciplinaId: string; minutos: number };
+export interface PosicaoCiclo { indice: number; minutos: number }
 export type PlanoGerado =
   | { modo: 'prazo'; dias: DiaPlano[]; inicioReserva: string | null; avisos: Aviso[] }
-  | { modo: 'ciclo'; ciclo: { disciplinaId: string; minutos: number }[]; avisos: Aviso[] };
+  | { modo: 'ciclo'; ciclo: ItemCiclo[]; avisos: Aviso[] };

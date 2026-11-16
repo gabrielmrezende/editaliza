@@ -63,35 +63,11 @@ describe('hojeEmSaoPaulo', () => {
   });
 });
 
-describe('minutosNoCiclo', () => {
-  // 2026-11-16 é segunda; só estuda seg–sex
-  const semFimDeSemana = [0, 60, 60, 60, 60, 120, 0];
-
-  it('soma os minutos dos dias de estudo desde o inicio ate ontem', async () => {
-    const { minutosNoCiclo, ehDiaDeEstudo } = await import('@/lib/planos/ciclo');
-    expect(minutosNoCiclo('2026-11-16', '2026-11-16', semFimDeSemana)).toBe(0);
-    expect(minutosNoCiclo('2026-11-16', '2026-11-17', semFimDeSemana)).toBe(60);
-    expect(minutosNoCiclo('2026-11-16', '2026-11-23', semFimDeSemana)).toBe(360); // seg seguinte
-    expect(minutosNoCiclo('2026-11-16', '2026-11-25', semFimDeSemana)).toBe(480);
-    expect(minutosNoCiclo('2026-11-21', '2026-11-23', semFimDeSemana)).toBe(0); // sáb e dom não contam
-    expect(minutosNoCiclo('2026-11-16', '2026-11-10', semFimDeSemana)).toBe(0); // início no futuro
+describe('ehDiaDeEstudo', () => {
+  it('dia sem horas fica livre', async () => {
+    const { ehDiaDeEstudo } = await import('@/lib/planos/ciclo');
+    const semFimDeSemana = [0, 60, 60, 60, 60, 120, 0];
     expect(ehDiaDeEstudo('2026-11-22', semFimDeSemana)).toBe(false);
     expect(ehDiaDeEstudo('2026-11-23', semFimDeSemana)).toBe(true);
-  });
-});
-
-describe('topicoDoCicloHoje', () => {
-  const d = {
-    id: 'd0', nome: 'M', questoes: null, pontos: null, nivel: 'basico' as const,
-    topicos: [{ id: 'a', nome: 'A' }, { id: 'b', nome: 'B' }, { id: 'c', nome: 'C' }],
-  };
-
-  it('fixa o topico concluido hoje; senao o primeiro pendente', async () => {
-    const { topicoDoCicloHoje } = await import('@/lib/planos/ciclo');
-    expect(topicoDoCicloHoje(d, [], '2026-11-16')).toBe('a');
-    expect(topicoDoCicloHoje(d, [{ topicoId: 'a', dia: '2026-11-15' }], '2026-11-16')).toBe('b');
-    expect(topicoDoCicloHoje(d, [{ topicoId: 'a', dia: '2026-11-15' }, { topicoId: 'b', dia: '2026-11-16' }], '2026-11-16')).toBe('b');
-    const todos = ['a', 'b', 'c'].map((topicoId) => ({ topicoId, dia: '2026-11-01' }));
-    expect(topicoDoCicloHoje(d, todos, '2026-11-16')).toBeNull();
   });
 });

@@ -4,9 +4,9 @@ import { redirect } from 'next/navigation';
 import { Marca } from '@/components/Marca';
 import { PainelPlano } from '@/components/plano/PainelPlano';
 import { diaDaSemana, hojeEmSaoPaulo } from '@/lib/datas';
-import type { DisciplinaPlano, PlanoGerado } from '@/lib/dominio/tipos';
+import type { DisciplinaPlano, PlanoGerado, PosicaoCiclo } from '@/lib/dominio/tipos';
 import { tarefasDoDia } from '@/lib/plano/consultas';
-import { minutosNoCiclo, topicoDoCicloHoje } from '@/lib/planos/ciclo';
+import { minutosRegistradosNoCiclo, posicaoEmMinutos, topicosDosBlocos } from '@/lib/planos/ciclo';
 import { criarClienteServidor, exigirUsuario } from '@/lib/supabase/servidor';
 
 type LinhaPlano = {
@@ -16,6 +16,8 @@ type LinhaPlano = {
   conteudo: DisciplinaPlano[];
   gerado: PlanoGerado;
   created_at: string;
+  ajustado_em: string | null;
+  ciclo_inicio: PosicaoCiclo | null;
   edital_cargos: { nome: string; editais: { orgao: string | null; ano: number | null } | null } | null;
 };
 
@@ -25,7 +27,7 @@ async function Plano() {
   const supabase = await criarClienteServidor();
   const { data, error } = await supabase
     .from('planos')
-    .select('id, data_prova, minutos_por_dia, conteudo, gerado, created_at, edital_cargos(nome, editais(orgao, ano))')
+    .select('id, data_prova, minutos_por_dia, conteudo, gerado, created_at, ajustado_em, ciclo_inicio, edital_cargos(nome, editais(orgao, ano))')
     .eq('user_id', usuario.id)
     .eq('ativo', true)
     .maybeSingle();
@@ -44,15 +46,21 @@ async function Plano() {
     topicoId: f.topico_id as string,
     dia: hojeEmSaoPaulo(new Date(f.concluido_em as string)),
   }));
-  const offsetCiclo = minutosNoCiclo(hojeEmSaoPaulo(new Date(plano.created_at)), hoje, plano.minutos_por_dia);
-  // No ciclo, cada matéria de hoje tem um tópico fixo no dia (para poder ser desmarcado).
-  const topicosDoCiclo: Record<string, string | null> = {};
+  let offsetCiclo = 0;
+  let topicosHoje: (string | null)[] = [];
   if (plano.gerado.modo === 'ciclo') {
+    // O ciclo avança pelo estudo registrado (sessões em [desde, hoje)), não pelo calendário.
+    const desde = hojeEmSaoPaulo(new Date(plano.ajustado_em ?? plano.created_at));
+    const { data: sessoes, error: errSessoes } = await supabase
+      .from('sessoes_estudo')
+      .select('data, minutos')
+      .eq('plano_id', plano.id)
+      .gte('data', desde);
+    if (errSessoes) throw errSessoes;
+    const registrados = minutosRegistradosNoCiclo((sessoes ?? []) as { data: string; minutos: number }[], desde, hoje);
+    offsetCiclo = posicaoEmMinutos(plano.gerado.ciclo, plano.ciclo_inicio, registrados);
     const minutosHoje = plano.minutos_por_dia[diaDaSemana(hoje)] ?? 0;
-    for (const bloco of tarefasDoDia(plano.gerado, hoje, offsetCiclo, minutosHoje)) {
-      const disciplina = plano.conteudo.find((d) => d.id === bloco.disciplinaId);
-      if (disciplina) topicosDoCiclo[disciplina.id] = topicoDoCicloHoje(disciplina, concluidos, hoje);
-    }
+    topicosHoje = topicosDosBlocos(tarefasDoDia(plano.gerado, hoje, offsetCiclo, minutosHoje), plano.conteudo, concluidos, hoje);
   }
   const cargo = plano.edital_cargos;
   const origem = [cargo?.editais?.orgao, cargo?.editais?.ano].filter(Boolean).join(' ');
@@ -68,7 +76,7 @@ async function Plano() {
       hoje={hoje}
       minutosPorDia={plano.minutos_por_dia}
       offsetCiclo={offsetCiclo}
-      topicosDoCiclo={topicosDoCiclo}
+      topicosDosBlocos={topicosHoje}
     />
   );
 }
