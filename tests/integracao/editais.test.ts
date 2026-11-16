@@ -5,7 +5,7 @@ import { admin, criarUsuarioTeste, emailUnico } from './ajuda';
 
 process.env.EXTRACAO_MODO = 'fake';
 
-const { receberEdital, processarCargos, processarConteudo, EnvioInvalidoError } = await import(
+const { receberEdital, processarCargos, processarConteudo, iniciarConteudo, reiniciarEdital, lerEdital, lerCargo, EnvioInvalidoError } = await import(
   '@/lib/editais/servico'
 );
 
@@ -148,5 +148,86 @@ describe('editais (serviço)', () => {
     const outro = await criarUsuarioTeste(emailUnico('editais-caminho'));
     const caminho = await enviarTmp(outro, await pdfUnico());
     await expect(receberEdital(usuario.id, caminho)).rejects.toMatchObject({ status: 400 });
+  });
+
+  /** Cada teste usa um usuário novo para não esbarrar no limite de 5 por 24 h. */
+  async function receberNovo(titulo?: string) {
+    const u = await criarUsuarioTeste(emailUnico('editais-novo'));
+    return receberEdital(u.id, await enviarTmp(u, await pdfUnico(titulo)));
+  }
+  async function editalPronto() {
+    const { editalId } = await receberNovo();
+    await processarCargos(editalId);
+    const { data } = await admin().from('edital_cargos').select('id').eq('edital_id', editalId).eq('nome', 'Cargo A').single();
+    return { editalId, cargoId: data!.id as string };
+  }
+
+  it('cargo preso em processando ha mais de 10 min vira erro e pode ser reivindicado de novo', async () => {
+    const { editalId, cargoId } = await editalPronto();
+    expect(await iniciarConteudo(cargoId)).toBe(true);
+    // Em andamento e recente: não reivindica de novo.
+    expect(await iniciarConteudo(cargoId)).toBe(false);
+    const velho = new Date(Date.now() - 11 * 60_000).toISOString();
+    await admin().from('edital_cargos').update({ processando_desde: velho }).eq('id', cargoId);
+    // Reivindicação direta de um processando travado.
+    expect(await iniciarConteudo(cargoId)).toBe(true);
+    // Leitura trata como erro e grava.
+    await admin().from('edital_cargos').update({ processando_desde: velho }).eq('id', cargoId);
+    const visao = await lerCargo(cargoId);
+    expect(visao).toMatchObject({ statusConteudo: 'erro', erro: 'Não conseguimos ler este edital. Tente de novo ou envie outro arquivo.' });
+    const { data } = await admin().from('edital_cargos').select('status_conteudo').eq('id', cargoId).single();
+    expect(data!.status_conteudo).toBe('erro');
+    // lerEdital também expira.
+    await admin().from('edital_cargos').update({ status_conteudo: 'processando', processando_desde: velho }).eq('id', cargoId);
+    const edital = await lerEdital(editalId);
+    expect(edital!.cargos.find((c) => c.id === cargoId)!.statusConteudo).toBe('erro');
+  });
+
+  it('custo e somado de forma atomica', async () => {
+    const { editalId } = await receberNovo();
+    await Promise.all(
+      Array.from({ length: 10 }, () => admin().rpc('somar_custo_edital', { p_edital: editalId, p_centavos: 3 })),
+    );
+    expect((await linhaEdital(editalId)).custo_centavos).toBe(30);
+  });
+
+  it('envios paralelos de pdfs diferentes respeitam o limite de 5', async () => {
+    const u = await criarUsuarioTeste(emailUnico('editais-paralelo'));
+    const caminhos = await Promise.all(
+      Array.from({ length: 7 }, async () => enviarTmp(u, await pdfUnico())),
+    );
+    const resultados = await Promise.allSettled(caminhos.map((c) => receberEdital(u.id, c)));
+    const ok = resultados.filter((r) => r.status === 'fulfilled');
+    const recusados = resultados.filter((r) => r.status === 'rejected');
+    expect(ok).toHaveLength(5);
+    expect(recusados).toHaveLength(2);
+    for (const r of recusados) expect((r as PromiseRejectedResult).reason).toMatchObject({ status: 429 });
+    const { count } = await admin().from('editais').select('id', { count: 'exact', head: true }).eq('enviado_por', u.id);
+    expect(count).toBe(5);
+  });
+
+  it('extrair conteudo exige edital pronto (409)', async () => {
+    const { editalId } = await receberNovo();
+    const { data } = await admin()
+      .from('edital_cargos')
+      .insert({ edital_id: editalId, nome: 'Cargo X' })
+      .select('id')
+      .single();
+    await expect(iniciarConteudo(data!.id)).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('tentar novamente recusa edital que nao e edital (409) mas reabre erro comum', async () => {
+    const { editalId: invalido } = await receberNovo('INVALIDO');
+    await processarCargos(invalido);
+    await expect(reiniciarEdital(invalido)).rejects.toMatchObject({
+      status: 409,
+      message: 'Este arquivo não parece ser um edital de concurso.',
+    });
+    expect((await linhaEdital(invalido)).status).toBe('erro');
+
+    const { editalId } = await receberNovo();
+    await admin().from('editais').update({ status: 'erro', erro: 'Não conseguimos ler este edital. Tente de novo ou envie outro arquivo.' }).eq('id', editalId);
+    expect(await reiniciarEdital(editalId)).toBe(true);
+    expect((await linhaEdital(editalId)).status).toBe('processando');
   });
 });

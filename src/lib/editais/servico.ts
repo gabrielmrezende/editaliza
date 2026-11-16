@@ -20,7 +20,7 @@ const BUCKET = 'editais';
 export class EnvioInvalidoError extends Error {
   constructor(
     mensagem: string,
-    readonly status: 400 | 429,
+    readonly status: 400 | 409 | 429,
   ) {
     super(mensagem);
     this.name = 'EnvioInvalidoError';
@@ -62,68 +62,47 @@ export async function receberEdital(
     if (paginas > MAX_PAGINAS) throw new EnvioInvalidoError(`o edital excede ${MAX_PAGINAS} páginas`, 400);
 
     const sha256 = sha256Hex(bytes);
+    const destino = `${sha256}.pdf`;
 
-    const existente = await buscarPorHash(sha256);
-    if (existente) {
-      await registrarAcesso(userId, existente);
-      return { editalId: existente, novo: false };
-    }
-
-    const desde = new Date(Date.now() - JANELA_HORAS * 3600_000).toISOString();
-    const { count, error: errCount } = await db
-      .from('editais')
-      .select('id', { count: 'exact', head: true })
-      .eq('enviado_por', userId)
-      .gte('created_at', desde);
-    if (errCount) throw errCount;
-    if ((count ?? 0) >= MAX_NOVOS_POR_JANELA) {
+    // Limite + inserção atômicos, antes de qualquer gasto (storage, IA).
+    const { data: reserva, error: errReserva } = await db.rpc('reservar_edital', {
+      p_user: userId,
+      p_sha256: sha256,
+      p_storage_path: destino,
+      p_limite: MAX_NOVOS_POR_JANELA,
+      p_horas: JANELA_HORAS,
+    });
+    if (errReserva) throw errReserva;
+    const r = (reserva as { edital_id: string | null; novo: boolean; limite_excedido: boolean }[])[0];
+    if (r.limite_excedido) {
       throw new EnvioInvalidoError(
         `Você atingiu o limite de ${MAX_NOVOS_POR_JANELA} editais novos em ${JANELA_HORAS} horas. Tente de novo mais tarde.`,
         429,
       );
     }
-
-    const destino = `${sha256}.pdf`;
-    const { error: errUp } = await armazem.upload(destino, bytes, {
-      contentType: 'application/pdf',
-      upsert: true,
-    });
-    if (errUp) throw errUp;
-
-    const fileId = await obterExtrator().enviarArquivo(bytes);
-
-    // Corrida: dois envios do mesmo PDF passam pela checagem acima; o índice único decide.
-    const { data: inseridos, error: errIns } = await db
-      .from('editais')
-      .upsert(
-        {
-          sha256,
-          storage_path: destino,
-          anthropic_file_id: fileId,
-          status: 'processando',
-          enviado_por: userId,
-          processando_desde: new Date().toISOString(),
-        },
-        { onConflict: 'sha256', ignoreDuplicates: true },
-      )
-      .select('id');
-    if (errIns) throw errIns;
-
-    const novo = (inseridos?.length ?? 0) > 0;
-    const editalId = novo ? inseridos![0].id : await buscarPorHash(sha256);
-    if (!editalId) throw new Error('edital não encontrado após inserção');
+    const editalId = r.edital_id!;
     await registrarAcesso(userId, editalId);
-    return { editalId, novo };
+    if (!r.novo) return { editalId, novo: false };
+
+    try {
+      const { error: errUp } = await armazem.upload(destino, bytes, {
+        contentType: 'application/pdf',
+        upsert: true,
+      });
+      if (errUp) throw errUp;
+      const fileId = await obterExtrator().enviarArquivo(bytes);
+      const { error: errFile } = await db.from('editais').update({ anthropic_file_id: fileId }).eq('id', editalId);
+      if (errFile) throw errFile;
+    } catch (erro) {
+      await marcarErroEdital(editalId, erro);
+      throw erro;
+    }
+    return { editalId, novo: true };
   } finally {
     await armazem.remove([caminho]);
   }
 }
 
-async function buscarPorHash(sha256: string): Promise<string | null> {
-  const { data, error } = await criarClienteAdmin().from('editais').select('id').eq('sha256', sha256).maybeSingle();
-  if (error) throw error;
-  return data?.id ?? null;
-}
 
 async function registrarAcesso(userId: string, editalId: string): Promise<void> {
   const { error } = await criarClienteAdmin()
@@ -151,19 +130,34 @@ async function marcarErroEdital(editalId: string, erro: unknown): Promise<void> 
     .eq('id', editalId);
 }
 
+/** Soma atômica (SQL) ao custo do edital: várias extrações podem terminar ao mesmo tempo. */
+async function somarCusto(editalId: string, centavos: number): Promise<void> {
+  if (!centavos) return;
+  const { error } = await criarClienteAdmin().rpc('somar_custo_edital', { p_edital: editalId, p_centavos: centavos });
+  if (error) console.error('[editais] falha ao somar custo', error);
+}
+
 /** Lista os cargos do edital com a IA. Nunca lança: falhas viram status 'erro'. */
 export async function processarCargos(editalId: string): Promise<void> {
   const db = criarClienteAdmin();
   try {
     const { data: edital, error } = await db
       .from('editais')
-      .select('anthropic_file_id, custo_centavos')
+      .select('anthropic_file_id, storage_path')
       .eq('id', editalId)
       .single();
     if (error) throw error;
-    if (!edital.anthropic_file_id) throw new Error('edital sem arquivo na IA');
+    const extrator = obterExtrator();
+    let fileId: string | null = edital.anthropic_file_id;
+    if (!fileId) {
+      // O envio à IA falhou antes: refaz a partir do arquivo guardado.
+      const { data: blob, error: errDown } = await db.storage.from(BUCKET).download(edital.storage_path);
+      if (errDown || !blob) throw errDown ?? new Error('arquivo do edital não encontrado');
+      fileId = await extrator.enviarArquivo(Buffer.from(await blob.arrayBuffer()));
+      await db.from('editais').update({ anthropic_file_id: fileId }).eq('id', editalId);
+    }
 
-    const { resumo, custoCentavos } = await obterExtrator().listarCargos(edital.anthropic_file_id);
+    const { resumo, custoCentavos } = await extrator.listarCargos(fileId);
 
     // Idempotente: uma tentativa anterior pode ter parado no meio.
     const { error: errDel } = await db.from('edital_cargos').delete().eq('edital_id', editalId);
@@ -182,18 +176,28 @@ export async function processarCargos(editalId: string): Promise<void> {
         data_prova: resumo.dataProva,
         status: 'pronto',
         erro: null,
-        custo_centavos: (edital.custo_centavos ?? 0) + custoCentavos,
       })
       .eq('id', editalId);
     if (errUp) throw errUp;
+    await somarCusto(editalId, custoCentavos);
   } catch (erro) {
     await marcarErroEdital(editalId, erro);
   }
 }
 
-/** Reabre um edital em 'erro' para nova tentativa. Devolve false se não estava em erro. */
+/** Reabre um edital em 'erro'. Falso se não estava em erro; 409 se o arquivo não é um edital. */
 export async function reiniciarEdital(editalId: string): Promise<boolean> {
-  const { data, error } = await criarClienteAdmin()
+  const db = criarClienteAdmin();
+  const { data: atual, error: errLer } = await db
+    .from('editais')
+    .select('status, erro')
+    .eq('id', editalId)
+    .maybeSingle();
+  if (errLer) throw errLer;
+  if (atual?.status === 'erro' && atual.erro === MSG_EDITAL_INVALIDO) {
+    throw new EnvioInvalidoError(MSG_EDITAL_INVALIDO, 409);
+  }
+  const { data, error } = await db
     .from('editais')
     .update({ status: 'processando', erro: null, processando_desde: new Date().toISOString() })
     .eq('id', editalId)
@@ -203,13 +207,46 @@ export async function reiniciarEdital(editalId: string): Promise<boolean> {
   return (data?.length ?? 0) > 0;
 }
 
-/** Reivindica o cargo para extração (pendente/erro → processando). Falso se já em andamento ou pronto. */
-export async function iniciarConteudo(cargoId: string): Promise<boolean> {
-  const { data, error } = await criarClienteAdmin()
+function limiteExpirado(): string {
+  return new Date(Date.now() - PROCESSANDO_MAX_MINUTOS * 60_000).toISOString();
+}
+
+/** Grava como erro os cargos presos em 'processando' além do limite. */
+async function expirarCargos(filtro: { editalId?: string; cargoId?: string }): Promise<void> {
+  let q = criarClienteAdmin()
     .from('edital_cargos')
-    .update({ status_conteudo: 'processando', erro: null })
+    .update({ status_conteudo: 'erro', erro: MSG_ERRO_GENERICO })
+    .eq('status_conteudo', 'processando')
+    .lt('processando_desde', limiteExpirado());
+  if (filtro.editalId) q = q.eq('edital_id', filtro.editalId);
+  if (filtro.cargoId) q = q.eq('id', filtro.cargoId);
+  const { error } = await q;
+  if (error) throw error;
+}
+
+/**
+ * Reivindica o cargo para extração (pendente/erro → processando; também um 'processando' travado
+ * há mais de 10 min). Falso se já em andamento ou pronto. 409 se o edital ainda não está pronto.
+ */
+export async function iniciarConteudo(cargoId: string): Promise<boolean> {
+  const db = criarClienteAdmin();
+  const { data: cargo, error: errCargo } = await db
+    .from('edital_cargos')
+    .select('editais!inner(status)')
     .eq('id', cargoId)
-    .in('status_conteudo', ['pendente', 'erro'])
+    .maybeSingle();
+  if (errCargo) throw errCargo;
+  const edital = cargo?.editais as unknown as { status: string } | null;
+  if (!edital) return false;
+  if (edital.status !== 'pronto') throw new EnvioInvalidoError('O edital ainda não foi processado.', 409);
+
+  const { data, error } = await db
+    .from('edital_cargos')
+    .update({ status_conteudo: 'processando', erro: null, processando_desde: new Date().toISOString() })
+    .eq('id', cargoId)
+    .or(
+      `status_conteudo.in.(pendente,erro),and(status_conteudo.eq.processando,processando_desde.lt.${limiteExpirado()})`,
+    )
     .select('id');
   if (error) throw error;
   return (data?.length ?? 0) > 0;
@@ -227,7 +264,7 @@ export async function processarConteudo(cargoId: string): Promise<void> {
     if (error) throw error;
     const { data: edital, error: errEdital } = await db
       .from('editais')
-      .select('anthropic_file_id, custo_centavos')
+      .select('anthropic_file_id')
       .eq('id', cargo.edital_id)
       .single();
     if (errEdital) throw errEdital;
@@ -240,12 +277,7 @@ export async function processarConteudo(cargoId: string): Promise<void> {
       .update({ conteudo: atribuirIds(conteudo), status_conteudo: 'pronto', erro: null })
       .eq('id', cargoId);
     if (errUp) throw errUp;
-
-    const { error: errCusto } = await db
-      .from('editais')
-      .update({ custo_centavos: (edital.custo_centavos ?? 0) + custoCentavos })
-      .eq('id', cargo.edital_id);
-    if (errCusto) console.error('[editais] falha ao somar custo', errCusto);
+    await somarCusto(cargo.edital_id, custoCentavos);
   } catch (erro) {
     console.error(`[editais] falha ao extrair conteúdo do cargo ${cargoId}`, erro);
     await db
@@ -284,6 +316,7 @@ export async function lerEdital(editalId: string): Promise<EditalVisao | null> {
     }
   }
 
+  await expirarCargos({ editalId });
   const { data: cargos, error: errCargos } = await db
     .from('edital_cargos')
     .select('id, nome, status_conteudo')
@@ -302,6 +335,7 @@ export async function lerEdital(editalId: string): Promise<EditalVisao | null> {
 export type CargoVisao = { editalId: string; statusConteudo: string; erro: string | null; conteudo: unknown };
 
 export async function lerCargo(cargoId: string): Promise<CargoVisao | null> {
+  await expirarCargos({ cargoId });
   const { data, error } = await criarClienteAdmin()
     .from('edital_cargos')
     .select('edital_id, status_conteudo, erro, conteudo')
