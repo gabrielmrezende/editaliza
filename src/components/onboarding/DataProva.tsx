@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { dataPorExtenso, diasEntre, hojeEmSaoPaulo, somarDias } from '@/lib/datas';
-import { MSG_DATA_PASSADA } from '@/lib/planos/mensagens';
+import { MAX_DIAS_ATE_PROVA, MSG_DATA_DISTANTE, MSG_DATA_PASSADA } from '@/lib/planos/mensagens';
 import { alerta, campo, rotulo } from '../estilos';
 import { Navegacao } from './Navegacao';
 
@@ -24,13 +24,15 @@ export function DataProva({
 }) {
   const [erro, setErro] = useState<string | null>(null);
   const hoje = hojeEmSaoPaulo();
-  const valida = !semData && /^\d{4}-\d{2}-\d{2}$/.test(data) && data > hoje;
+  const limite = somarDias(hoje, MAX_DIAS_ATE_PROVA);
+  const formatoOk = !semData && /^\d{4}-\d{2}-\d{2}$/.test(data);
+  const valida = formatoOk && data > hoje && data <= limite;
   const faltam = valida ? diasEntre(hoje, data) : null;
 
   function continuar() {
     if (semData) return aoContinuar();
     if (!data) return setErro('Informe a data da prova ou marque que ela ainda não saiu.');
-    if (!valida) return setErro(MSG_DATA_PASSADA);
+    if (!valida) return setErro(formatoOk && data > limite ? MSG_DATA_DISTANTE : MSG_DATA_PASSADA);
     aoContinuar();
   }
 
@@ -49,6 +51,7 @@ export function DataProva({
           id="data-prova"
           type="date"
           min={somarDias(hoje, 1)}
+          max={limite}
           value={semData ? '' : data}
           disabled={semData}
           aria-describedby="data-ajuda"

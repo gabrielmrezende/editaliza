@@ -180,6 +180,43 @@ describe('planos (serviço)', () => {
     expect(paralelos).toContain(data![0].id);
   });
 
+  it('data da prova a mais de 3 anos responde 400', async () => {
+    const e = await criarEdital({ acesso: [usuario.id] });
+    // hoje = 2026-11-16; +1096 dias = 2029-11-16
+    expect(await criarPlano(usuario.id, entrada(e, { dataProva: '2029-11-16' }), AGORA)).toBeTruthy();
+    const msg = 'A data da prova precisa estar nos próximos 3 anos.';
+    await esperarErro(criarPlano(usuario.id, entrada(e, { dataProva: '2029-11-17' }), AGORA), 400, msg);
+    await esperarErro(criarPlano(usuario.id, entrada(e, { dataProva: '9999-12-31' }), AGORA), 400, msg);
+  });
+
+  it('novo plano do mesmo cargo leva os topicos concluidos que ainda existem', async () => {
+    const u = await criarUsuarioTeste(emailUnico('planos-progresso'));
+    const e = await criarEdital({ acesso: [u.id] });
+    const primeiro = await criarPlano(u.id, entrada(e), AGORA);
+    await marcarTopico(u.id, primeiro, 'd0-t0', true);
+    await marcarTopico(u.id, primeiro, 'd1-t0', true);
+    const { data: antes } = await admin().from('topicos_concluidos').select('topico_id, concluido_em').eq('plano_id', primeiro);
+
+    // O aluno removeu "Atos" (d1-t0) na nova revisão.
+    const disciplinas = disciplinasDe(e.conteudo);
+    disciplinas[1].topicos = [{ id: 'd1-t9', nome: 'Novo' }];
+    const segundo = await criarPlano(u.id, { ...entrada(e), disciplinas }, AGORA);
+    const { data: depois } = await admin().from('topicos_concluidos').select('topico_id, concluido_em').eq('plano_id', segundo);
+    expect(depois).toEqual(antes!.filter((c) => c.topico_id === 'd0-t0'));
+    // O plano novo já não agenda o tópico concluído.
+    const gerado = (await linhaPlano(segundo)).gerado as PlanoGerado;
+    if (gerado.modo !== 'prazo') throw new Error('esperava prazo');
+    const agendados = new Set(gerado.dias.flatMap((d) => d.blocos.map((b) => b.topicoId)));
+    expect(agendados.has('d0-t0')).toBe(false);
+    expect(agendados.has('d0-t1')).toBe(true);
+
+    // Outro cargo não herda nada.
+    const outroCargo = await criarEdital({ acesso: [u.id] });
+    const terceiro = await criarPlano(u.id, entrada(outroCargo), AGORA);
+    const { data: nada } = await admin().from('topicos_concluidos').select('topico_id').eq('plano_id', terceiro);
+    expect(nada).toEqual([]);
+  });
+
   describe('marcarTopico', () => {
     let planoId: string;
 

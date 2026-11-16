@@ -2,11 +2,11 @@ import 'server-only';
 import { z } from 'zod';
 import type { EsquemaEntradaCriarPlano } from '@/lib/dominio/esquemas';
 import type { ConteudoCargo, DisciplinaPlano } from '@/lib/dominio/tipos';
-import { hojeEmSaoPaulo } from '@/lib/datas';
+import { hojeEmSaoPaulo, somarDias } from '@/lib/datas';
 import { usuarioTemAcesso } from '@/lib/editais/servico';
 import { gerarPlano } from '@/lib/plano/gerar';
 import { criarClienteAdmin } from '@/lib/supabase/admin';
-import { MSG_DATA_PASSADA, MSG_SEM_HORAS } from './mensagens';
+import { MAX_DIAS_ATE_PROVA, MSG_DATA_DISTANTE, MSG_DATA_PASSADA, MSG_SEM_HORAS } from './mensagens';
 
 export type EntradaCriarPlano = z.output<typeof EsquemaEntradaCriarPlano>;
 
@@ -70,6 +70,9 @@ export async function criarPlano(userId: string, entrada: EntradaCriarPlano, ago
   if (entrada.dataProva !== null && entrada.dataProva <= hoje) {
     throw new PlanoInvalidoError(MSG_DATA_PASSADA, 400);
   }
+  if (entrada.dataProva !== null && entrada.dataProva > somarDias(hoje, MAX_DIAS_ATE_PROVA)) {
+    throw new PlanoInvalidoError(MSG_DATA_DISTANTE, 400);
+  }
   if (entrada.minutosPorDia.every((m) => m === 0)) {
     throw new PlanoInvalidoError(MSG_SEM_HORAS, 400);
   }
@@ -92,7 +95,8 @@ export async function criarPlano(userId: string, entrada: EntradaCriarPlano, ago
     dataProva: entrada.dataProva,
     hoje,
     minutosPorDia: entrada.minutosPorDia,
-    concluidos: [],
+    // O progresso do plano ativo do mesmo cargo é levado pela RPC; o plano novo já não agenda esses tópicos.
+    concluidos: await concluidosDoPlanoAtivo(userId, entrada.cargoId),
     // Pesos valem se o edital os informa ou se o aluno preencheu questões/pontos na revisão.
     // O cliente nunca manda a flag: ela é derivada aqui.
     pesosInformados:
@@ -112,6 +116,23 @@ export async function criarPlano(userId: string, entrada: EntradaCriarPlano, ago
   });
   if (error) throw error;
   return planoId as string;
+}
+
+/** Tópicos concluídos no plano ativo do usuário, se for do mesmo cargo. */
+async function concluidosDoPlanoAtivo(userId: string, cargoId: string): Promise<string[]> {
+  const db = criarClienteAdmin();
+  const { data: ativo, error } = await db
+    .from('planos')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('ativo', true)
+    .eq('cargo_id', cargoId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!ativo) return [];
+  const { data, error: errFeitos } = await db.from('topicos_concluidos').select('topico_id').eq('plano_id', ativo.id);
+  if (errFeitos) throw errFeitos;
+  return (data ?? []).map((c) => c.topico_id as string);
 }
 
 /** Marca (ou desmarca) um tópico do plano como concluído. Idempotente. */
