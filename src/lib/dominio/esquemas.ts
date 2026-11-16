@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ConteudoCargo, MinutosPorDia } from './tipos';
 
-const dataIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato aaaa-mm-dd');
+const dataIso = z.iso.date('Data deve estar no formato aaaa-mm-dd');
 const tipoProva = z.enum(['multipla_escolha', 'certo_errado', 'discursiva', 'mista']);
 const questoes = z.number().int().min(0).nullable();
 const pontos = z.number().min(0).nullable();
@@ -43,6 +43,9 @@ export const EsquemaEntradaCriarPlano = z.object({
   dataProva: dataIso.nullable(),
   minutosPorDia: z.array(z.number().int().min(0).max(1440)).length(7).transform((v) => v as MinutosPorDia),
   disciplinas: z.array(EsquemaDisciplinaPlano).min(1),
+}).refine((p) => p.disciplinas.some((d) => d.topicos.length > 0), {
+  message: 'O plano precisa de ao menos 1 tópico.',
+  path: ['disciplinas'],
 });
 
 export function atribuirIds(ia: ConteudoCargoIA): ConteudoCargo {

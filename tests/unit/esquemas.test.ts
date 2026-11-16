@@ -80,6 +80,18 @@ describe('EsquemaEntradaCriarPlano', () => {
       EsquemaEntradaCriarPlano.safeParse({ ...entrada, minutosPorDia: [0, 0, 0, 0, 0, 0, 1441] }).success,
     ).toBe(false);
   });
+  it('rejeita data impossível', () => {
+    for (const d of ['2026-02-30', '2026-13-45', '0000-00-00']) {
+      expect(EsquemaEntradaCriarPlano.safeParse({ ...entrada, dataProva: d }).success).toBe(false);
+      expect(
+        EsquemaEditalResumo.safeParse({ orgao: 'X', banca: null, ano: null, dataProva: d, cargos: [] }).success,
+      ).toBe(false);
+    }
+  });
+  it('rejeita plano sem nenhum tópico', () => {
+    const r = EsquemaEntradaCriarPlano.safeParse({ ...entrada, disciplinas: [{ ...disc, topicos: [] }] });
+    expect(r.success).toBe(false);
+  });
   it('rejeita lista de disciplinas vazia', () => {
     expect(EsquemaEntradaCriarPlano.safeParse({ ...entrada, disciplinas: [] }).success).toBe(false);
   });
