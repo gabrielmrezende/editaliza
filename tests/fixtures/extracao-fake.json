@@ -1,0 +1,18 @@
+{
+  "resumo": {
+    "orgao": "Órgão Fictício",
+    "banca": "Banca Fictícia",
+    "ano": 2026,
+    "dataProva": "2026-12-06",
+    "cargos": [{ "nome": "Cargo A" }, { "nome": "Cargo B" }]
+  },
+  "conteudo": {
+    "tipoProva": "multipla_escolha",
+    "pesosInformados": true,
+    "disciplinas": [
+      { "nome": "Língua Portuguesa", "questoes": 20, "pontos": 20, "topicos": ["Compreensão e interpretação de textos", "Ortografia oficial", "Pontuação", "Concordância verbal e nominal"] },
+      { "nome": "Raciocínio Lógico", "questoes": 10, "pontos": 10, "topicos": ["Proposições e conectivos", "Diagramas lógicos", "Sequências"] },
+      { "nome": "Direito Administrativo", "questoes": 20, "pontos": 40, "topicos": ["Princípios da administração pública", "Atos administrativos"] }
+    ]
+  }
+}
