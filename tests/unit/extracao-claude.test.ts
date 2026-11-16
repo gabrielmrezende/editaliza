@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { calcularCustoCentavos, interpretarResposta, lerMensagem, montarRequisicao, normalizarConteudo, normalizarResumo } from '@/lib/extracao/claude';
+import {
+  calcularCustoCentavos,
+  escolherModelo,
+  interpretarResposta,
+  lerMensagem,
+  montarRequisicao,
+  normalizarConteudo,
+  normalizarResumo,
+} from '@/lib/extracao/claude';
 import { EsquemaConteudoCargoIA, EsquemaEditalResumo } from '@/lib/dominio/esquemas';
 import { ExtracaoFalhouError, obterExtrator } from '@/lib/extracao';
 
@@ -37,11 +45,47 @@ describe('interpretarResposta', () => {
   });
 });
 
+describe('escolherModelo', () => {
+  it('ausente ou vazio = opus (padrão)', () => {
+    expect(escolherModelo(undefined)).toBe('claude-opus-5-5');
+    expect(escolherModelo('')).toBe('claude-opus-5-5');
+  });
+  it.each(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'])('aceita %s', (m) => {
+    expect(escolherModelo(m)).toBe(m);
+  });
+  it('valor fora da lista dá erro claro', () => {
+    expect(() => escolherModelo('gpt-5')).toThrow(/EXTRACAO_MODELO.*gpt-5/);
+  });
+});
+
 describe('calcularCustoCentavos', () => {
-  it('0/0 = 0', () => expect(calcularCustoCentavos(0, 0)).toBe(0));
-  it('1M entrada = US$4 × 550 = 2200', () => expect(calcularCustoCentavos(1_000_000, 0)).toBe(2200));
-  it('1M saída = US$20 × 550 = 11000', () => expect(calcularCustoCentavos(0, 1_000_000)).toBe(11000));
-  it('arredonda para cima', () => expect(calcularCustoCentavos(1, 0)).toBe(1));
+  const M = 1_000_000;
+  const u = (input_tokens: number, output_tokens: number, extra: object = {}) => ({ input_tokens, output_tokens, ...extra });
+  it('0/0 = 0', () => expect(calcularCustoCentavos('claude-opus-5-5', u(0, 0))).toBe(0));
+  it('opus: 1M entrada = US$4 × 550 = 2200', () => expect(calcularCustoCentavos('claude-opus-5-5', u(M, 0))).toBe(2200));
+  it('opus: 1M saída = US$20 × 550 = 11000', () => expect(calcularCustoCentavos('claude-opus-5-5', u(0, M))).toBe(11000));
+  it('arredonda para cima', () => expect(calcularCustoCentavos('claude-opus-5-5', u(1, 0))).toBe(1));
+  it('sonnet: 1M entrada = 1100; 1M saída = 5500', () => {
+    expect(calcularCustoCentavos('claude-sonnet-5-5', u(M, 0))).toBe(1100);
+    expect(calcularCustoCentavos('claude-sonnet-5-5', u(0, M))).toBe(5500);
+  });
+  it('haiku até 100k de entrada: 0,10 / 0,50', () => {
+    expect(calcularCustoCentavos('claude-haiku-5-5', u(100_000, 0))).toBe(6); // 0,01 USD × 550 = 5,5
+    expect(calcularCustoCentavos('claude-haiku-5-5', u(0, M))).toBe(275);
+  });
+  it('haiku acima de 100k de entrada: 0,50 / 2,50 (toda a chamada)', () => {
+    expect(calcularCustoCentavos('claude-haiku-5-5', u(100_001, 0))).toBe(28); // 0,0500005 × 550
+    expect(calcularCustoCentavos('claude-haiku-5-5', u(M, M))).toBe(1650); // (0,5 + 2,5) × 550
+  });
+  it('cache: leitura 10% e escrita 125% da entrada somam', () => {
+    // opus: 1M escrita = 5 USD, 1M leitura = 0,4 USD, 1M entrada = 4 USD -> 9,4 × 550 = 5170
+    expect(calcularCustoCentavos('claude-opus-5-5', u(M, 0, { cache_creation_input_tokens: M, cache_read_input_tokens: M }))).toBe(5170);
+    expect(calcularCustoCentavos('claude-opus-5-5', u(0, 0, { cache_creation_input_tokens: null, cache_read_input_tokens: null }))).toBe(0);
+  });
+  it('haiku: degrau considera cache no total de entrada', () => {
+    // 50k + 60k lidos do cache = 110k de prompt -> tabela alta: 50k×0,5 + 60k×0,05 = 0,028 USD -> 15,4 -> 16
+    expect(calcularCustoCentavos('claude-haiku-5-5', u(50_000, 0, { cache_read_input_tokens: 60_000 }))).toBe(16);
+  });
 });
 
 describe('obterExtrator em produção', () => {
@@ -60,9 +104,10 @@ describe('obterExtrator em produção', () => {
 
 describe('lerMensagem', () => {
   const usage = { input_tokens: 1_000_000, output_tokens: 0 };
+  const modelo = 'claude-opus-5-5' as const;
   it('sucesso devolve dados e custo', () => {
     const msg = { stop_reason: 'end_turn', content: [{ type: 'text', text: '{"a":2}' }], usage };
-    expect(lerMensagem(msg, Esq)).toEqual({ dados: { a: 2 }, custoCentavos: 2200 });
+    expect(lerMensagem(msg, Esq, modelo)).toEqual({ dados: { a: 2 }, custoCentavos: 2200 });
   });
   it.each([
     ['max_tokens', [{ type: 'text', text: '{"a":1}' }]],
@@ -71,7 +116,7 @@ describe('lerMensagem', () => {
   ])('falha (%s) carrega o custo da chamada', (stop, content) => {
     const erro = (() => {
       try {
-        lerMensagem({ stop_reason: stop, content, usage }, Esq);
+        lerMensagem({ stop_reason: stop, content, usage }, Esq, modelo);
       } catch (e) {
         return e;
       }
@@ -82,14 +127,27 @@ describe('lerMensagem', () => {
 });
 
 describe('montarRequisicao', () => {
-  it('usa o modelo com esforco medio, fallbacks e cache no documento', () => {
-    const req = montarRequisicao('file_1', 'prompt', Esq);
+  it('opus: esforço médio, fallbacks, beta e cache no documento', () => {
+    const req = montarRequisicao('claude-opus-5-5', 'file_1', 'prompt', Esq);
     expect(req.model).toBe('claude-opus-5-5');
     expect(req.output_config?.effort).toBe('medium');
-    expect(req.fallbacks).toBe('default');
+    expect(req).toMatchObject({ fallbacks: 'default', betas: ['server-side-fallback-2026-07-01'] });
     const [doc, texto] = req.messages[0].content as { type: string; cache_control?: unknown }[];
     expect(doc).toMatchObject({ type: 'document', source: { type: 'file', file_id: 'file_1' }, cache_control: { type: 'ephemeral' } });
     expect(texto).toMatchObject({ type: 'text', text: 'prompt' });
+  });
+  it('sonnet também leva fallbacks e beta', () => {
+    const req = montarRequisicao('claude-sonnet-5-5', 'f', 'p', Esq);
+    expect(req).toMatchObject({ model: 'claude-sonnet-5-5', fallbacks: 'default', betas: ['server-side-fallback-2026-07-01'] });
+  });
+  it('haiku não leva fallbacks nem betas, mas mantém esforço médio e cache', () => {
+    const req = montarRequisicao('claude-haiku-5-5', 'f', 'p', Esq);
+    expect(req.model).toBe('claude-haiku-5-5');
+    expect(req).not.toHaveProperty('fallbacks');
+    expect(req).not.toHaveProperty('betas');
+    expect(req.output_config?.effort).toBe('medium');
+    const [doc] = req.messages[0].content as { cache_control?: unknown }[];
+    expect(doc.cache_control).toEqual({ type: 'ephemeral' });
   });
 });
 

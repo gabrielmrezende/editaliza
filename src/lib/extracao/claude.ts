@@ -7,14 +7,48 @@ import type { EditalResumo } from '@/lib/dominio/tipos';
 import { PROMPT_LISTAR_CARGOS, promptExtrairConteudo } from './prompts';
 import { EditalInvalidoError, ExtracaoFalhouError, type Extrator } from './tipos';
 
-const MODELO = 'claude-opus-5-5';
-const DOLAR_EM_CENTAVOS = 550;
-const USD_ENTRADA_POR_MILHAO = 4;
-const USD_SAIDA_POR_MILHAO = 20;
+export const MODELOS = ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'] as const;
+export type ModeloExtracao = (typeof MODELOS)[number];
+const MODELO_PADRAO: ModeloExtracao = 'claude-opus-5-5';
 
-export function calcularCustoCentavos(entrada: number, saida: number): number {
-  const usd = (entrada * USD_ENTRADA_POR_MILHAO + saida * USD_SAIDA_POR_MILHAO) / 1_000_000;
-  return Math.ceil(usd * DOLAR_EM_CENTAVOS);
+/** Modelo da leitura: EXTRACAO_MODELO (ausente = opus); valor fora da lista é erro de configuração. */
+export function escolherModelo(valor: string | undefined): ModeloExtracao {
+  if (valor === undefined || valor.trim() === '') return MODELO_PADRAO;
+  const modelo = valor.trim();
+  if ((MODELOS as readonly string[]).includes(modelo)) return modelo as ModeloExtracao;
+  throw new Error(`EXTRACAO_MODELO inválido: "${valor}". Use um destes: ${MODELOS.join(', ')}.`);
+}
+
+const DOLAR_EM_CENTAVOS = 550;
+const LIMITE_HAIKU_TOKENS = 100_000;
+// US$ por milhão de tokens (entrada / saída).
+const PRECOS = {
+  'claude-opus-5-5': { entrada: 4, saida: 20 },
+  'claude-sonnet-5-5': { entrada: 2, saida: 10 },
+} as const;
+const PRECOS_HAIKU = { ate100k: { entrada: 0.1, saida: 0.5 }, acima100k: { entrada: 0.5, saida: 2.5 } } as const;
+
+export type UsoTokens = {
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation_input_tokens?: number | null;
+  cache_read_input_tokens?: number | null;
+};
+
+/** Custo em centavos de real (arredondado para cima). Escrita em cache = 1,25× a entrada; leitura = 0,1×. */
+export function calcularCustoCentavos(modelo: ModeloExtracao, uso: UsoTokens): number {
+  const escrita = uso.cache_creation_input_tokens ?? 0;
+  const leitura = uso.cache_read_input_tokens ?? 0;
+  const preco =
+    modelo === 'claude-haiku-5-5'
+      ? uso.input_tokens + escrita + leitura <= LIMITE_HAIKU_TOKENS
+        ? PRECOS_HAIKU.ate100k
+        : PRECOS_HAIKU.acima100k
+      : PRECOS[modelo];
+  const entrada = uso.input_tokens + 1.25 * escrita + 0.1 * leitura;
+  const usd = (entrada * preco.entrada + uso.output_tokens * preco.saida) / 1_000_000;
+  // toFixed afasta ruído de ponto flutuante (ex.: 2200.0000000001 não pode virar 2201).
+  return Math.ceil(Number((usd * DOLAR_EM_CENTAVOS).toFixed(6)));
 }
 
 // Esquemas enviados à API não carregam refinamentos (ex.: z.iso.date); a validação
@@ -96,13 +130,14 @@ export function interpretarResposta<D extends z.ZodType>(
   }
 }
 
-/** Corpo da requisição: o PDF vai com cache (as duas leituras do mesmo edital reaproveitam o prefixo). */
-export function montarRequisicao<A extends z.ZodType>(fileId: string, prompt: string, esquemaApi: A) {
-  return {
-    model: MODELO,
+/**
+ * Corpo da requisição: o PDF vai com cache (as duas leituras do mesmo edital reaproveitam o prefixo).
+ * Só opus/sonnet têm fallback no servidor (beta); o haiku vai sem `betas`/`fallbacks`.
+ */
+export function montarRequisicao<A extends z.ZodType>(modelo: ModeloExtracao, fileId: string, prompt: string, esquemaApi: A) {
+  const base = {
+    model: modelo,
     max_tokens: 64000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default' as const,
     output_config: { effort: 'medium' as const, format: zodOutputFormat(esquemaApi) },
     messages: [
       {
@@ -118,20 +153,19 @@ export function montarRequisicao<A extends z.ZodType>(fileId: string, prompt: st
       },
     ],
   };
+  if (modelo === 'claude-haiku-5-5') return base;
+  return { ...base, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const };
 }
 
 type MensagemFinal = {
   stop_reason: string | null | undefined;
   content: { type: string; text?: string }[];
-  usage: { input_tokens: number; output_tokens: number; cache_creation_input_tokens?: number | null; cache_read_input_tokens?: number | null };
+  usage: UsoTokens;
 };
 
 /** Custo calculado ANTES de interpretar: uma resposta inválida também é cobrada e vai no erro. */
-export function lerMensagem<D extends z.ZodType>(msg: MensagemFinal, esquema: D): { dados: z.infer<D>; custoCentavos: number } {
-  const u = msg.usage;
-  // Escrita em cache custa 1,25× a entrada; leitura, 0,1× (arredondado para cima no total).
-  const entrada = u.input_tokens + 1.25 * (u.cache_creation_input_tokens ?? 0) + 0.1 * (u.cache_read_input_tokens ?? 0);
-  const custoCentavos = calcularCustoCentavos(entrada, u.output_tokens);
+export function lerMensagem<D extends z.ZodType>(msg: MensagemFinal, esquema: D, modelo: ModeloExtracao): { dados: z.infer<D>; custoCentavos: number } {
+  const custoCentavos = calcularCustoCentavos(modelo, msg.usage);
   const texto = msg.content.flatMap((b) => (b.type === 'text' && typeof b.text === 'string' ? [b.text] : [])).join('');
   try {
     return { dados: interpretarResposta(msg.stop_reason, texto, esquema), custoCentavos };
@@ -143,14 +177,26 @@ export function lerMensagem<D extends z.ZodType>(msg: MensagemFinal, esquema: D)
 
 async function chamar<A extends z.ZodType, D extends z.ZodType>(
   client: Anthropic,
+  modelo: ModeloExtracao,
+  etapa: 'listar_cargos' | 'extrair_conteudo',
   fileId: string,
   prompt: string,
   esquemaApi: A,
   normalizar: (bruto: z.infer<A>) => z.input<D>,
   esquemaDominio: D,
 ): Promise<{ dados: z.infer<D>; custoCentavos: number }> {
-  const msg = await client.beta.messages.stream(montarRequisicao(fileId, prompt, esquemaApi)).finalMessage();
-  const { dados, custoCentavos } = lerMensagem(msg, esquemaApi);
+  const req = montarRequisicao(modelo, fileId, prompt, esquemaApi);
+  const msg =
+    'betas' in req ? await client.beta.messages.stream(req).finalMessage() : await client.messages.stream(req).finalMessage();
+  // Registrado antes de interpretar: chamada inválida também é cobrada. O file_id identifica o edital
+  // (editais.anthropic_file_id); serve para comparar modelos no teste real.
+  const u = msg.usage;
+  console.info(
+    `[extracao] arquivo=${fileId} etapa=${etapa} modelo=${modelo} entrada=${u.input_tokens} saida=${u.output_tokens} ` +
+      `cache_leitura=${u.cache_read_input_tokens ?? 0} cache_escrita=${u.cache_creation_input_tokens ?? 0} ` +
+      `centavos=${calcularCustoCentavos(modelo, u)}`,
+  );
+  const { dados, custoCentavos } = lerMensagem(msg, esquemaApi, modelo);
   try {
     return { dados: esquemaDominio.parse(normalizar(dados)), custoCentavos };
   } catch (cause) {
@@ -159,6 +205,7 @@ async function chamar<A extends z.ZodType, D extends z.ZodType>(
 }
 
 export function extratorClaude(): Extrator {
+  const modelo = escolherModelo(process.env.EXTRACAO_MODELO); // erro claro se inválido
   const client = new Anthropic(); // lê ANTHROPIC_API_KEY
   return {
     async enviarArquivo(pdf) {
@@ -168,7 +215,7 @@ export function extratorClaude(): Extrator {
       return f.id;
     },
     async listarCargos(fileId) {
-      const { dados, custoCentavos } = await chamar(client, fileId, PROMPT_LISTAR_CARGOS, ResumoApi, normalizarResumo, EsquemaEditalResumo);
+      const { dados, custoCentavos } = await chamar(client, modelo, 'listar_cargos', fileId, PROMPT_LISTAR_CARGOS, ResumoApi, normalizarResumo, EsquemaEditalResumo);
       if (dados.cargos.length === 0) {
         const erro = new EditalInvalidoError();
         erro.custoCentavos = custoCentavos;
@@ -177,7 +224,7 @@ export function extratorClaude(): Extrator {
       return { resumo: dados, custoCentavos };
     },
     async extrairConteudo(fileId, cargo) {
-      const { dados, custoCentavos } = await chamar(client, fileId, promptExtrairConteudo(cargo), ConteudoApi, normalizarConteudo, EsquemaConteudoCargoIA);
+      const { dados, custoCentavos } = await chamar(client, modelo, 'extrair_conteudo', fileId, promptExtrairConteudo(cargo), ConteudoApi, normalizarConteudo, EsquemaConteudoCargoIA);
       return { conteudo: dados, custoCentavos };
     },
   };
