@@ -274,3 +274,68 @@ describe('gerarPlano', () => {
     expect(e).toEqual(copia); // nao muta a entrada
   });
 });
+
+describe('gerarPlano (revisao R11/R12)', () => {
+  it('disciplina de peso baixo mantem o piso de 45 min por topico quando ha tempo (sem nao_cabe)', () => {
+    const a = disc('a', 3, 'nunca_vi', 50);
+    const b = disc('b', 2, 'domino', 1);
+    const plano = prazo(gerarPlano(entrada({ disciplinas: [a, b], dataProva: somarDias(HOJE, 30) })));
+    expect(tem(plano.avisos, 'nao_cabe')).toBe(false);
+    const usados = new Set(blocos(plano.dias).map((x) => x.topicoId));
+    for (const id of ['b-t1', 'b-t2', 'a-t1', 'a-t3']) expect(usados.has(id)).toBe(true);
+    expect(minutosDe(plano.dias, 'b')).toBe(90);
+  });
+
+  it('horizonte longo com prioridades muito desiguais nao corta nada', () => {
+    const disciplinas = Array.from({ length: 10 }, (_, i) =>
+      disc(`d${i}`, 30, (['nunca_vi', 'basico', 'domino'] as const)[i % 3], i === 0 ? 1 : i * 12),
+    );
+    const plano = prazo(gerarPlano(entrada({ disciplinas, dataProva: somarDias(HOJE, 365) })));
+    expect(tem(plano.avisos, 'nao_cabe')).toBe(false);
+    const usados = new Set(blocos(plano.dias).map((x) => x.topicoId));
+    for (const d of disciplinas) for (const t of d.topicos) expect(usados.has(t.id)).toBe(true);
+  });
+
+  it('caso realmente apertado corta da menor prioridade, do fim, e o resultado cabe', () => {
+    const disciplinas = [disc('hi', 4, 'nunca_vi', 10), disc('mid', 4, 'basico', 10), disc('lo', 4, 'domino', 10)];
+    const mpd: MinutosPorDia = [60, 60, 60, 60, 60, 60, 60];
+    const plano = prazo(gerarPlano(entrada({ disciplinas, dataProva: somarDias(HOJE, 5), minutosPorDia: mpd })));
+    const aviso = plano.avisos.find((x) => x.tipo === 'nao_cabe');
+    if (aviso?.tipo !== 'nao_cabe') throw new Error('esperava nao_cabe');
+    expect(aviso.topicosFora).toEqual(['lo-t4', 'lo-t3', 'lo-t2', 'lo-t1', 'mid-t4', 'mid-t3']);
+    const total = blocos(plano.dias).reduce((s, x) => s + x.minutos, 0);
+    expect(total).toBeLessThanOrEqual(300);
+    const usados = new Set(blocos(plano.dias).map((x) => x.topicoId));
+    for (const id of ['hi-t1', 'hi-t4', 'mid-t1', 'mid-t2']) expect(usados.has(id)).toBe(true);
+  });
+
+  it('nenhum bloco passa de 60 minutos', () => {
+    const plano = prazo(gerarPlano(entrada({ dataProva: somarDias(HOJE, 90), disciplinas: [disc('a', 2), disc('b', 2)] })));
+    expect(blocos(plano.dias).filter((x) => x.tipo === 'estudo').length).toBeGreaterThan(0);
+    for (const x of blocos(plano.dias).filter((y) => y.tipo === 'estudo')) expect(x.minutos).toBeLessThanOrEqual(60);
+  });
+
+  it('nao repete a disciplina em blocos consecutivos do dia enquanto outra tem pedacos pendentes', () => {
+    const disciplinas = [disc('a', 5, 'nunca_vi', 30), disc('b', 4, 'basico', 20), disc('c', 6, 'domino', 10)];
+    const plano = prazo(gerarPlano(entrada({ disciplinas, dataProva: somarDias(HOJE, 60) })));
+    const seq = plano.dias.flatMap((d) => d.blocos.filter((x) => x.tipo === 'estudo').map((x) => ({ data: d.data, id: x.disciplinaId })));
+    seq.forEach((cur, i) => {
+      if (i > 0 && seq[i - 1].data === cur.data && seq[i - 1].id === cur.id) {
+        expect(seq.slice(i).every((x) => x.id === cur.id)).toBe(true);
+      }
+    });
+  });
+
+  it('revisao geral so gira entre disciplinas que ficaram com topico no plano', () => {
+    const disciplinas = [disc('hi', 17, 'nunca_vi', 10), disc('lo', 2, 'domino', 10)];
+    const mpd: MinutosPorDia = [60, 60, 60, 60, 60, 60, 60];
+    const plano = prazo(gerarPlano(entrada({ disciplinas, dataProva: somarDias(HOJE, 20), minutosPorDia: mpd })));
+    const aviso = plano.avisos.find((x) => x.tipo === 'nao_cabe');
+    if (aviso?.tipo !== 'nao_cabe') throw new Error('esperava nao_cabe');
+    expect(aviso.topicosFora).toEqual(['lo-t2', 'lo-t1']);
+    const reserva = plano.dias.filter((d) => d.data >= plano.inicioReserva!);
+    expect(reserva.length).toBe(7);
+    expect(blocos(reserva).length).toBe(7);
+    expect(blocos(reserva).every((x) => x.disciplinaId === 'hi')).toBe(true);
+  });
+});

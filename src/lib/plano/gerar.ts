@@ -81,8 +81,9 @@ function gerarPrazo(entrada: EntradaPlano, dataProva: string, ativas: Ativa[], a
   const { alocacoes, fora } = faseEstudo(ativas, soma(minutosDia.slice(0, nEstudo)));
   if (fora.length > 0) avisos.push({ tipo: 'nao_cabe', topicosFora: fora });
 
+  const noPlano = new Set(alocacoes.map((a) => a.id));
   const diasEstudo = agendar(alocacoes, datas.slice(0, nEstudo), minutosDia.slice(0, nEstudo));
-  const diasReserva = reservar(datas.slice(nEstudo), minutosDia.slice(nEstudo), porPrioridade(ativas));
+  const diasReserva = reservar(datas.slice(nEstudo), minutosDia.slice(nEstudo), porPrioridade(ativas.filter((a) => noPlano.has(a.disciplina.id))));
   return {
     modo: 'prazo',
     dias: [...diasEstudo, ...diasReserva],
@@ -91,30 +92,44 @@ function gerarPrazo(entrada: EntradaPlano, dataProva: string, ativas: Ativa[], a
   };
 }
 
-/** Divide o tempo de estudo por prioridade; se não couber, corta tópicos do fim das disciplinas de menor prioridade. */
+/**
+ * Corta tópicos só se nem o piso de 45 min por tópico couber; depois distribui por water-filling:
+ * disciplinas cuja cota proporcional ficaria abaixo do piso são travadas em 45 × n e o resto é redistribuído.
+ */
 function faseEstudo(ativas: Ativa[], minutosEstudo: number): { alocacoes: Alocacao[]; fora: string[] } {
   const pool = ativas.map((a) => ({ ...a, topicos: [...a.topicos] }));
   const fora: string[] = [];
-  const calcular = (): Alocacao[] => {
-    const somaPrio = soma(pool.map((a) => a.prio));
-    return pool.map((a) => {
-      const alvo = (minutosEstudo * a.prio) / somaPrio;
-      const minutosTopico = Math.max(MINUTOS_MINIMOS_TOPICO, Math.floor(alvo / a.topicos.length));
-      return { id: a.disciplina.id, prio: a.prio, alvo, minutosTopico, topicos: a.topicos };
-    });
-  };
-  const total = (alocs: Alocacao[]) => soma(alocs.map((a) => a.minutosTopico * a.topicos.length));
-
-  let alocacoes = calcular();
-  while (pool.length > 0 && total(alocacoes) > minutosEstudo) {
+  const pisoTotal = () => MINUTOS_MINIMOS_TOPICO * soma(pool.map((a) => a.topicos.length));
+  while (pool.length > 0 && pisoTotal() > minutosEstudo) {
     let alvoIdx = 0; // menor prioridade; no empate, a última do edital
     pool.forEach((a, i) => {
       if (a.prio <= pool[alvoIdx].prio) alvoIdx = i;
     });
     fora.push(pool[alvoIdx].topicos.pop()!.id);
     if (pool[alvoIdx].topicos.length === 0) pool.splice(alvoIdx, 1);
-    alocacoes = calcular();
   }
+
+  const travadas = new Map<string, number>();
+  let restante = minutosEstudo;
+  for (;;) {
+    const livres = pool.filter((a) => !travadas.has(a.disciplina.id));
+    const somaPrio = soma(livres.map((a) => a.prio));
+    const novas = livres.filter((a) => (restante * a.prio) / somaPrio / a.topicos.length < MINUTOS_MINIMOS_TOPICO);
+    if (novas.length === 0) break;
+    for (const a of novas) {
+      const minutos = MINUTOS_MINIMOS_TOPICO * a.topicos.length;
+      travadas.set(a.disciplina.id, minutos);
+      restante -= minutos;
+    }
+  }
+  const somaLivres = soma(pool.filter((a) => !travadas.has(a.disciplina.id)).map((a) => a.prio));
+  const alocacoes = pool.map((a): Alocacao => {
+    const id = a.disciplina.id;
+    const travada = travadas.has(id);
+    const alvo = travadas.get(id) ?? (restante * a.prio) / somaLivres;
+    const minutosTopico = travada ? MINUTOS_MINIMOS_TOPICO : Math.floor(alvo / a.topicos.length);
+    return { id, prio: a.prio, alvo, minutosTopico, topicos: a.topicos };
+  });
   return { alocacoes, fora };
 }
 
