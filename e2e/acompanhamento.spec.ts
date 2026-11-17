@@ -89,6 +89,38 @@ test.describe('acompanhamento', () => {
     await expect(page.getByText('Nenhuma sessão registrada ainda.')).toBeVisible();
   });
 
+  test('relatório mostra o tempo, o acerto e o assunto a reforçar', async ({ page }) => {
+    await criarPlano(page, { prefixo: 'acompanhamento', horasDomingo: '2' });
+    await page.goto('/app/relatorio');
+    await expect(page.getByText('Nenhum estudo registrado neste período.')).toBeVisible();
+
+    await page.goto('/app/estudar');
+    const registro = page.getByRole('region', { name: 'Registrar sessão' });
+    await registro.getByLabel('Matéria').selectOption({ index: 1 });
+    await registro.getByLabel('Tópico').selectOption({ index: 1 });
+    const topico = (await registro.getByLabel('Tópico').locator('option:checked').textContent())!.trim();
+    await registro.getByLabel('Minutos').fill('45');
+    await registro.getByLabel('Acertos').fill('4');
+    await registro.getByLabel('Erros').fill('6');
+    const [resposta] = await Promise.all([
+      page.waitForResponse((r) => r.request().method() === 'POST' && r.url().endsWith('/api/sessoes')),
+      registro.getByRole('button', { name: 'Salvar sessão' }).click(),
+    ]);
+    expect(resposta.status()).toBe(201);
+
+    await page.goto('/app/relatorio?periodo=30dias');
+    const resumo = page.getByRole('region', { name: 'Resumo do período' });
+    await expect(resumo.getByText('45 min')).toBeVisible();
+    await expect(resumo.getByText('40%')).toBeVisible();
+    const reforcar = page.getByRole('region', { name: 'Assuntos para reforçar' });
+    await expect(reforcar).toContainText(topico);
+    await expect(reforcar).toContainText('40% de acerto em 10 questões');
+
+    // Período desconhecido volta para a semana, sem quebrar.
+    await page.goto('/app/relatorio?periodo=qualquer');
+    await expect(page.getByRole('link', { name: 'Esta semana' })).toHaveAttribute('aria-current', 'page');
+  });
+
   test('ajustar agora mostra resumo', async ({ page }) => {
     await criarPlano(page, { prefixo: 'acompanhamento' });
     const ajustar = page.getByRole('button', { name: 'Ajustar agora' });
