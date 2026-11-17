@@ -56,6 +56,8 @@ export function useRevisoes(iniciais: Revisao[]) {
           desejadas.current.set(id, confirmada !== null);
           trocar(id, confirmada);
           setErro(res.erro ?? MSG_FALHA);
+          // Uma exclusão pedida enquanto esta marcação estava em voo ainda precisa ser enviada.
+          if (excluidas.current.has(id)) continue;
           return;
         }
         confirmadas.current.set(id, alvo ? new Date().toISOString() : null);

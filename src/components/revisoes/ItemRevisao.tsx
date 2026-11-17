@@ -6,10 +6,10 @@ import type { Revisao } from '@/lib/dominio/acompanhamento';
 import { botaoTexto } from '../estilos';
 import { Bolha } from '../plano/Bolha';
 
-export const diaMes = (iso: string) => dataPorExtenso(iso, { day: '2-digit', month: '2-digit' });
+const diaMes = (iso: string) => dataPorExtenso(iso, { day: '2-digit', month: '2-digit' });
 
 /** Quando a revisão acontece: "N dias de atraso", "Hoje" ou "dd/mm". */
-export function quando(r: Revisao, hoje: string): string {
+function quando(r: Revisao, hoje: string): string {
   if (r.concluidaEm) return `Revisão de ${r.dataRevisao === hoje ? 'hoje' : diaMes(r.dataRevisao)}`;
   const atraso = diasDeAtraso(r, hoje);
   if (atraso > 0) return `${atraso} ${atraso === 1 ? 'dia' : 'dias'} de atraso`;

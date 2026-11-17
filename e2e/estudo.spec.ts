@@ -184,4 +184,67 @@ test.describe('estudo', () => {
     await dialogo.getByRole('button', { name: 'Excluir' }).click();
     await expect(proximas.getByRole('heading', { name: 'Próximas (1)' })).toBeVisible();
   });
+  test('falhas ao concluir ou excluir revisão voltam ao estado anterior', async ({ page }) => {
+    await criarPlano(page, { prefixo: 'estudo' });
+    await page.goto('/app/estudar');
+    const rapido = page.getByRole('region', { name: 'Registro rápido' });
+    await rapido.getByLabel('Matéria').selectOption({ label: 'Raciocínio Lógico' });
+    await rapido.getByLabel('Tópico').selectOption({ label: 'Sequências' });
+    await rapido.getByLabel('Minutos').fill('45');
+    await rapido.getByRole('button', { name: 'Registrar' }).click();
+    await expect(rapido.getByRole('status')).toHaveText('Sessão registrada');
+    await page.goto('/app/revisoes');
+    const semana = page.getByRole('region', { name: /^Esta semana/ });
+    const caixa = semana.getByRole('checkbox', { name: 'Concluir a revisão de Sequências' }).first();
+
+    // PATCH recusado (409): a marcação volta e o motivo aparece.
+    const msg = 'Já existe uma revisão pendente igual a esta.';
+    await page.route('**/api/revisoes/*', (rota) =>
+      rota.request().method() === 'PATCH'
+        ? rota.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ erro: msg }) })
+        : rota.continue(),
+    );
+    await caixa.click();
+    await expect(page.locator('p[role=alert]')).toHaveText(msg);
+    await expect(semana.getByRole('heading', { name: 'Esta semana (2)' })).toBeVisible();
+    await expect(caixa).not.toBeChecked();
+
+    // DELETE com erro 500: a linha volta e há aviso.
+    await page.unroute('**/api/revisoes/*');
+    await page.route('**/api/revisoes/*', (rota) =>
+      rota.request().method() === 'DELETE'
+        ? rota.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ erro: 'Falha no servidor.' }) })
+        : rota.continue(),
+    );
+    await semana.getByRole('button', { name: 'Excluir a revisão de Sequências' }).first().click();
+    await page.getByRole('dialog', { name: 'Excluir a revisão?' }).getByRole('button', { name: 'Excluir' }).click();
+    await expect(page.locator('p[role=alert]')).toHaveText('Falha no servidor.');
+    await expect(semana.getByRole('heading', { name: 'Esta semana (2)' })).toBeVisible();
+
+    // Excluir enquanto uma marcação falha em voo: a exclusão ainda é enviada.
+    await page.unroute('**/api/revisoes/*');
+    await page.route('**/api/revisoes/*', async (rota) => {
+      const metodo = rota.request().method();
+      if (metodo === 'PATCH') {
+        await new Promise((r) => setTimeout(r, 2500));
+        await rota.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+      } else {
+        await rota.continue();
+      }
+    });
+    await caixa.click();
+    // A revisão marcada foi para "Concluídas" (otimista); é ela que se exclui enquanto a marcação está em voo.
+    await page
+      .getByRole('region', { name: /^Concluídas/ })
+      .getByRole('button', { name: 'Excluir a revisão de Sequências' })
+      .click();
+    const [delecao] = await Promise.all([
+      page.waitForResponse((r) => r.request().method() === 'DELETE' && r.url().includes('/api/revisoes/')),
+      page.getByRole('dialog', { name: 'Excluir a revisão?' }).getByRole('button', { name: 'Excluir' }).click(),
+    ]);
+    expect(delecao.status()).toBe(204);
+    await expect(semana.getByRole('heading', { name: 'Esta semana (1)' })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('region', { name: /^Esta semana/ }).getByRole('heading', { name: 'Esta semana (1)' })).toBeVisible();
+  });
 });
