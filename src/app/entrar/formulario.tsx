@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { urlDoSite } from '@/lib/url-site';
 import { criarClienteNavegador } from '@/lib/supabase/navegador';
+import { alerta, botaoPrimario, botaoSecundario, campo } from '@/components/estilos';
 
 type Estado = 'parado' | 'enviando' | 'enviado' | 'erro';
 
@@ -44,7 +45,7 @@ export function FormularioEntrar() {
   return (
     <div className="flex flex-col gap-4">
       {(falhouCallback || estado === 'erro') && (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className={alerta}>
           Não foi possível entrar. Tente novamente.
         </p>
       )}
@@ -59,12 +60,12 @@ export function FormularioEntrar() {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded border border-gray-300 px-3 py-2"
+          className={campo}
         />
         <button
           type="submit"
           disabled={estado === 'enviando'}
-          className="rounded bg-black px-4 py-2 text-white disabled:opacity-60"
+          className={botaoPrimario}
         >
           Receber link por e-mail
         </button>
@@ -72,7 +73,7 @@ export function FormularioEntrar() {
       <button
         type="button"
         onClick={entrarComGoogle}
-        className="rounded border border-gray-300 px-4 py-2"
+        className={botaoSecundario}
       >
         Entrar com Google
       </button>

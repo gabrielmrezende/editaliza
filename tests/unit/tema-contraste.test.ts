@@ -27,7 +27,7 @@ function contraste(a: string, b: string): number {
 
 const TOKENS = [
   'papel', 'folha', 'tinta', 'tinta-suave', 'caneta', 'caneta-escura', 'caneta-clara',
-  'na-caneta', 'marca', 'linha', 'erro', 'erro-claro',
+  'na-caneta', 'na-marca', 'marca', 'linha', 'erro', 'erro-claro',
 ];
 const PARES: [string, string][] = [
   ['tinta', 'papel'],
@@ -35,6 +35,7 @@ const PARES: [string, string][] = [
   ['tinta-suave', 'folha'],
   ['caneta', 'folha'],
   ['na-caneta', 'caneta'],
+  ['na-marca', 'marca'],
   ['erro', 'erro-claro'],
 ];
 

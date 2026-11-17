@@ -43,7 +43,7 @@ export function Semana({
             return (
               <li key={dia.data} aria-current={ehHoje ? 'date' : undefined} className="flex gap-4 px-4 py-3">
                 <div className="w-14 shrink-0">
-                  <p className={`inline-block rounded px-1 text-sm font-bold capitalize ${ehHoje ? 'bg-marca' : ''}`}>
+                  <p className={`inline-block rounded px-1 text-sm font-bold capitalize ${ehHoje ? 'bg-marca text-na-marca' : ''}`}>
                     {dataPorExtenso(dia.data, { weekday: 'short' }).replace('.', '')}
                   </p>
                   <p className="px-1 text-sm text-tinta-suave">{dataPorExtenso(dia.data, { day: 'numeric', month: 'numeric' })}</p>

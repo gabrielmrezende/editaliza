@@ -17,6 +17,7 @@
   --caneta-clara: #e8edfb;
   --na-caneta: #ffffff;
   --marca: #eef36a;
+  --na-marca: #16213a;
   --linha: #d7dce6;
   --erro: #b42318;
   --erro-claro: #fdecea;
@@ -34,6 +35,7 @@
   --caneta-clara: #1d2a52;
   --na-caneta: #0f1420;
   --marca: #e3e85a;
+  --na-marca: #0f1420;
   --linha: #2f3a55;
   --erro: #ff8a80;
   --erro-claro: #3a1d1d;
@@ -51,6 +53,7 @@
   --color-caneta-clara: var(--caneta-clara);
   --color-na-caneta: var(--na-caneta);
   --color-marca: var(--marca);
+  --color-na-marca: var(--na-marca);
   --color-linha: var(--linha);
   --color-erro: var(--erro);
   --color-erro-claro: var(--erro-claro);
