@@ -1,6 +1,6 @@
 /** Classes compartilhadas (Tailwind) para manter botões e campos iguais em todas as telas. */
 export const botaoPrimario =
-  'inline-flex min-h-11 items-center justify-center rounded-lg bg-caneta px-5 py-2.5 font-bold text-white transition-colors hover:bg-caneta-escura disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex min-h-11 items-center justify-center rounded-lg bg-caneta px-5 py-2.5 font-bold text-na-caneta transition-colors hover:bg-caneta-escura disabled:cursor-not-allowed disabled:opacity-60';
 export const botaoSecundario =
   'inline-flex min-h-11 items-center justify-center rounded-lg border border-linha bg-folha px-4 py-2.5 font-bold text-tinta transition-colors hover:border-tinta-suave disabled:opacity-60';
 export const botaoTexto =

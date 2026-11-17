@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Atkinson_Hyperlegible_Next, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { SCRIPT_TEMA } from "@/components/tema/scriptTema";
 
 // Atkinson Hyperlegible: desenhada para leitura fácil (Braille Institute), boa para longas horas de estudo.
 const atkinson = Atkinson_Hyperlegible_Next({
@@ -22,8 +23,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
+      suppressHydrationWarning
       className={`${atkinson.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
