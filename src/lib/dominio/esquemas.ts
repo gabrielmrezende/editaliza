@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MSG_TEMPO_OU_QUESTOES } from '@/lib/acompanhamento/mensagens';
 import { INTERVALOS_REVISAO, ORIGENS_SESSAO, TIPOS_SESSAO } from './acompanhamento';
 import type { ConteudoCargo, MinutosPorDia } from './tipos';
 
@@ -99,6 +100,25 @@ export const EsquemaEdicaoSessao = z
   })
   .partial()
   .refine((e) => Object.values(e).some((v) => v !== undefined), 'Informe ao menos um campo.');
+
+/** Concluir (ou só salvar) o bloco atual da fila. A posição esperada protege contra clique duplo e tela velha. */
+export const EsquemaConcluirBloco = z
+  .object({
+    posicaoEsperada: z.number().int().min(0),
+    minutos: z.number().int().min(0).max(1440),
+    acertos: contagem.default(0),
+    erros: contagem.default(0),
+    concluirTopico: z.boolean().default(false),
+    avancar: z.boolean().default(true),
+    origem: z.enum(['cronometro', 'rapido']),
+  })
+  .refine((s) => s.minutos > 0 || s.acertos + s.erros > 0, {
+    message: MSG_TEMPO_OU_QUESTOES,
+    path: ['minutos'],
+  });
+
+/** Voltar um bloco da fila. */
+export const EsquemaVoltarBloco = z.object({ posicaoEsperada: z.number().int().min(0) });
 
 export function atribuirIds(ia: ConteudoCargoIA): ConteudoCargo {
   return {

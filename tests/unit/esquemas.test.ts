@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  EsquemaConcluirBloco,
   EsquemaConteudoCargoIA,
   EsquemaEdicaoSessao,
   EsquemaEditalResumo,
   EsquemaEntradaCriarPlano,
   EsquemaNovaSessao,
+  EsquemaVoltarBloco,
   atribuirIds,
 } from '@/lib/dominio/esquemas';
 
@@ -139,5 +141,39 @@ describe('EsquemaEdicaoSessao', () => {
   it('exige ao menos um campo', () => {
     expect(EsquemaEdicaoSessao.safeParse({}).success).toBe(false);
     expect(EsquemaEdicaoSessao.safeParse({ minutos: 10 }).success).toBe(true);
+  });
+});
+
+describe('EsquemaConcluirBloco', () => {
+  const base = { posicaoEsperada: 0, minutos: 50, origem: 'cronometro' as const };
+
+  it('aplica padrões', () => {
+    expect(EsquemaConcluirBloco.parse(base)).toEqual({
+      ...base, acertos: 0, erros: 0, concluirTopico: false, avancar: true,
+    });
+  });
+
+  it('exige tempo ou questões', () => {
+    const r = EsquemaConcluirBloco.safeParse({ ...base, minutos: 0 });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0].message).toBe('Informe o tempo ou as questões.');
+    expect(EsquemaConcluirBloco.safeParse({ ...base, minutos: 0, erros: 2 }).success).toBe(true);
+  });
+
+  it('rejeita posição negativa, minutos fora do limite e origem manual', () => {
+    expect(EsquemaConcluirBloco.safeParse({ ...base, posicaoEsperada: -1 }).success).toBe(false);
+    expect(EsquemaConcluirBloco.safeParse({ ...base, posicaoEsperada: 1.5 }).success).toBe(false);
+    expect(EsquemaConcluirBloco.safeParse({ ...base, minutos: 1441 }).success).toBe(false);
+    expect(EsquemaConcluirBloco.safeParse({ ...base, acertos: 10001 }).success).toBe(false);
+    expect(EsquemaConcluirBloco.safeParse({ ...base, origem: 'manual' }).success).toBe(false);
+    expect(EsquemaConcluirBloco.safeParse({ ...base, origem: 'rapido' }).success).toBe(true);
+  });
+});
+
+describe('EsquemaVoltarBloco', () => {
+  it('exige posição inteira >= 0', () => {
+    expect(EsquemaVoltarBloco.parse({ posicaoEsperada: 3 })).toEqual({ posicaoEsperada: 3 });
+    expect(EsquemaVoltarBloco.safeParse({ posicaoEsperada: -1 }).success).toBe(false);
+    expect(EsquemaVoltarBloco.safeParse({}).success).toBe(false);
   });
 });

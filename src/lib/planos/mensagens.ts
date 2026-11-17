@@ -7,3 +7,7 @@ export const MSG_SEM_HORAS = 'Informe ao menos um dia com horas de estudo.';
 /** "Ajustar agora" antes de 60 min do último ajuste; `hora` = HH:MM em São Paulo. */
 export const msgAjusteRecente = (hora: string) => `Você ajustou há pouco. Tente de novo depois das ${hora}.`;
 export const MSG_ERRO_PLANO = 'Algo deu errado ao salvar seu plano. Tente de novo em instantes.';
+/** Concluir/voltar bloco com a fila já mudada (outra aba, clique duplo ou ajuste). */
+export const MSG_FILA_MUDOU = 'A fila mudou em outra tela. Atualizamos para você.';
+/** Plano com data: a posição passou do último bloco. */
+export const MSG_FILA_FIM = 'Você chegou ao fim da fila.';

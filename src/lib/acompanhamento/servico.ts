@@ -64,7 +64,7 @@ function validarData(data: string, hoje: string): void {
 }
 
 /** Matéria e tópico (ids) dentro do conteúdo; devolve os nomes, que nunca vêm do cliente. */
-function resolverNomes(
+export function resolverNomes(
   conteudo: DisciplinaPlano[],
   disciplinaId: string,
   topicoId: string | null,
@@ -78,7 +78,7 @@ function resolverNomes(
 }
 
 /** Limite diário por usuário: conta as sessões criadas no dia de São Paulo de `hoje`. */
-async function exigirDentroDoLimiteDiario(userId: string, hoje: string): Promise<void> {
+export async function exigirDentroDoLimiteDiario(userId: string, hoje: string): Promise<void> {
   const inicio = inicioDoDiaEmSaoPaulo(hoje);
   const fim = inicioDoDiaEmSaoPaulo(somarDias(hoje, 1));
   const { count, error } = await criarClienteAdmin()
@@ -92,7 +92,7 @@ async function exigirDentroDoLimiteDiario(userId: string, hoje: string): Promise
 }
 
 /** Revisões ainda pendentes do tópico no plano, para não duplicar. */
-async function pendentesDoTopico(
+export async function pendentesDoTopico(
   planoId: string,
   topicoId: string,
 ): Promise<{ topicoId: string; intervalo: number }[]> {

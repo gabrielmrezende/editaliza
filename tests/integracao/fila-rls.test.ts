@@ -42,7 +42,7 @@ function concluir(
   userId: string,
   planoId: string,
   extra: Partial<{
-    p_esperada: number;
+    p_esperada: number | null;
     p_ajustado_lido: string | null;
     p_avancar: boolean;
   }> = {},
@@ -109,7 +109,7 @@ describe('fila (banco)', () => {
     expect(await posicao(id)).toBe(0);
 
     const { error } = await admin().from('planos').update({ fila_posicao: -1 }).eq('id', id);
-    expect(error).not.toBeNull();
+    expect(error?.code).toBe('23514');
   });
 
   it('concluir_bloco grava a sessão e avança', async () => {
@@ -137,6 +137,15 @@ describe('fila (banco)', () => {
     const u = await criarUsuarioTeste(emailUnico('fila-c'));
     const id = await criarPlano(u.id);
     const { error } = await concluir(u.id, id, { p_esperada: 3 });
+    expect(error?.code).toBe('EZ409');
+    expect(await contar('sessoes_estudo', id)).toBe(0);
+    expect(await posicao(id)).toBe(0);
+  });
+
+  it('posição esperada NULL → EZ409 e nada gravado', async () => {
+    const u = await criarUsuarioTeste(emailUnico('fila-nula'));
+    const id = await criarPlano(u.id);
+    const { error } = await concluir(u.id, id, { p_esperada: null });
     expect(error?.code).toBe('EZ409');
     expect(await contar('sessoes_estudo', id)).toBe(0);
     expect(await posicao(id)).toBe(0);
