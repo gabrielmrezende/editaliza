@@ -192,7 +192,7 @@ body {
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")
     center / contain no-repeat;
   transform: scale(0);
-  transition: transform 0.2s var(--ease-saida);
+  transition: transform 0.22s cubic-bezier(0.3, 1.6, 0.5, 1);
 }
 .bolha:hover {
   border-color: var(--texto-suave);
@@ -200,7 +200,7 @@ body {
 .bolha:checked {
   background: var(--mint);
   border-color: var(--mint-forte);
-  animation: encher 0.32s var(--ease-saida);
+  animation: encher 0.45s var(--ease-saida);
 }
 .bolha:checked::after {
   transform: scale(1);
@@ -213,10 +213,10 @@ body {
   background: var(--mint);
   border-color: var(--mint);
 }
+/* Só sombra e o check (pseudo-elemento): a caixa não muda de tamanho nem de lugar. */
 @keyframes encher {
-  0% { transform: scale(0.82); }
-  55% { transform: scale(1.12); }
-  100% { transform: scale(1); }
+  0% { box-shadow: 0 0 0 0 var(--mint-forte); }
+  100% { box-shadow: 0 0 0 7px transparent; }
 }
 
 /* ── Cartão "Agora": entrada orquestrada, uma vez ───────────────────── */

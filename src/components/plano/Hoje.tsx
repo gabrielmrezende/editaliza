@@ -62,7 +62,15 @@ export function Hoje({
 } & Acoes) {
   const id = useId();
   const total = itens.reduce((s, i) => s + i.minutos, 0);
-  const agora = itens.findIndex((i) => i.tipo === 'estudo' && i.topico && !i.concluido && !i.sessaoRapidaId);
+  const alvo = itens.findIndex((i) => i.tipo === 'estudo' && i.topico && !i.concluido && !i.sessaoRapidaId);
+  // O destaque só passa para o próximo bloco depois de um instante: dá tempo de ver a bolha encher
+  // e o layout não salta sob o dedo em cliques seguidos.
+  const [agora, setAgora] = useState(alvo);
+  useEffect(() => {
+    if (alvo === agora) return;
+    const t = window.setTimeout(() => setAgora(alvo), 700);
+    return () => window.clearTimeout(t);
+  }, [alvo, agora]);
   const temEstudo = itens.some((i) => i.tipo === 'estudo' && i.topico);
   // Entrada orquestrada do "Agora" só ao abrir o plano; depois o destaque só troca de bloco.
   const [entrou, setEntrou] = useState(false);
@@ -104,7 +112,7 @@ export function Hoje({
           ))}
         </ol>
       )}
-      {temEstudo && agora < 0 && (
+      {temEstudo && alvo < 0 && (
         <p className="flex items-center gap-2 text-sm font-bold text-ok">
           <CheckAnimado />
           Tudo de hoje está feito.
