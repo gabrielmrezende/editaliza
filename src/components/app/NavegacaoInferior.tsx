@@ -12,11 +12,14 @@ export function NavegacaoInferior() {
       aria-label="Seções"
       className="fixed inset-x-0 bottom-0 z-30 border-t border-borda bg-superficie/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
     >
-      <ul className="relative mx-auto grid max-w-xl grid-cols-5 px-1.5 py-1.5">
+      <ul
+        className="relative mx-auto grid max-w-xl px-1.5 py-1.5"
+        style={{ gridTemplateColumns: `repeat(${SECOES.length}, minmax(0, 1fr))` }}
+      >
         <span
           aria-hidden
           className={`indicador pointer-events-none absolute inset-y-1.5 left-1.5 px-0.5 ${atual < 0 ? 'opacity-0' : ''}`}
-          style={{ width: 'calc((100% - 0.75rem) / 5)', transform: `translateX(${Math.max(0, atual) * 100}%)` }}
+          style={{ width: `calc((100% - 0.75rem) / ${SECOES.length})`, transform: `translateX(${Math.max(0, atual) * 100}%)` }}
         >
           <span className="block h-full rounded-linha bg-suave" />
         </span>

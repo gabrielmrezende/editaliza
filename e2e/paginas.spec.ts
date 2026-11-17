@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-for (const rota of ['estudar', 'revisoes', 'historico', 'relatorio']) {
+for (const rota of ['estudar', 'revisoes', 'historico', 'relatorio', 'conteudos']) {
   test(`/app/${rota} sem login redireciona para /entrar`, async ({ page }) => {
     await page.goto(`/app/${rota}`);
     await expect(page).toHaveURL(/\/entrar/);

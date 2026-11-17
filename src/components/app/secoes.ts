@@ -1,4 +1,4 @@
-import { ChartColumn, History, ListChecks, Repeat2, Timer, type LucideIcon } from 'lucide-react';
+import { ChartColumn, History, ListChecks, ListTree, Repeat2, Timer, type LucideIcon } from 'lucide-react';
 
 export interface Secao {
   href: string;
@@ -13,6 +13,7 @@ export const SECOES: Secao[] = [
   { href: '/app/revisoes', rotulo: 'Revisões', icone: Repeat2 },
   { href: '/app/historico', rotulo: 'Histórico', icone: History },
   { href: '/app/relatorio', rotulo: 'Relatório', icone: ChartColumn },
+  { href: '/app/conteudos', rotulo: 'Conteúdos', icone: ListTree },
 ];
 
 /** Índice da seção do caminho atual (-1 se nenhuma). */
