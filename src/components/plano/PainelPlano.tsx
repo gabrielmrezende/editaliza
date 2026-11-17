@@ -1,12 +1,14 @@
 'use client';
 
 import { dataPorExtenso, diaDaSemana, diasEntre } from '@/lib/datas';
+import type { Revisao } from '@/lib/dominio/acompanhamento';
 import type { DisciplinaPlano, PlanoGerado } from '@/lib/dominio/tipos';
 import { semana, tarefasDoDia } from '@/lib/plano/consultas';
 import { alerta } from '../estilos';
 import { Avisos } from './Avisos';
 import { Hoje, type ItemHoje } from './Hoje';
 import { Progresso } from './Progresso';
+import { RevisoesHoje } from './RevisoesHoje';
 import { Semana } from './Semana';
 import { useMarcacoes } from './useMarcacoes';
 
@@ -24,6 +26,8 @@ type Props = {
   offsetCiclo: number;
   /** No ciclo: tópico de cada bloco de hoje (mesmo índice dos blocos), distinto por bloco e fixo no dia. */
   topicosDosBlocos: (string | null)[];
+  /** Revisões pendentes que vencem hoje ou já venceram. */
+  revisoesPendentes: Revisao[];
 };
 
 /** Tela do plano: hoje, semana e progresso; marcar um tópico grava na hora (otimista). */
@@ -77,7 +81,10 @@ export function PainelPlano(p: Props) {
       {/* Celular: Hoje, Progresso, Semana. Tela larga: Progresso vira a coluna da direita. */}
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-x-10">
         <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-          <Hoje data={p.hoje} itens={itens} semTempo={semTempo} aoMarcar={marcar} />
+          <div className="flex flex-col gap-8">
+            <Hoje data={p.hoje} itens={itens} semTempo={semTempo} aoMarcar={marcar} />
+            <RevisoesHoje pendentes={p.revisoesPendentes} hoje={p.hoje} />
+          </div>
         </div>
         <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <Progresso disciplinas={p.disciplinas} concluidos={concluidos} />

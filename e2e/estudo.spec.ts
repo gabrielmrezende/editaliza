@@ -139,4 +139,49 @@ test.describe('estudo', () => {
     await expect(selecionado(regiao.getByLabel('Matéria'))).toHaveText('Raciocínio Lógico');
     await expect(regiao.getByRole('button', { name: 'Pausar' })).toBeVisible();
   });
+  test('registro cria revisões na agenda', async ({ page }) => {
+    await criarPlano(page, { prefixo: 'estudo' });
+    await page.goto('/app/revisoes');
+    await expect(page.getByText('Nenhuma revisão agendada.')).toBeVisible();
+
+    await page.goto('/app/estudar');
+    const rapido = page.getByRole('region', { name: 'Registro rápido' });
+    await rapido.getByLabel('Matéria').selectOption({ label: 'Raciocínio Lógico' });
+    await rapido.getByLabel('Tópico').selectOption({ label: 'Sequências' });
+    await rapido.getByLabel('Minutos').fill('45');
+    await rapido.getByRole('button', { name: 'Registrar' }).click();
+    await expect(rapido.getByRole('status')).toHaveText('Sessão registrada');
+
+    await page.goto('/app/revisoes');
+    const semana = page.getByRole('region', { name: /^Esta semana/ });
+    const proximas = page.getByRole('region', { name: /^Próximas/ });
+    await expect(semana.getByRole('heading', { name: 'Esta semana (2)' })).toBeVisible();
+    await expect(proximas.getByRole('heading', { name: 'Próximas (2)' })).toBeVisible();
+    await expect(semana.getByText('Sequências')).toHaveCount(2);
+    await expect(semana.getByText(/1 dia após o estudo/)).toBeVisible();
+    await expect(semana.getByText(/7 dias após o estudo/)).toBeVisible();
+    await expect(proximas.getByText(/21 dias após o estudo/)).toBeVisible();
+    await expect(proximas.getByText(/30 dias após o estudo/)).toBeVisible();
+
+    // Concluir vai para "Concluídas" e continua assim depois de recarregar.
+    const [patch] = await Promise.all([
+      page.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().includes('/api/revisoes/')),
+      semana.getByRole('checkbox', { name: 'Concluir a revisão de Sequências' }).first().click(),
+    ]);
+    expect(patch.status()).toBe(204);
+    const concluidas = page.getByRole('region', { name: /^Concluídas/ });
+    await expect(concluidas.getByRole('heading', { name: 'Concluídas (1)' })).toBeVisible();
+    await expect(page.getByRole('status').filter({ hasText: 'revisão concluída' })).toBeAttached();
+    await expect(semana.getByRole('heading', { name: 'Esta semana (1)' })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('region', { name: /^Concluídas/ }).getByRole('heading', { name: 'Concluídas (1)' })).toBeVisible();
+    await expect(page.getByRole('region', { name: /^Esta semana/ }).getByRole('heading', { name: 'Esta semana (1)' })).toBeVisible();
+
+    // Excluir pede confirmação.
+    await proximas.getByRole('button', { name: 'Excluir a revisão de Sequências' }).first().click();
+    const dialogo = page.getByRole('dialog', { name: 'Excluir a revisão?' });
+    await expect(dialogo).toBeVisible();
+    await dialogo.getByRole('button', { name: 'Excluir' }).click();
+    await expect(proximas.getByRole('heading', { name: 'Próximas (1)' })).toBeVisible();
+  });
 });

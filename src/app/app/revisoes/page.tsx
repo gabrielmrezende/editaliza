@@ -1,10 +1,13 @@
 import { Suspense } from 'react';
 import { MolduraApp } from '@/components/app/MolduraApp';
-import { planoAtivoOuRedireciona } from '@/lib/acompanhamento/consultas';
+import { Agenda } from '@/components/revisoes/Agenda';
+import { hojeEmSaoPaulo } from '@/lib/datas';
+import { planoAtivoOuRedireciona, revisoesDoPlano } from '@/lib/acompanhamento/consultas';
 
 async function Conteudo() {
-  await planoAtivoOuRedireciona();
-  return <p role="status">Carregando…</p>;
+  const plano = await planoAtivoOuRedireciona();
+  const revisoes = await revisoesDoPlano(plano.id);
+  return <Agenda revisoes={revisoes} hoje={hojeEmSaoPaulo()} />;
 }
 
 export default function Pagina() {

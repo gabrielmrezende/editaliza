@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { MolduraApp } from '@/components/app/MolduraApp';
 import { PainelPlano } from '@/components/plano/PainelPlano';
 import { diaDaSemana, hojeEmSaoPaulo } from '@/lib/datas';
-import { minutosDeSessoesDoCiclo, planoAtivoOuRedireciona } from '@/lib/acompanhamento/consultas';
+import { minutosDeSessoesDoCiclo, planoAtivoOuRedireciona, revisoesDoPlano } from '@/lib/acompanhamento/consultas';
 import { tarefasDoDia } from '@/lib/plano/consultas';
 import { minutosRegistradosNoCiclo, posicaoEmMinutos, topicosDosBlocos } from '@/lib/planos/ciclo';
 import { criarClienteServidor } from '@/lib/supabase/servidor';
@@ -34,6 +34,7 @@ async function Plano() {
     const minutosHoje = plano.minutos_por_dia[diaDaSemana(hoje)] ?? 0;
     topicosHoje = topicosDosBlocos(tarefasDoDia(plano.gerado, hoje, offsetCiclo, minutosHoje), plano.conteudo, concluidos, hoje);
   }
+  const pendentes = (await revisoesDoPlano(plano.id)).filter((r) => !r.concluidaEm && r.dataRevisao <= hoje);
   const cargo = plano.edital_cargos;
   const origem = [cargo?.editais?.orgao, cargo?.editais?.ano].filter(Boolean).join(' ');
   return (
@@ -49,6 +50,7 @@ async function Plano() {
       minutosPorDia={plano.minutos_por_dia}
       offsetCiclo={offsetCiclo}
       topicosDosBlocos={topicosHoje}
+      revisoesPendentes={pendentes}
     />
   );
 }
