@@ -1,7 +1,7 @@
 /** Logotipo: selo rust com a bolha preenchida da folha de respostas, e o nome. */
 export function Marca({ sobreNavy = false, compacta = false }: { sobreNavy?: boolean; compacta?: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-2.5 font-extrabold tracking-tight ${sobreNavy ? 'text-na-navy' : 'text-texto'}`}>
+    <span className={`inline-flex items-center gap-2.5 font-semibold tracking-tight ${sobreNavy ? 'text-na-navy' : 'text-texto'}`}>
       <span
         aria-hidden
         className={`grid shrink-0 place-items-center rounded-[10px] bg-rust ${compacta ? 'size-8' : 'size-9'}`}

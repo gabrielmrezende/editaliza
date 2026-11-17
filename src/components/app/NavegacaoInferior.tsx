@@ -31,8 +31,8 @@ export function NavegacaoInferior() {
               <Link
                 href={s.href}
                 aria-current={ativa ? 'page' : undefined}
-                className={`flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-linha text-[0.6875rem] leading-tight transition-colors ${
-                  ativa ? 'font-extrabold text-texto' : 'font-semibold text-texto-suave hover:text-texto'
+                className={`flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-linha text-[13px] leading-tight transition-colors ${
+                  ativa ? 'font-semibold text-texto' : 'text-texto-suave hover:text-texto'
                 }`}
               >
                 <Icone aria-hidden className="size-5" strokeWidth={ativa ? 2.4 : 2} />

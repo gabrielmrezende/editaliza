@@ -127,22 +127,22 @@ export function ListaHistorico({
               style={indice !== undefined ? estiloMateria(indice) : undefined}
             >
               <p className="flex w-12 shrink-0 flex-col items-center self-start rounded-linha bg-superficie-alt py-1.5 text-center leading-none">
-                <span className="text-lg font-extrabold text-texto">{dataPorExtenso(s.data, { day: '2-digit' })}</span>
-                <span className="mt-0.5 text-[0.6875rem] font-semibold text-texto-suave">
+                <span className="text-lg font-semibold text-texto">{dataPorExtenso(s.data, { day: '2-digit' })}</span>
+                <span className="mt-0.5 text-[13px] text-texto-suave">
                   {dataPorExtenso(s.data, { month: 'short' }).replace('.', '')}
                 </span>
                 <span className="sr-only">{dataCurta(s.data)}</span>
               </p>
               <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <p className="flex items-center gap-2 text-xs font-semibold text-texto-suave">
+                <p className="flex items-center gap-2 text-sm text-texto-suave">
                   <span aria-hidden className="bolinha" />
                   {s.disciplinaNome}
                 </p>
-                <p className="font-bold leading-snug break-words">{s.topicoNome ?? 'Sem tópico específico'}</p>
+                <p className="font-semibold leading-snug break-words">{s.topicoNome ?? 'Sem tópico específico'}</p>
                 {/* Não é lista (role list) para não misturar com as linhas de "Sessões". */}
                 <p className="mt-0.5 flex flex-wrap gap-1.5">
                   {detalhes.map((d, i) => (
-                    <span key={d} className="rounded-full bg-superficie-alt px-2 py-0.5 text-xs font-semibold text-texto-medio ring-1 ring-borda ring-inset">
+                    <span key={d} className="rounded-full bg-superficie-alt px-2 py-0.5 text-sm text-texto-medio ring-1 ring-borda ring-inset">
                       {d}
                       {i < detalhes.length - 1 && <span className="sr-only">,</span>}
                     </span>
@@ -184,8 +184,7 @@ export function ListaHistorico({
           <div className="mt-4 flex flex-col gap-3">
             {edicao.travado && (
               <p className="text-sm text-texto-suave">
-                Esta sessão é de um plano antigo ou de uma matéria que saiu do plano: dá para mudar data, tempo,
-                questões, tipo e observação.
+                Sessão de um plano antigo ou de matéria que saiu do plano: matéria e tópico ficam como estão.
               </p>
             )}
             <FormularioSessao

@@ -36,10 +36,10 @@ export function RevisoesHoje({
   return (
     <section aria-labelledby={`${id}-titulo`} className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 id={`${id}-titulo`} className="text-xl font-extrabold tracking-tight">
+        <h2 id={`${id}-titulo`} className="text-xl font-semibold tracking-tight">
           Revisões de hoje
         </h2>
-        <p className="text-sm font-medium text-texto-suave">≈ {minutos} min de revisão</p>
+        <p className="text-sm text-texto-suave">≈ {minutos} min de revisão</p>
       </div>
       {erro && (
         <p role="alert" className={alerta}>

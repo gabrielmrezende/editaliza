@@ -2,7 +2,7 @@
 export function Carregando({ texto = 'Carregando…' }: { texto?: string }) {
   return (
     <div className="flex flex-col gap-4">
-      <p role="status" className="text-sm font-semibold text-texto-suave">
+      <p role="status" className="text-sm text-texto-suave">
         {texto}
       </p>
       <div aria-hidden className="h-36 rounded-destaque bg-borda/60" />

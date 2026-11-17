@@ -16,7 +16,7 @@ export default function NaoEncontrada() {
             <span key={i} className={`h-4 w-7 rounded-full border-2 ${cheia ? 'border-rust bg-rust' : 'border-borda-forte'}`} />
           ))}
         </p>
-        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Página não encontrada</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Página não encontrada</h1>
         <p className="text-lg text-texto-medio">O endereço pode ter mudado ou não existe mais.</p>
         <div className="mt-2">
           <Link href="/" className={`${botaoPrimario} min-h-12`}>

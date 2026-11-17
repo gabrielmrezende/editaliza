@@ -340,7 +340,7 @@ export function FormularioSessao({
               {INTERVALOS_REVISAO.map((i) => (
                 <label
                   key={i}
-                  className="flex min-h-11 cursor-pointer items-center gap-2 rounded-linha border border-borda bg-superficie-alt py-1 pl-2 pr-3 text-sm font-semibold text-texto-medio has-checked:border-mint-forte has-checked:text-texto"
+                  className="flex min-h-11 cursor-pointer items-center gap-2 rounded-linha border border-borda bg-superficie-alt py-1 pl-2 pr-3 text-sm text-texto-medio has-checked:border-mint-forte has-checked:text-texto"
                 >
                   <input
                     type="checkbox"
@@ -353,7 +353,7 @@ export function FormularioSessao({
               ))}
             </div>
           </fieldset>
-          <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm font-bold">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm">
             <input
               type="checkbox"
               className="bolha"
@@ -377,7 +377,7 @@ export function FormularioSessao({
         {acoes}
       </div>
       {modo === 'manual' && (
-        <p role="status" className="flex items-center gap-2 text-sm font-bold text-ok">
+        <p role="status" className="flex items-center gap-2 text-sm font-semibold text-ok">
           {anuncio && <CheckAnimado />}
           {anuncio}
         </p>
@@ -399,12 +399,9 @@ export function RegistroManual({
   const id = useId();
   return (
     <section aria-labelledby={`${id}-titulo`} className={`${cartao} flex flex-col gap-4 p-4 sm:p-6`}>
-      <div>
-        <h2 id={`${id}-titulo`} className="text-xl font-extrabold tracking-tight">
-          Registrar sessão
-        </h2>
-        <p className="text-sm text-texto-suave">Estudou sem o cronômetro? Informe o tempo, as questões e as revisões.</p>
-      </div>
+      <h2 id={`${id}-titulo`} className="text-xl font-semibold tracking-tight">
+        Registrar sessão
+      </h2>
       <FormularioSessao
         modo="manual"
         disciplinas={disciplinas}

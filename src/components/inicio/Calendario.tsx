@@ -127,8 +127,8 @@ export function Calendario({
         </div>
       </div>
 
-      <div className="rounded-cartao border border-borda bg-superficie p-2 shadow-cartao sm:p-3">
-        <div className="grid grid-cols-7 gap-1 pb-1 text-center text-sm text-texto-suave">
+      <div className="rounded-cartao border border-borda bg-superficie p-1 shadow-cartao sm:p-3">
+        <div className="grid grid-cols-7 gap-0.5 pb-1 text-center sm:gap-1 text-sm text-texto-suave">
           {SEMANA.map((nome) => (
             <span key={nome}>
               <span aria-hidden>{nome[0]}</span>
@@ -136,7 +136,7 @@ export function Calendario({
             </span>
           ))}
         </div>
-        <div role="group" aria-labelledby={`${id}-titulo`} className="grid grid-cols-7 gap-1">
+        <div role="group" aria-labelledby={`${id}-titulo`} className="grid grid-cols-7 gap-0.5 sm:gap-1">
           {dias.map((d) => (
             <BotaoDia key={d.data} dia={d} escolhido={d.data === escolhido} aoEscolher={() => setEscolhido(d.data)} />
           ))}

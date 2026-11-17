@@ -27,7 +27,7 @@ export function NavegacaoLateral() {
                 href={s.href}
                 aria-current={ativa ? 'page' : undefined}
                 className={`flex items-center gap-3 rounded-linha px-3 text-sm transition-colors ${
-                  ativa ? 'font-bold text-na-rust' : 'font-semibold text-na-navy-suave hover:bg-white/8 hover:text-na-navy'
+                  ativa ? 'font-semibold text-na-rust' : 'text-na-navy-suave hover:bg-white/8 hover:text-na-navy'
                 }`}
                 style={{ height: ALTURA_ITEM }}
               >

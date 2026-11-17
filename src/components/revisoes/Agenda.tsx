@@ -57,11 +57,11 @@ export function Agenda({
       ) : (
         grupos.map((g) => (
           <section key={g.chave} aria-labelledby={`${id}-${g.chave}`} className="flex flex-col gap-4">
-            <h2 id={`${id}-${g.chave}`} className="flex items-baseline gap-2.5 text-xl font-extrabold tracking-tight">
+            <h2 id={`${id}-${g.chave}`} className="flex items-baseline gap-2.5 text-xl font-semibold tracking-tight">
               {g.titulo}
               <span
                 aria-hidden
-                className={`rounded-full px-2.5 py-0.5 text-sm font-bold ${
+                className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${
                   g.chave === 'atrasadas' ? 'bg-rust-claro text-rust-texto' : 'bg-suave text-texto-medio'
                 }`}
               >
@@ -73,7 +73,7 @@ export function Agenda({
               const indice = indices.get(itens[0].disciplinaId);
               return (
                 <div key={materia} className="flex flex-col gap-2" style={indice !== undefined ? estiloMateria(indice) : undefined}>
-                  <h3 className="flex items-center gap-2 text-sm font-bold text-texto-medio">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-texto-medio">
                     <span aria-hidden className="bolinha" />
                     {materia}
                   </h3>

@@ -109,7 +109,7 @@ async function Conteudo({ searchParams }: { searchParams: Busca }) {
       ) : sessoes.length === 0 ? (
         <p className={vazio}>
           Nenhuma sessão nesta página.{' '}
-          <Link href={enderecoDaPagina(filtros, 1)} className="font-bold text-link underline underline-offset-4">
+          <Link href={enderecoDaPagina(filtros, 1)} className="text-link underline underline-offset-4">
             Ir para a primeira página
           </Link>
         </p>
@@ -131,7 +131,7 @@ async function Conteudo({ searchParams }: { searchParams: Busca }) {
           ) : (
             <span />
           )}
-          <p className="text-sm font-semibold text-texto-suave">
+          <p className="text-sm text-texto-suave">
             Página {filtros.pagina} de {paginas}
           </p>
           {filtros.pagina < paginas ? (

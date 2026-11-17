@@ -13,7 +13,7 @@ export default function PaginaEntrar() {
       <main className="flex flex-1 flex-col px-5 py-10 sm:px-8 lg:justify-center">
         <div className="mx-auto flex w-full max-w-sm flex-col gap-6">
           <div className="flex flex-col gap-1.5">
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Entrar no Editaliza</h1>
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Entrar no Editaliza</h1>
             <p className="text-texto-suave">Receba um link de acesso no seu e-mail. Não precisa de senha.</p>
           </div>
           <Suspense>

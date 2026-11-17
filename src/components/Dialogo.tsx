@@ -40,7 +40,7 @@ export function Dialogo({
         largo ? 'max-w-2xl' : 'max-w-md'
       }`}
     >
-      <h2 id={`${id}-titulo`} className="text-xl font-extrabold tracking-tight">
+      <h2 id={`${id}-titulo`} className="text-xl font-semibold tracking-tight">
         {titulo}
       </h2>
       {aberto && children}

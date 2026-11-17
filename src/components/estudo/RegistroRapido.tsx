@@ -123,10 +123,10 @@ export function RegistroRapido({
   return (
     <section aria-labelledby={`${id}-titulo`} className={`${cartao} flex flex-col gap-4 p-4 sm:p-6`}>
       <div>
-        <h2 id={`${id}-titulo`} className="text-xl font-extrabold tracking-tight">
+        <h2 id={`${id}-titulo`} className="text-xl font-semibold tracking-tight">
           Registro rápido
         </h2>
-        <p className="text-sm text-texto-suave">Já estudou? Registre só o tempo; as revisões entram no padrão.</p>
+        <p className="text-sm text-texto-suave">Só o tempo; as revisões entram no padrão.</p>
       </div>
       <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
         <div className="grid gap-4">
@@ -197,7 +197,7 @@ export function RegistroRapido({
             {salvando ? 'Registrando…' : 'Registrar'}
           </button>
         </div>
-        <p role="status" className="flex items-center gap-2 text-sm font-bold text-ok">
+        <p role="status" className="flex items-center gap-2 text-sm font-semibold text-ok">
           {anuncio && <CheckAnimado />}
           {anuncio}
         </p>

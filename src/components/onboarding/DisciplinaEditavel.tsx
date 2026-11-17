@@ -49,7 +49,7 @@ export function DisciplinaEditavel({
             aria-label="Nome da matéria"
             value={d.nome}
             onChange={(e) => aoMudar({ ...d, nome: e.target.value })}
-            className={`${campo} font-bold sm:text-lg`}
+            className={`${campo} font-semibold sm:text-lg`}
           />
         </label>
         <label className="flex w-20 flex-col gap-1 sm:w-24">
@@ -106,7 +106,7 @@ export function DisciplinaEditavel({
         </ol>
       )}
       <div className="px-4 pb-2 pt-1">
-        <button type="button" onClick={aoAdicionarTopico} className="min-h-11 text-sm font-bold text-link underline-offset-4 hover:underline">
+        <button type="button" onClick={aoAdicionarTopico} className="min-h-11 text-sm font-semibold text-link underline-offset-4 hover:underline">
           Adicionar tópico
         </button>
       </div>

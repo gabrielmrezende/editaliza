@@ -35,7 +35,7 @@ export function NivelMaterias({
       <div className="flex flex-col divide-y divide-borda rounded-cartao border border-borda bg-superficie">
         {disciplinas.map((d) => (
           <fieldset key={d.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <legend className="float-left font-bold sm:max-w-[50%]">{d.nome}</legend>
+            <legend className="float-left font-semibold sm:max-w-[50%]">{d.nome}</legend>
             <div className="clear-left grid grid-cols-3 gap-1 rounded-linha bg-fundo p-1 sm:clear-none">
               {OPCOES.map((o) => (
                 <label key={o.valor} className="relative">
@@ -47,7 +47,7 @@ export function NivelMaterias({
                     onChange={() => aoMudar({ ...niveis, [d.id]: o.valor })}
                     className="peer sr-only"
                   />
-                  <span className="flex min-h-11 cursor-pointer items-center justify-center rounded-linha px-3 text-sm font-bold text-texto-suave transition-colors peer-checked:bg-texto peer-checked:text-fundo peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-foco">
+                  <span className="flex min-h-11 cursor-pointer items-center justify-center rounded-linha px-3 text-sm font-semibold text-texto-suave transition-colors peer-checked:bg-texto peer-checked:text-fundo peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-foco">
                     {o.texto}
                   </span>
                 </label>

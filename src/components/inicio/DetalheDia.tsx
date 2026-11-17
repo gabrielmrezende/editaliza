@@ -13,7 +13,6 @@ import type { DiaCalendario } from '@/lib/plano/calendario';
 import type { Fila } from '@/lib/plano/fila';
 import { tituloDoBloco } from './CartaoProximoBloco';
 
-
 function Secao({ titulo, children }: { titulo: string; children: ReactNode }) {
   const id = useId();
   return (
@@ -67,8 +66,11 @@ export function DetalheDia({
   const vazio = estudo.length === 0 && doDia.length === 0 && dia.previstos.length === 0;
 
   return (
-    <div aria-live="polite" className="flex flex-col gap-4 rounded-cartao border border-borda bg-superficie p-4 shadow-cartao sm:p-5">
-      <h3 className="text-lg font-semibold tracking-tight first-letter:uppercase">{titulo}</h3>
+    <div className="flex flex-col gap-4 rounded-cartao border border-borda bg-superficie p-4 shadow-cartao sm:p-5">
+      {/* Só o título é anunciado ao trocar de dia; o resto fica para quem quiser ler. */}
+      <h3 aria-live="polite" aria-atomic="true" className="text-lg font-semibold tracking-tight first-letter:uppercase">
+        {titulo}
+      </h3>
       {vazio && <p className="text-texto-suave">Nada neste dia.</p>}
 
       {estudo.length > 0 && (

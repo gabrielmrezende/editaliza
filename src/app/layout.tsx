@@ -7,7 +7,7 @@ import { SCRIPT_TEMA } from "@/components/tema/scriptTema";
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "600"],
 });
 
 export const metadata: Metadata = {

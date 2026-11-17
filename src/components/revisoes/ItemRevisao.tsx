@@ -51,15 +51,15 @@ export function ItemRevisao({
         </span>
         <span className="flex min-w-0 flex-col py-1">
           {mostrarMateria && (
-            <span className="flex items-center gap-2 text-xs font-semibold text-texto-suave">
+            <span className="flex items-center gap-2 text-sm text-texto-suave">
               <span aria-hidden className="bolinha" />
               {revisao.disciplinaNome}
             </span>
           )}
-          <span className={`font-bold leading-snug break-words ${concluida ? 'text-texto-suave line-through decoration-2' : 'text-texto'}`}>
+          <span className={`font-semibold leading-snug break-words ${concluida ? 'text-texto-suave line-through decoration-2' : 'text-texto'}`}>
             {revisao.topicoNome}
           </span>
-          <span className={`text-sm ${atrasada ? 'font-bold text-rust-texto' : 'text-texto-suave'}`}>
+          <span className={`text-sm ${atrasada ? 'text-rust-texto' : 'text-texto-suave'}`}>
             {quando(revisao, hoje)}, {revisao.intervalo} {revisao.intervalo === 1 ? 'dia' : 'dias'} após o estudo
           </span>
         </span>

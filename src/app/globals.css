@@ -140,8 +140,17 @@ body {
   background: var(--fundo);
   color: var(--texto);
   font-family: var(--font-jakarta), system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Spec §6.4: corpo 16 px, linha 1,5; a fonte só carrega 400 e 600. */
+  font-size: 1rem;
+  line-height: 1.5;
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
+}
+
+/* O preflight usa `bolder` (viraria 700): negrito aqui é o seminegrito da fonte. */
+b,
+strong {
+  font-weight: 600;
 }
 
 :focus-visible {

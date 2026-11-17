@@ -114,7 +114,7 @@ export function EscolhaCargo({
             <button
               type="button"
               onClick={() => escolher(c)}
-              className="group flex w-full items-center gap-4 rounded-cartao border border-borda bg-superficie px-4 py-4 text-left text-lg font-bold transition-colors hover:border-acao"
+              className="group flex w-full items-center gap-4 rounded-cartao border border-borda bg-superficie px-4 py-4 text-left text-lg font-semibold transition-colors hover:border-acao"
             >
               <span aria-hidden className="h-4 w-6 shrink-0 rounded-full border-2 border-borda-forte transition-colors group-hover:border-acao group-hover:bg-acao" />
               {c.nome}
@@ -123,7 +123,7 @@ export function EscolhaCargo({
         ))}
       </ul>
       <div>
-        <button type="button" className="text-sm font-bold text-link underline-offset-4 hover:underline" onClick={aoTrocarArquivo}>
+        <button type="button" className="text-sm font-semibold text-link underline-offset-4 hover:underline" onClick={aoTrocarArquivo}>
           Enviar outro arquivo
         </button>
       </div>

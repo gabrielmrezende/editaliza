@@ -47,7 +47,7 @@ export function ProximosBlocos({
               style={indice >= 0 ? estiloMateria(indice) : undefined}
             >
               <p className="flex items-center gap-2 text-sm text-texto-suave">
-                <span className="tabular-nums font-semibold text-texto-medio">{numeracao(fila, b.posicao).numero}</span>
+                <span className="tabular-nums text-texto-medio">{numeracao(fila, b.posicao).numero}</span>
                 {indice >= 0 && <span aria-hidden className="bolinha" />}
                 {/* No ciclo a matéria é o conteúdo do bloco: vai na cor do texto. */}
                 <span className={`min-w-0 flex-1 truncate ${fila.modo === 'ciclo' ? 'text-texto' : ''}`}>

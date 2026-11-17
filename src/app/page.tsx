@@ -17,16 +17,16 @@ export default function Home() {
       <PainelMarca />
       <main className="flex flex-1 flex-col px-5 py-10 sm:px-8 lg:justify-center">
         <div className="mx-auto flex w-full max-w-md flex-col gap-8">
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Do edital ao plano em três passos</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Do edital ao plano em três passos</h1>
           {/* Os passos são de fato uma sequência: por isso a numeração. */}
           <ol className="flex flex-col gap-5">
             {PASSOS.map((p, i) => (
               <li key={p.titulo} className="flex gap-4">
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-suave text-sm font-extrabold text-texto">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-suave text-sm font-semibold text-texto">
                   {i + 1}
                 </span>
                 <div>
-                  <p className="font-bold">{p.titulo}</p>
+                  <p className="font-semibold">{p.titulo}</p>
                   <p className="text-sm text-texto-suave">{p.texto}</p>
                 </div>
               </li>
@@ -35,7 +35,7 @@ export default function Home() {
           <div>
             <Link
               href="/entrar"
-              className="inline-flex min-h-12 items-center gap-2 rounded-linha bg-acao px-6 font-bold text-na-acao transition-colors hover:bg-acao-hover"
+              className="inline-flex min-h-12 items-center gap-2 rounded-linha bg-acao px-6 font-semibold text-na-acao transition-colors hover:bg-acao-hover"
             >
               Entrar
             </Link>

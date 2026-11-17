@@ -113,7 +113,7 @@ export function FluxoNovo() {
         </ol>
       </nav>
 
-      <h1 ref={titulo} tabIndex={-1} className="text-3xl focus:outline-none font-bold leading-tight tracking-tight sm:text-4xl">{ETAPAS[indice].titulo}</h1>
+      <h1 ref={titulo} tabIndex={-1} className="text-3xl focus:outline-none font-semibold leading-tight tracking-tight sm:text-4xl">{ETAPAS[indice].titulo}</h1>
 
       {etapa === 'envio' && <EnvioEdital aoPronto={aoEditalPronto} />}
       {etapa === 'cargo' && edital && (

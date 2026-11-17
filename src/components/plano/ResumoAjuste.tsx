@@ -77,7 +77,7 @@ export function ResumoAjuste({
           aria-labelledby={`${id}-titulo`}
           className="flex flex-col gap-3 rounded-cartao border border-borda border-l-4 border-l-mint-forte bg-superficie p-4 shadow-cartao sm:p-5"
         >
-          <h2 id={`${id}-titulo`} className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
+          <h2 id={`${id}-titulo`} className="flex items-center gap-2 text-xl font-semibold tracking-tight">
             <Sparkles aria-hidden className="size-[18px] text-texto-suave" />
             Seu plano foi ajustado
           </h2>

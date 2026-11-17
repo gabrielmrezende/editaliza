@@ -59,15 +59,14 @@ export function RevisaoConteudo({
   return (
     <div className="flex flex-col gap-5">
       <p className="text-texto-suave">
-        Corrija o que a leitura do edital errou: renomeie, acrescente ou remova matérias e tópicos. As mudanças valem só
-        para o seu plano.
+        Corrija o que a leitura do edital errou. As mudanças valem só para o seu plano.
       </p>
       {!pesosInformados && (
         <p className="rounded-linha border-l-4 border-acao bg-suave px-4 py-3">
           Este edital não informa o peso das matérias. Se souber, preencha o número de questões; senão, usaremos peso igual.
         </p>
       )}
-      <p aria-live="polite" className="text-sm font-bold">
+      <p aria-live="polite" className="text-sm">
         {plural(totalTopicos, 'tópico', 'tópicos')} em {plural(disciplinas.length, 'matéria', 'matérias')}
       </p>
 

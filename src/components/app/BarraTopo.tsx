@@ -18,7 +18,7 @@ export function BarraTopo() {
             <span className="block h-2.5 w-4 rounded-full bg-white" />
           </span>
         </Link>
-        <h1 className="min-w-0 flex-1 truncate text-xl font-extrabold tracking-tight lg:text-[1.375rem]">
+        <h1 className="min-w-0 flex-1 truncate text-xl font-semibold tracking-tight lg:text-[1.375rem]">
           {secao?.rotulo ?? 'Editaliza'}
         </h1>
         <BotaoTema />

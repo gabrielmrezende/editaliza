@@ -21,7 +21,7 @@ export function TelaDeErro({ error, retry, voltar }: { error: unknown; retry: ()
         <p aria-hidden className="grid size-12 place-items-center rounded-cartao bg-rust-claro text-rust-texto">
           <TriangleAlert className="size-6" />
         </p>
-        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Algo deu errado</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Algo deu errado</h1>
         <p className="text-lg text-texto-medio">
           Não conseguimos carregar esta página agora. Seus dados estão salvos; tente de novo em instantes.
         </p>

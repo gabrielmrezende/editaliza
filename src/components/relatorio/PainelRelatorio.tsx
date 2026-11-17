@@ -52,10 +52,10 @@ function textoOrientacao(o: Orientacao): string {
 function Numero({ rotulo, valor, nota }: { rotulo: string; valor: string; nota?: string }) {
   return (
     <div className="flex flex-col gap-1.5 bg-superficie p-4 sm:p-5">
-      <dt className="text-sm font-semibold text-texto-suave">{rotulo}</dt>
+      <dt className="text-sm text-texto-suave">{rotulo}</dt>
       <dd className="flex flex-col gap-1">
-        <span className="text-3xl font-extrabold leading-none tracking-tight">{valor}</span>
-        {nota && <span className="text-xs font-medium text-texto-suave">{nota}</span>}
+        <span className="text-3xl font-semibold leading-none tracking-tight">{valor}</span>
+        {nota && <span className="text-sm text-texto-suave">{nota}</span>}
       </dd>
     </div>
   );
@@ -64,8 +64,8 @@ function Numero({ rotulo, valor, nota }: { rotulo: string; valor: string; nota?:
 function NumeroPequeno({ rotulo, valor, alerta = false }: { rotulo: string; valor: number; alerta?: boolean }) {
   return (
     <div className="flex flex-col gap-1 pt-3">
-      <dt className="text-xs font-semibold text-texto-suave">{rotulo}</dt>
-      <dd className={`text-2xl font-extrabold leading-none ${alerta ? 'text-rust-texto' : ''}`}>{valor}</dd>
+      <dt className="text-sm text-texto-suave">{rotulo}</dt>
+      <dd className={`text-2xl font-semibold leading-none ${alerta ? 'text-rust-texto' : ''}`}>{valor}</dd>
     </div>
   );
 }
@@ -74,7 +74,7 @@ function NumeroPequeno({ rotulo, valor, alerta = false }: { rotulo: string; valo
 function Barra({ rotulo, fracao, cheia }: { rotulo: string; fracao: number; cheia: boolean }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="w-20 shrink-0 text-xs font-semibold text-texto-suave">{rotulo}</span>
+      <span className="w-20 shrink-0 text-sm text-texto-suave">{rotulo}</span>
       <div aria-hidden className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-superficie-alt ring-1 ring-borda ring-inset">
         <div
           className={`barra h-full rounded-full ${
@@ -83,12 +83,12 @@ function Barra({ rotulo, fracao, cheia }: { rotulo: string; fracao: number; chei
           style={{ width: porcento(Math.min(1, fracao)) }}
         />
       </div>
-      <span className="w-11 shrink-0 text-right text-xs font-bold">{porcento(fracao)}</span>
+      <span className="w-11 shrink-0 text-right text-sm">{porcento(fracao)}</span>
     </div>
   );
 }
 
-const titulo = 'text-lg font-extrabold tracking-tight';
+const titulo = 'text-xl font-semibold tracking-tight';
 
 export function PainelRelatorio({
   relatorio: r,
@@ -111,7 +111,7 @@ export function PainelRelatorio({
                 <Link
                   href={`/app/relatorio?periodo=${p.valor}`}
                   aria-current={atual ? 'page' : undefined}
-                  className={`inline-flex min-h-11 items-center rounded-linha px-3.5 text-sm font-bold transition-colors ${
+                  className={`inline-flex min-h-11 items-center rounded-linha px-3.5 text-sm font-semibold transition-colors ${
                     atual ? 'bg-acao text-na-acao' : 'text-texto-medio hover:bg-superficie-alt hover:text-texto'
                   }`}
                 >
@@ -181,16 +181,16 @@ export function PainelRelatorio({
                   style={indice !== undefined ? estiloMateria(indice) : undefined}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-x-3">
-                    <span className="flex min-w-0 items-center gap-2 text-sm font-bold leading-snug">
+                    <span className="flex min-w-0 items-center gap-2 text-sm font-semibold leading-snug">
                       <span aria-hidden className="bolinha" />
                       {d.nome}
                     </span>
-                    <span className="shrink-0 text-sm font-semibold text-texto-suave">{formatarMinutos(d.minutos)}</span>
+                    <span className="shrink-0 text-sm text-texto-suave">{formatarMinutos(d.minutos)}</span>
                   </div>
                   <Barra rotulo="Estudado" fracao={d.fracaoEstudada} cheia />
                   <Barra rotulo="Planejado" fracao={d.fracaoPlanejada} cheia={false} />
                   {d.diasSemEstudo !== null && d.diasSemEstudo >= DIAS_SEM_ESTUDO_AVISO && (
-                    <p className="text-xs font-bold text-rust-texto">sem estudo há {d.diasSemEstudo} dias</p>
+                    <p className="text-sm text-rust-texto">sem estudo há {d.diasSemEstudo} dias</p>
                   )}
                 </li>
               );
@@ -211,10 +211,10 @@ export function PainelRelatorio({
               <ul className="flex flex-col divide-y divide-borda">
                 {r.reforcar.map((t) => (
                   <li key={t.topicoId} className="flex flex-col gap-0.5 py-2.5 first:pt-0 last:pb-0">
-                    <span className="font-bold leading-snug">{t.topicoNome}</span>
+                    <span className="font-semibold leading-snug">{t.topicoNome}</span>
                     <span className="text-sm text-texto-suave">
                       {t.disciplinaNome}:{' '}
-                      <span className="font-semibold text-rust-texto">
+                      <span className="text-rust-texto">
                         {t.percentual}% de acerto em {t.questoes} questões
                       </span>
                     </span>

@@ -23,7 +23,7 @@ export function Avisos({ avisos, disciplinas }: { avisos: Aviso[]; disciplinas: 
                   Demos prioridade às matérias de maior peso. Mais horas por semana ou menos tópicos fazem caber mais.
                 </p>
                 <details className="mt-2">
-                  <summary className="cursor-pointer font-bold text-link">Ver tópicos de fora</summary>
+                  <summary className="cursor-pointer font-semibold text-link">Ver tópicos de fora</summary>
                   <ul className="mt-2 list-disc pl-5">
                     {a.topicosFora.map((id) => (
                       <li key={id}>{nomeTopico.get(id) ?? id}</li>

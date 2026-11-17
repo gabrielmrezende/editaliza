@@ -54,7 +54,7 @@ export function Disponibilidade({
               key={d.indice}
               className="flex items-center justify-between gap-3 rounded-linha border border-borda bg-superficie px-4 py-2 sm:flex-col sm:items-stretch sm:px-2 sm:py-3"
             >
-              <span className="font-bold sm:text-center sm:text-sm">{d.nome}</span>
+              <span className="font-semibold sm:text-center sm:text-sm">{d.nome}</span>
               <span className="flex items-baseline gap-1 sm:justify-center">
                 <input
                   aria-label={d.nome}
@@ -66,7 +66,7 @@ export function Disponibilidade({
                     setErro(null);
                     aoMudar(horas.map((h, i) => (i === d.indice ? e.target.value : h)));
                   }}
-                  className={`w-16 rounded-linha border bg-superficie px-2 py-2 text-center text-lg font-bold focus:border-acao focus:outline-none sm:w-full ${
+                  className={`w-16 rounded-linha border bg-superficie px-2 py-2 text-center text-lg font-semibold focus:border-acao focus:outline-none sm:w-full ${
                     invalido ? 'border-erro' : 'border-borda'
                   }`}
                 />
@@ -78,7 +78,7 @@ export function Disponibilidade({
           );
         })}
       </div>
-      <p aria-live="polite" className="font-bold">
+      <p aria-live="polite" className="font-semibold">
         {formatarHoras(total)} h por semana
       </p>
       {erro && (

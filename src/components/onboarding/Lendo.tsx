@@ -10,7 +10,7 @@ export function Lendo({ texto, detalhe }: { texto: string; detalhe?: string }) {
         ))}
       </div>
       <div>
-        <p className="text-lg font-bold">{texto}</p>
+        <p className="text-lg font-semibold">{texto}</p>
         {detalhe && <p className="text-texto-suave">{detalhe}</p>}
       </div>
     </div>
