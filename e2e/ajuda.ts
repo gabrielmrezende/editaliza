@@ -63,11 +63,16 @@ export async function ateRevisao(page: Page, prefixo = 'onboarding'): Promise<vo
 
 /**
  * Usuário novo com um plano ativo (Cargo A, horas e níveis padrão). `dataProva` ausente = daqui a
- * 90 dias; `null` = "a data ainda não saiu" (ciclo).
+ * 90 dias; `null` = "a data ainda não saiu" (ciclo). `horasDomingo` troca as 0 h padrão do domingo
+ * (para que "Hoje" tenha estudo em qualquer dia da semana).
  */
 export async function criarPlano(
   page: Page,
-  { dataProva = dataDaquiA(90), prefixo = 'plano' }: { dataProva?: string | null; prefixo?: string } = {},
+  {
+    dataProva = dataDaquiA(90),
+    prefixo = 'plano',
+    horasDomingo,
+  }: { dataProva?: string | null; prefixo?: string; horasDomingo?: string } = {},
 ): Promise<void> {
   await ateRevisao(page, prefixo);
   await continuar(page);
@@ -76,6 +81,7 @@ export async function criarPlano(
   else await page.getByLabel('Data da prova').fill(dataProva);
   await continuar(page);
   await expect(page.getByRole('heading', { name: 'Quanto tempo você tem?' })).toBeVisible();
+  if (horasDomingo !== undefined) await page.getByLabel('Domingo', { exact: true }).fill(horasDomingo);
   await continuar(page);
   await expect(page.getByRole('heading', { name: 'Qual é o seu nível?' })).toBeVisible();
   await page.getByRole('button', { name: 'Gerar meu plano' }).click();

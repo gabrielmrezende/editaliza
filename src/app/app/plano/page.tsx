@@ -2,13 +2,22 @@ import { Suspense } from 'react';
 import { MolduraApp } from '@/components/app/MolduraApp';
 import { PainelPlano } from '@/components/plano/PainelPlano';
 import { diaDaSemana, hojeEmSaoPaulo } from '@/lib/datas';
-import { minutosDeSessoesDoCiclo, planoAtivoOuRedireciona, revisoesDoPlano } from '@/lib/acompanhamento/consultas';
+import {
+  minutosDeSessoesDoCiclo,
+  planoAtivoOuRedireciona,
+  revisoesDoPlano,
+  sessoesRapidasDoDia,
+} from '@/lib/acompanhamento/consultas';
 import { tarefasDoDia } from '@/lib/plano/consultas';
+import { ajustarSeVencido, ultimoAjusteNaoVisto } from '@/lib/planos/ajuste-servico';
 import { minutosRegistradosNoCiclo, posicaoEmMinutos, topicosDosBlocos } from '@/lib/planos/ciclo';
-import { criarClienteServidor } from '@/lib/supabase/servidor';
+import { criarClienteServidor, exigirUsuario } from '@/lib/supabase/servidor';
 
-/** Lê o plano ativo do usuário (RLS: só o dono) e os tópicos concluídos. */
+/** Ajusta o plano se a semana venceu; depois lê o plano ativo (RLS: só o dono) e os tópicos concluídos. */
 async function Plano() {
+  const usuario = await exigirUsuario();
+  // Ajuste preguiçoso (≥ 7 dias): antes de ler, para a tela já mostrar o plano ajustado.
+  await ajustarSeVencido(usuario.id);
   const plano = await planoAtivoOuRedireciona();
   const supabase = await criarClienteServidor();
 
@@ -34,7 +43,12 @@ async function Plano() {
     const minutosHoje = plano.minutos_por_dia[diaDaSemana(hoje)] ?? 0;
     topicosHoje = topicosDosBlocos(tarefasDoDia(plano.gerado, hoje, offsetCiclo, minutosHoje), plano.conteudo, concluidos, hoje);
   }
-  const pendentes = (await revisoesDoPlano(plano.id)).filter((r) => !r.concluidaEm && r.dataRevisao <= hoje);
+  const [revisoes, sessoesRapidasHoje, ajusteNaoVisto] = await Promise.all([
+    revisoesDoPlano(plano.id),
+    sessoesRapidasDoDia(plano.id, hoje),
+    ultimoAjusteNaoVisto(usuario.id, plano.id),
+  ]);
+  const pendentes = revisoes.filter((r) => !r.concluidaEm && r.dataRevisao <= hoje);
   const cargo = plano.edital_cargos;
   const origem = [cargo?.editais?.orgao, cargo?.editais?.ano].filter(Boolean).join(' ');
   return (
@@ -51,6 +65,9 @@ async function Plano() {
       offsetCiclo={offsetCiclo}
       topicosDosBlocos={topicosHoje}
       revisoesPendentes={pendentes}
+      sessoesRapidasHoje={sessoesRapidasHoje}
+      ajusteNaoVisto={ajusteNaoVisto && { id: ajusteNaoVisto.id, resumo: ajusteNaoVisto.resumo }}
+      ultimoAjuste={plano.ajustado_em ? hojeEmSaoPaulo(new Date(plano.ajustado_em)) : null}
     />
   );
 }

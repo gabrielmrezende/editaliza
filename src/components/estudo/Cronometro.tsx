@@ -41,6 +41,9 @@ export function Cronometro({
   const pedidoTratado = useRef<string | null>(null);
 
   const ativo = estado.rodando || estado.acumuladoSeg > 0;
+  // O formulário de parada só vale com o cronômetro pausado: se ele voltou a rodar (pedido
+  // "Iniciar" do mesmo estudo, outra aba), o formulário dá lugar ao cronômetro.
+  if (parado && estado.rodando) setParado(false);
   const disciplina = disciplinas.find((d) => d.id === formulario.disciplinaId);
   const nomeDisciplina = (idDisciplina: string | null) => disciplinas.find((d) => d.id === idDisciplina)?.nome;
   const minutos = minutosParaRegistro(segundos);
@@ -71,6 +74,18 @@ export function Cronometro({
     else if (!estado.rodando) c.iniciar();
     tirarPedidoDaUrl();
   });
+
+  // Rascunho recuperado com matéria/tópico que não existem mais no plano: limpa a escolha.
+  const topicoExiste = !formulario.topicoId || disciplina?.topicos.some((t) => t.id === formulario.topicoId);
+  const escolhaInvalida = carregado && ((formulario.disciplinaId !== null && !disciplina) || !topicoExiste);
+  useEffect(() => {
+    if (!escolhaInvalida) return;
+    c.setFormulario((atual) => {
+      const d = disciplinas.find((x) => x.id === atual.disciplinaId);
+      const t = d?.topicos.some((x) => x.id === atual.topicoId) ? atual.topicoId : null;
+      return { ...atual, disciplinaId: d ? d.id : null, topicoId: t, concluir: t ? atual.concluir : false };
+    });
+  }, [escolhaInvalida, c, disciplinas]);
 
   function trocar() {
     if (!pedido) return;

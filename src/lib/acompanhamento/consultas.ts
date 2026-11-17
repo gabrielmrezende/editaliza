@@ -29,8 +29,8 @@ function cicloInicioValido(v: unknown): PosicaoCiclo | null {
   return inteiroNaoNegativo(indice) && inteiroNaoNegativo(minutos) ? { indice, minutos } : null;
 }
 
-/** Plano ativo do usuário (RLS: só o dono); sem plano, vai para a criação de um. */
-export async function planoAtivoOuRedireciona(): Promise<LinhaPlanoAtivo> {
+/** Plano ativo do usuário (RLS: só o dono), ou null se ele não tem plano ativo. */
+export async function planoAtivo(): Promise<LinhaPlanoAtivo | null> {
   const usuario = await exigirUsuario();
   const supabase = await criarClienteServidor();
   const { data, error } = await supabase
@@ -40,9 +40,16 @@ export async function planoAtivoOuRedireciona(): Promise<LinhaPlanoAtivo> {
     .eq('ativo', true)
     .maybeSingle();
   if (error) throw error;
-  if (!data) redirect('/app/novo');
+  if (!data) return null;
   const plano = data as unknown as LinhaPlanoAtivo;
   return { ...plano, ciclo_inicio: cicloInicioValido(plano.ciclo_inicio) };
+}
+
+/** Plano ativo do usuário (RLS: só o dono); sem plano, vai para a criação de um. */
+export async function planoAtivoOuRedireciona(): Promise<LinhaPlanoAtivo> {
+  const plano = await planoAtivo();
+  if (!plano) redirect('/app/novo');
+  return plano;
 }
 
 /** Sessões do plano (da data `desde`, inclusive, em diante), da mais recente para a mais antiga. */
@@ -96,22 +103,74 @@ export interface FiltroHistorico {
   ate?: string;
 }
 
+/** Código do PostgREST para `range` além do fim (416). */
+const FORA_DO_INTERVALO = 'PGRST103';
+
 /** Histórico do usuário (RLS), 50 por página, mais recentes primeiro; `de`/`ate` inclusivos. */
 export async function sessoesDoUsuario(filtro: FiltroHistorico): Promise<{ sessoes: Sessao[]; total: number }> {
   const supabase = await criarClienteServidor();
   const pagina = Number.isInteger(filtro.pagina) && filtro.pagina > 0 ? filtro.pagina : 1;
   const inicio = (pagina - 1) * POR_PAGINA;
-  let consulta = supabase.from('sessoes_estudo').select('*', { count: 'exact' });
-  if (filtro.disciplinaNome) consulta = consulta.eq('disciplina_nome', filtro.disciplinaNome);
-  if (filtro.de) consulta = consulta.gte('data', filtro.de);
-  if (filtro.ate) consulta = consulta.lte('data', filtro.ate);
-  const { data, error, count } = await consulta
+  const filtrada = (opcoes: { count: 'exact'; head?: boolean }) => {
+    let q = supabase.from('sessoes_estudo').select(opcoes.head ? 'id' : '*', opcoes);
+    if (filtro.disciplinaNome) q = q.eq('disciplina_nome', filtro.disciplinaNome);
+    if (filtro.de) q = q.gte('data', filtro.de);
+    if (filtro.ate) q = q.lte('data', filtro.ate);
+    return q;
+  };
+  const { data, error, count } = await filtrada({ count: 'exact' })
     .order('data', { ascending: false })
     .order('created_at', { ascending: false })
     .order('id')
     .range(inicio, inicio + POR_PAGINA - 1);
+  if (error?.code === FORA_DO_INTERVALO) {
+    // Página além da última: lista vazia, mas com o total certo (o 416 não traz a contagem).
+    const contagem = await filtrada({ count: 'exact', head: true });
+    if (contagem.error) throw contagem.error;
+    return { sessoes: [], total: contagem.count ?? 0 };
+  }
   if (error) throw error;
   return { sessoes: (data ?? []).map(sessaoDaLinha), total: count ?? 0 };
+}
+
+/** Nomes distintos das matérias no histórico do usuário (RLS), em ordem alfabética. */
+export async function materiasDoHistorico(): Promise<string[]> {
+  const supabase = await criarClienteServidor();
+  const nomes = new Set<string>();
+  for (let inicio = 0; ; inicio += LOTE) {
+    const { data, error } = await supabase
+      .from('sessoes_estudo')
+      .select('disciplina_nome')
+      .order('disciplina_nome')
+      .order('id')
+      .range(inicio, inicio + LOTE - 1);
+    if (error) throw error;
+    const linhas = (data ?? []) as { disciplina_nome: string }[];
+    for (const l of linhas) nomes.add(l.disciplina_nome);
+    if (linhas.length < LOTE) return [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }
+}
+
+/** Sessões de "Estudei" (origem `rapido`) do plano no dia, na ordem em que foram gravadas. */
+export async function sessoesRapidasDoDia(
+  planoId: string,
+  dia: string,
+): Promise<{ id: string; disciplinaId: string; topicoId: string | null }[]> {
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase
+    .from('sessoes_estudo')
+    .select('id, disciplina_id, topico_id')
+    .eq('plano_id', planoId)
+    .eq('data', dia)
+    .eq('origem', 'rapido')
+    .order('created_at')
+    .order('id');
+  if (error) throw error;
+  return ((data ?? []) as { id: string; disciplina_id: string; topico_id: string | null }[]).map((s) => ({
+    id: s.id,
+    disciplinaId: s.disciplina_id,
+    topicoId: s.topico_id,
+  }));
 }
 
 /** Todas as revisões do plano (pendentes e concluídas), por data de revisão. */

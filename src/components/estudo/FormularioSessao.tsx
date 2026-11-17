@@ -118,7 +118,8 @@ export function validarSessao(
 /**
  * Formulário de uma sessão de estudo (spec §7.2). No modo "manual" limpa os campos e anuncia
  * "Sessão registrada" depois de salvar; no "cronometro" quem chama decide o que fazer; no
- * "edicao" a matéria fica travada e não há revisões nem conclusão.
+ * "edicao" a matéria fica travada e não há revisões nem conclusão (`travarTopico` trava também o
+ * tópico: sessão de plano antigo ou de matéria que saiu do plano).
  */
 export function FormularioSessao({
   modo,
@@ -128,6 +129,7 @@ export function FormularioSessao({
   aoSalvar,
   aoMudar,
   acoes,
+  travarTopico = false,
 }: {
   modo: ModoFormulario;
   disciplinas: DisciplinaPlano[];
@@ -139,6 +141,8 @@ export function FormularioSessao({
   aoMudar?: (valores: ValoresSessao) => void;
   /** Botões extras ao lado de "Salvar sessão". */
   acoes?: ReactNode;
+  /** Só na edição: o tópico também não pode mudar. */
+  travarTopico?: boolean;
 }) {
   const id = useId();
   const [valores, setValores] = useState(() => valoresPadrao(hoje, inicial));
@@ -216,7 +220,7 @@ export function FormularioSessao({
             id={campoId('topico')}
             className={`${campo} min-h-11`}
             value={valores.topicoId}
-            disabled={!disciplina}
+            disabled={!disciplina || (modo === 'edicao' && travarTopico)}
             onChange={(e) => mudar({ topicoId: e.target.value, concluir: e.target.value ? valores.concluir : false })}
           >
             <option value="">Sem tópico específico</option>

@@ -1,19 +1,30 @@
 'use client';
 
+import Link from 'next/link';
 import { useId } from 'react';
 import { dataPorExtenso } from '@/lib/datas';
 import type { BlocoEstudo, Topico } from '@/lib/dominio/tipos';
 import { Bolha } from './Bolha';
 import { formatarMinutos } from '@/lib/formatar';
+import { botaoSecundario, botaoTexto } from '../estilos';
 
 export type ItemHoje = {
   chave: string;
   tipo: BlocoEstudo['tipo'];
+  disciplinaId: string;
   disciplina: string;
   topico: Topico | null;
   minutos: number;
   concluido: boolean;
+  /** Sessão de "Estudei" que cobre este bloco (null = ainda não registrado). */
+  sessaoRapidaId: string | null;
+  /** Gravando ou desfazendo o "Estudei" deste bloco. */
+  registrando: boolean;
 };
+
+/** Link de "Iniciar": abre Estudar com a matéria/tópico escolhidos e o cronômetro rodando. */
+const linkIniciar = (disciplinaId: string, topicoId: string) =>
+  `/app/estudar?disciplina=${encodeURIComponent(disciplinaId)}&topico=${encodeURIComponent(topicoId)}&iniciar=1`;
 
 const TITULO_TIPO: Record<BlocoEstudo['tipo'], string | null> = {
   estudo: null,
@@ -21,17 +32,21 @@ const TITULO_TIPO: Record<BlocoEstudo['tipo'], string | null> = {
   simulado: 'Simulado',
 };
 
-/** Blocos de hoje, cada um com a bolha "concluí este tópico". */
+/** Blocos de hoje: "Iniciar" (cronômetro), "Estudei" (registro rápido) e a bolha "concluí este tópico". */
 export function Hoje({
   data,
   itens,
   semTempo,
   aoMarcar,
+  aoEstudar,
+  aoDesfazer,
 }: {
   data: string;
   itens: ItemHoje[];
   semTempo: boolean;
   aoMarcar: (topicoId: string, nome: string, feito: boolean) => void;
+  aoEstudar: (item: ItemHoje) => void;
+  aoDesfazer: (item: ItemHoje) => void;
 }) {
   const id = useId();
   const total = itens.reduce((s, i) => s + i.minutos, 0);
@@ -70,14 +85,48 @@ export function Hoje({
                   <p className="text-sm text-tinta-suave">{formatarMinutos(item.minutos)}</p>
                 </div>
                 {item.tipo === 'estudo' && item.topico && (
-                  <label className="flex min-h-11 shrink-0 cursor-pointer items-center gap-3 rounded-lg px-1 text-sm font-bold">
-                    <Bolha
-                      checked={item.concluido}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 sm:shrink-0 sm:justify-end">
+                    <Link
+                      href={linkIniciar(item.disciplinaId, item.topico.id)}
+                      className={botaoSecundario}
                       aria-describedby={idTopico}
-                      onChange={(e) => aoMarcar(item.topico!.id, item.topico!.nome, e.target.checked)}
-                    />
-                    Concluí este tópico
-                  </label>
+                    >
+                      Iniciar
+                    </Link>
+                    {item.sessaoRapidaId ? (
+                      <p className="flex items-center gap-1 text-sm font-bold text-caneta">
+                        Registrado
+                        <span aria-hidden>·</span>
+                        <button
+                          type="button"
+                          className={botaoTexto}
+                          aria-describedby={idTopico}
+                          disabled={item.registrando}
+                          onClick={() => aoDesfazer(item)}
+                        >
+                          Desfazer
+                        </button>
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        className={botaoSecundario}
+                        aria-describedby={idTopico}
+                        disabled={item.registrando}
+                        onClick={() => aoEstudar(item)}
+                      >
+                        {item.registrando ? 'Registrando…' : 'Estudei'}
+                      </button>
+                    )}
+                    <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-1 text-sm font-bold">
+                      <Bolha
+                        checked={item.concluido}
+                        aria-describedby={idTopico}
+                        onChange={(e) => aoMarcar(item.topico!.id, item.topico!.nome, e.target.checked)}
+                      />
+                      Concluí este tópico
+                    </label>
+                  </div>
                 )}
               </li>
             );
