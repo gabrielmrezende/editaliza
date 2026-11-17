@@ -236,6 +236,15 @@ body {
   animation-delay: calc(0.12s + var(--passo, 0) * 0.08s);
 }
 
+/* ── Próximo bloco: ao concluir, o bloco seguinte entra (e a grade anda) ── */
+@keyframes bloco-entrada {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.bloco-entrada {
+  animation: bloco-entrada 0.35s var(--ease-saida) both;
+}
+
 /* ── Cronômetro respirando enquanto conta ───────────────────────────── */
 @keyframes respirar {
   0%, 100% { transform: scale(1); opacity: 0.55; }
@@ -338,5 +347,8 @@ dialog[open]::backdrop {
   .grifo {
     animation: none;
     width: 45%;
+  }
+  .bloco-entrada {
+    animation: none;
   }
 }
