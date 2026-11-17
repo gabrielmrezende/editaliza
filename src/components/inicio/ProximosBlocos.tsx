@@ -57,7 +57,7 @@ export function ProximosBlocos({
               </p>
               {fila.modo === 'prazo' && (
                 <p data-topico className="line-clamp-2 leading-snug break-words text-texto">
-                  {tituloDoBloco(b, disciplina, b.topicoId)}
+                  {tituloDoBloco(b, disciplina, b.topicoId, disciplina?.nome ?? 'Matéria')}
                 </p>
               )}
             </li>

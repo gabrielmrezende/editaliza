@@ -63,6 +63,27 @@ test.describe('início', () => {
     await expect(await sessoesNoHistorico(page)).toHaveCount(1);
   });
 
+  test('passo de concluir pelo teclado não perde o foco', async ({ page }) => {
+    await criarPlano(page, { prefixo: 'inicio' });
+    const gatilho = cartao(page).getByRole('button', { name: 'Concluir bloco' });
+    await gatilho.focus();
+    await page.keyboard.press('Enter');
+    const minutos = cartao(page).getByRole('textbox', { name: 'Minutos' });
+    await expect(minutos).toBeFocused();
+
+    await cartao(page).getByRole('button', { name: 'Cancelar' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(minutos).toBeHidden();
+    await expect(gatilho).toBeFocused();
+
+    // Concluir (Enter no formulário): o foco vai para o tópico do bloco seguinte.
+    await page.keyboard.press('Enter');
+    await expect(minutos).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(cartao(page)).toContainText(/Bloco 2 de/);
+    await expect(topicoDoCartao(page)).toBeFocused();
+  });
+
   test('cronômetro no Início sobrevive a recarregar', async ({ page }) => {
     await criarPlano(page, { prefixo: 'inicio' });
     await cartao(page).getByRole('button', { name: 'Iniciar' }).click();

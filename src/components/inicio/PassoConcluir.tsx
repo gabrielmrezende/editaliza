@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Bolha } from '@/components/plano/Bolha';
 import { formatarDuracao } from '@/components/estudo/useCronometro';
 import { ESQUECIDO_SEG, minutosParaRegistro } from '@/lib/acompanhamento/cronometro';
@@ -14,6 +14,8 @@ export interface ValoresConcluir {
   minutos: number;
   acertos: number;
   erros: number;
+  /** Os minutos vieram do cronômetro (decidido ao abrir o passo, junto com os minutos). */
+  usouCronometro: boolean;
 }
 
 /** Caixa "Concluí este tópico" do bloco (a mesma do cartão). */
@@ -31,7 +33,7 @@ const inteiro = (texto: string, padrao: number): number | null => {
   return /^\d+$/.test(t) ? Number(t) : null;
 };
 
-function validar(minutos: string, acertos: string, erros: string): ValoresConcluir | string {
+function validar(minutos: string, acertos: string, erros: string): Omit<ValoresConcluir, 'usouCronometro'> | string {
   const m = inteiro(minutos, 0);
   if (m === null || m > 1440) return 'Os minutos precisam ser um número inteiro de 0 a 1440.';
   const a = inteiro(acertos, 0);
@@ -65,10 +67,14 @@ export function PassoConcluir({
   aoErro: (mensagem: string) => void;
 }) {
   const id = useId();
-  // Fixado ao abrir: o cronômetro pode seguir contando enquanto o aluno confere.
+  // Fixados ao abrir: o cronômetro pode seguir contando enquanto o aluno confere.
+  const [usouCronometro] = useState(() => segundos >= MINIMO_CRONOMETRO_SEG);
   const [minutos, setMinutos] = useState(() =>
-    String(segundos >= MINIMO_CRONOMETRO_SEG ? minutosParaRegistro(segundos) : minutosDoBloco),
+    String(usouCronometro ? minutosParaRegistro(segundos) : minutosDoBloco),
   );
+  const minutosRef = useRef<HTMLInputElement>(null);
+  // O botão "Concluir bloco" do cartão some ao abrir o passo: o foco vem para o primeiro campo.
+  useEffect(() => minutosRef.current?.focus(), []);
   const [acertos, setAcertos] = useState('');
   const [erros, setErros] = useState('');
 
@@ -76,7 +82,7 @@ export function PassoConcluir({
     if (enviando) return;
     const r = validar(minutos, acertos, erros);
     if (typeof r === 'string') aoErro(r);
-    else aoEnviar(r, avancar);
+    else aoEnviar({ ...r, usouCronometro }, avancar);
   }
 
   const campos = [
@@ -102,6 +108,7 @@ export function PassoConcluir({
             </label>
             <input
               id={`${id}-${c.chave}`}
+              ref={c.chave === 'minutos' ? minutosRef : undefined}
               type="text"
               inputMode="numeric"
               autoComplete="off"

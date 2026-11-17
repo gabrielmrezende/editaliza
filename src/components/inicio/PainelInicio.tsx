@@ -53,12 +53,19 @@ export function PainelInicio(p: PropsInicio) {
   );
   const [anuncioAjuste, setAnuncioAjuste] = useState('');
 
-  // Posição local logo depois de concluir/voltar (para a transição), até o servidor mandar a nova.
+  // Posição local logo depois de concluir/voltar (para a transição), só até o servidor responder:
+  // sai quando a posição do servidor muda e também quando o refresh termina (outra aba pode ter
+  // levado a fila de volta ao valor que esta tela já tinha, e a local ficaria presa).
   const [posicaoVista, setPosicaoVista] = useState(p.posicao);
   const [posicaoLocal, setPosicaoLocal] = useState<number | null>(null);
+  const [estavaAtualizando, setEstavaAtualizando] = useState(atualizando);
   if (p.posicao !== posicaoVista) {
     setPosicaoVista(p.posicao);
     setPosicaoLocal(null);
+  }
+  if (atualizando !== estavaAtualizando) {
+    setEstavaAtualizando(atualizando);
+    if (!atualizando) setPosicaoLocal(null);
   }
   const posicao = posicaoLocal ?? p.posicao;
 

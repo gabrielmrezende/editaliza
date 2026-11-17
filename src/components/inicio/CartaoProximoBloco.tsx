@@ -13,13 +13,18 @@ import type { DisciplinaPlano } from '@/lib/dominio/tipos';
 import { formatarMinutos } from '@/lib/formatar';
 import { blocoDaFila, rotuloDoBloco, topicoDoBloco, totalDaFila, type BlocoFila, type Fila } from '@/lib/plano/fila';
 import { concluirBlocoNaApi, voltarBlocoNaApi } from './api';
-import { MINIMO_CRONOMETRO_SEG, PassoConcluir, type ValoresConcluir } from './PassoConcluir';
+import { PassoConcluir, type ValoresConcluir } from './PassoConcluir';
 
 /** Título do bloco: o tópico, ou o que o bloco é quando não tem tópico. */
-export function tituloDoBloco(bloco: BlocoFila, disciplina: DisciplinaPlano | undefined, topicoId: string | null): string {
+export function tituloDoBloco(
+  bloco: BlocoFila,
+  disciplina: DisciplinaPlano | undefined,
+  topicoId: string | null,
+  semTopico = 'Todos os tópicos desta matéria estão concluídos.',
+): string {
   if (bloco.tipo === 'simulado') return 'Simulado';
   if (bloco.tipo === 'revisao_geral') return `Revisão geral de ${disciplina?.nome ?? 'matéria'}`;
-  return disciplina?.topicos.find((t) => t.id === topicoId)?.nome ?? 'Todos os tópicos desta matéria estão concluídos.';
+  return disciplina?.topicos.find((t) => t.id === topicoId)?.nome ?? semTopico;
 }
 
 /**
@@ -65,6 +70,13 @@ export function CartaoProximoBloco({
   const [anuncio, setAnuncio] = useState('');
   const emVoo = useRef(false); // trava síncrona: dois cliques seguidos não fazem duas requisições
   const pedidoTratado = useRef(false);
+  // Foco depois de abrir/fechar o passo ou de trocar de bloco (o botão clicado some da tela).
+  const gatilhoRef = useRef<HTMLButtonElement>(null);
+  const tituloRef = useRef<HTMLElement>(null);
+  const focoPendente = useRef<'gatilho' | 'titulo' | null>(null);
+  const guardarTitulo = (el: HTMLElement | null) => {
+    tituloRef.current = el;
+  };
 
   const bloco = blocoDaFila(fila, posicao);
   const total = totalDaFila(fila);
@@ -112,16 +124,25 @@ export function CartaoProximoBloco({
     router.replace('/app/plano', { scroll: false });
   });
 
+  useEffect(() => {
+    const alvo = focoPendente.current;
+    if (!alvo) return;
+    focoPendente.current = null;
+    (alvo === 'gatilho' ? gatilhoRef.current : tituloRef.current)?.focus();
+  });
+
   async function concluir(valores: ValoresConcluir, avancar: boolean) {
     if (emVoo.current || !bloco) return;
     emVoo.current = true;
     setEnviando(true);
     setErro(null);
     setAnuncio('');
-    const doCronometro = segundos >= MINIMO_CRONOMETRO_SEG;
+    const doCronometro = valores.usouCronometro;
     const r = await concluirBlocoNaApi(planoId, {
       posicaoEsperada: posicao,
-      ...valores,
+      minutos: valores.minutos,
+      acertos: valores.acertos,
+      erros: valores.erros,
       concluirTopico: topicoId !== null && !jaConcluido && marcado,
       avancar,
       origem: doCronometro ? 'cronometro' : 'rapido',
@@ -134,6 +155,7 @@ export function CartaoProximoBloco({
       if (doCronometro) c.limpar();
       setPassoDe(null);
       setMarca(null);
+      focoPendente.current = avancar ? 'titulo' : 'gatilho';
       aoMudarPosicao(r.posicao);
       setAnuncio(avancar ? 'Bloco concluído.' : 'Sessão salva.');
       aoAtualizar();
@@ -155,6 +177,8 @@ export function CartaoProximoBloco({
     setEnviando(false);
     if (r.ok) {
       setPassoDe(null);
+      // Na posição 0 o "Voltar" fica desabilitado e perderia o foco: vai para o título do bloco.
+      if (r.posicao === 0) focoPendente.current = 'titulo';
       aoMudarPosicao(r.posicao);
       setAnuncio('Voltou um bloco.');
       aoAtualizar();
@@ -191,14 +215,16 @@ export function CartaoProximoBloco({
 
         {filaVazia ? (
           <div className="flex flex-col items-start gap-4">
-            <p className="text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-[2rem]">Sem blocos para estudar.</p>
+            <p ref={guardarTitulo} tabIndex={-1} className="text-[1.75rem] font-semibold leading-tight tracking-tight outline-none sm:text-[2rem]">
+              Sem blocos para estudar.
+            </p>
             <Link href="/app/novo" className={botaoMint}>
               Novo plano
             </Link>
           </div>
         ) : !bloco ? (
           <div className="flex flex-col items-start gap-4">
-            <p className="text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-[2rem]">
+            <p ref={guardarTitulo} tabIndex={-1} className="text-[1.75rem] font-semibold leading-tight tracking-tight outline-none sm:text-[2rem]">
               Você chegou ao fim da fila.
             </p>
             {botaoVoltar}
@@ -213,7 +239,10 @@ export function CartaoProximoBloco({
                 <span aria-hidden>·</span>
                 <span>{rotuloDoBloco(fila, posicao)}</span>
               </p>
-              <h3 className="max-w-[32ch] text-[1.75rem] font-semibold leading-[1.15] tracking-tight text-balance break-words sm:text-[2rem]">
+              <h3
+                ref={guardarTitulo}
+                tabIndex={-1}
+                className="max-w-[32ch] outline-none text-[1.75rem] font-semibold leading-[1.15] tracking-tight text-balance break-words sm:text-[2rem]">
                 {tituloDoBloco(bloco, disciplina, topicoId)}
               </h3>
               <p className="flex items-center gap-1.5 text-na-navy-suave">
@@ -249,6 +278,7 @@ export function CartaoProximoBloco({
               {!passoAberto && (
                 <div className="flex w-full flex-wrap items-center gap-x-1 gap-y-1 sm:ml-auto sm:w-auto">
                   <button
+                    ref={gatilhoRef}
                     type="button"
                     className={`${botaoContornoNavy} grow whitespace-nowrap sm:grow-0`}
                     disabled={ocupado}
@@ -280,6 +310,7 @@ export function CartaoProximoBloco({
                 aoEnviar={(v, avancar) => void concluir(v, avancar)}
                 aoCancelar={() => {
                   setErro(null);
+                  focoPendente.current = 'gatilho';
                   setPassoDe(null);
                 }}
                 aoErro={setErro}
