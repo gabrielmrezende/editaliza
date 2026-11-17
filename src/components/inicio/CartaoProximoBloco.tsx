@@ -124,12 +124,16 @@ export function CartaoProximoBloco({
     router.replace('/app/plano', { scroll: false });
   });
 
+  // O pedido de foco só é consumido quando o alvo pode recebê-lo: o botão "Concluir bloco" fica
+  // desabilitado enquanto a tela atualiza, e `focus()` num botão desabilitado não faz nada.
   useEffect(() => {
     const alvo = focoPendente.current;
     if (!alvo) return;
+    const elemento = alvo === 'gatilho' ? gatilhoRef.current : tituloRef.current;
+    if (!elemento || (alvo === 'gatilho' && ocupado)) return;
     focoPendente.current = null;
-    (alvo === 'gatilho' ? gatilhoRef.current : tituloRef.current)?.focus();
-  });
+    elemento.focus();
+  }, [ocupado, posicao, passoAberto]);
 
   async function concluir(valores: ValoresConcluir, avancar: boolean) {
     if (emVoo.current || !bloco) return;

@@ -76,6 +76,15 @@ test.describe('início', () => {
     await expect(minutos).toBeHidden();
     await expect(gatilho).toBeFocused();
 
+    // Salvar sem concluir: depois que a tela atualiza, o foco volta para o "Concluir bloco".
+    await page.keyboard.press('Enter');
+    await expect(minutos).toBeFocused();
+    await cartao(page).getByRole('button', { name: 'Salvar sem concluir' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(cartao(page).getByRole('status')).toHaveText('Sessão salva.');
+    await expect(gatilho).toBeEnabled();
+    await expect(gatilho).toBeFocused();
+
     // Concluir (Enter no formulário): o foco vai para o tópico do bloco seguinte.
     await page.keyboard.press('Enter');
     await expect(minutos).toBeFocused();
