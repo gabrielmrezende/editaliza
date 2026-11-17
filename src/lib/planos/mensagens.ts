@@ -4,4 +4,6 @@ export const MSG_DATA_DISTANTE = 'A data da prova precisa estar nos próximos 3 
 /** Até onde a data da prova pode ir (3 anos). Limita o tamanho do plano gerado no servidor. */
 export const MAX_DIAS_ATE_PROVA = 1096;
 export const MSG_SEM_HORAS = 'Informe ao menos um dia com horas de estudo.';
+/** "Ajustar agora" antes de 60 min do último ajuste; `hora` = HH:MM em São Paulo. */
+export const msgAjusteRecente = (hora: string) => `Você ajustou há pouco. Tente de novo depois das ${hora}.`;
 export const MSG_ERRO_PLANO = 'Algo deu errado ao salvar seu plano. Tente de novo em instantes.';

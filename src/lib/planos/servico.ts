@@ -38,6 +38,16 @@ function idsUnicos(disciplinas: DisciplinaPlano[]): boolean {
   return true;
 }
 
+/**
+ * Pesos valem se o edital os informa ou se o aluno preencheu questões/pontos na revisão.
+ * Usado ao criar o plano e a cada ajuste (`conteudoCargo` null: plano sem cargo).
+ */
+export function pesosDoPlano(conteudoCargo: ConteudoCargo | null, disciplinas: DisciplinaPlano[]): boolean {
+  return (
+    conteudoCargo?.pesosInformados === true || disciplinas.some((d) => (d.questoes ?? 0) > 0 || (d.pontos ?? 0) > 0)
+  );
+}
+
 /** Limites generosos (um edital real tem dezenas de matérias e centenas de tópicos) contra abuso. */
 export const LIMITES = { disciplinas: 100, topicos: 3000, nome: 300, id: 64 };
 
@@ -100,11 +110,8 @@ export async function criarPlano(userId: string, entrada: EntradaCriarPlano, ago
     minutosPorDia: entrada.minutosPorDia,
     // O progresso do plano ativo do mesmo cargo é levado pela RPC; o plano novo já não agenda esses tópicos.
     concluidos: await concluidosDoPlanoAtivo(userId, entrada.cargoId),
-    // Pesos valem se o edital os informa ou se o aluno preencheu questões/pontos na revisão.
     // O cliente nunca manda a flag: ela é derivada aqui.
-    pesosInformados:
-      (cargo.conteudo as ConteudoCargo).pesosInformados === true ||
-      entrada.disciplinas.some((d) => (d.questoes ?? 0) > 0 || (d.pontos ?? 0) > 0),
+    pesosInformados: pesosDoPlano(cargo.conteudo as ConteudoCargo, entrada.disciplinas),
   });
 
   const { data: planoId, error } = await db.rpc('criar_plano', {
