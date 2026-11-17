@@ -58,12 +58,12 @@ export function RevisaoConteudo({
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="text-tinta-suave">
+      <p className="text-texto-suave">
         Corrija o que a leitura do edital errou: renomeie, acrescente ou remova matérias e tópicos. As mudanças valem só
         para o seu plano.
       </p>
       {!pesosInformados && (
-        <p className="rounded-md border-l-4 border-caneta bg-caneta-clara px-4 py-3">
+        <p className="rounded-linha border-l-4 border-acao bg-suave px-4 py-3">
           Este edital não informa o peso das matérias. Se souber, preencha o número de questões; senão, usaremos peso igual.
         </p>
       )}

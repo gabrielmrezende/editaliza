@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
-import { MolduraApp } from '@/components/app/MolduraApp';
+import { Carregando } from '@/components/Carregando';
+import { indicesDasMaterias } from '@/components/cores';
 import { PainelRelatorio } from '@/components/relatorio/PainelRelatorio';
 import { planoAtivoOuRedireciona, revisoesDoPlano, sessoesDoPlano } from '@/lib/acompanhamento/consultas';
 import { intervaloDoPeriodo, montarRelatorio, type Periodo } from '@/lib/acompanhamento/relatorio';
@@ -31,15 +32,13 @@ async function Conteudo({ searchParams }: { searchParams: Busca }) {
     intervalo: intervaloDoPeriodo(periodo, hoje, hojeEmSaoPaulo(new Date(plano.created_at))),
     hoje,
   });
-  return <PainelRelatorio relatorio={relatorio} periodo={periodo} />;
+  return <PainelRelatorio relatorio={relatorio} periodo={periodo} indices={indicesDasMaterias(plano.conteudo)} />;
 }
 
 export default function Pagina({ searchParams }: { searchParams: Busca }) {
   return (
-    <MolduraApp titulo="Relatório">
-      <Suspense fallback={<p role="status">Carregando…</p>}>
-        <Conteudo searchParams={searchParams} />
-      </Suspense>
-    </MolduraApp>
+    <Suspense fallback={<Carregando />}>
+      <Conteudo searchParams={searchParams} />
+    </Suspense>
   );
 }

@@ -5,6 +5,7 @@ import { dataPorExtenso, diaDaSemana, diasEntre } from '@/lib/datas';
 import type { Revisao } from '@/lib/dominio/acompanhamento';
 import type { DisciplinaPlano, PlanoGerado } from '@/lib/dominio/tipos';
 import { semana, tarefasDoDia } from '@/lib/plano/consultas';
+import { indicesDasMaterias } from '../cores';
 import { alerta } from '../estilos';
 import { Avisos } from './Avisos';
 import { Hoje, type ItemHoje } from './Hoje';
@@ -61,11 +62,13 @@ export function PainelPlano(p: Props) {
       : [],
   );
   const sessaoDoBloco = associarSessoes(rapidos, rapido.sessoes);
+  const indices = indicesDasMaterias(p.disciplinas);
   const itens: ItemHoje[] = base.map(({ bloco, chave, disciplina, topico }) => ({
     chave,
     tipo: bloco.tipo,
     disciplinaId: bloco.disciplinaId,
     disciplina: disciplina?.nome ?? 'Revisão',
+    indiceMateria: disciplina ? (indices.get(disciplina.id) ?? -1) : -1,
     topico,
     minutos: bloco.minutos,
     concluido: topico ? concluidos.has(topico.id) : false,
@@ -77,17 +80,20 @@ export function PainelPlano(p: Props) {
   const faltam = p.dataProva ? diasEntre(p.hoje, p.dataProva) : null;
   const semTempo = p.gerado.avisos.some((a) => a.tipo === 'sem_tempo');
 
+  const dataLonga = p.dataProva ? dataPorExtenso(p.dataProva, { day: 'numeric', month: 'long', year: 'numeric' }) : null;
+
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-1">
-        {p.origem && <p className="text-tinta-suave">{p.origem}</p>}
-        <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{p.titulo}</h1>
-        <p className="text-lg">
-          {p.dataProva && faltam !== null
+    <div className="flex flex-col gap-6">
+      {/* No celular o menu lateral (com o cartão do plano) não aparece: o plano se apresenta aqui. */}
+      <div className="flex flex-col gap-0.5 lg:hidden">
+        <p className="text-lg font-extrabold leading-snug tracking-tight">{p.titulo}</p>
+        <p className="text-sm text-texto-suave">
+          {p.origem && `${p.origem}. `}
+          {dataLonga && faltam !== null
             ? faltam > 0
-              ? `Prova em ${dataPorExtenso(p.dataProva, { day: 'numeric', month: 'long', year: 'numeric' })}. Faltam ${faltam} ${faltam === 1 ? 'dia' : 'dias'}.`
-              : `A prova foi em ${dataPorExtenso(p.dataProva, { day: 'numeric', month: 'long', year: 'numeric' })}.`
-            : 'Sem data de prova: você estuda em ciclo, matéria após matéria, no tempo que tem a cada dia.'}
+              ? `Prova em ${dataLonga}, faltam ${faltam} ${faltam === 1 ? 'dia' : 'dias'}.`
+              : `A prova foi em ${dataLonga}.`
+            : 'Sem data de prova: estudo em ciclo contínuo.'}
         </p>
       </div>
 
@@ -110,40 +116,37 @@ export function PainelPlano(p: Props) {
         {anuncioPainel || anuncio}
       </p>
 
-      {/* Celular: Hoje, Progresso, Semana. Tela larga: Progresso vira a coluna da direita. */}
-      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-x-10">
-        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-          <div className="flex flex-col gap-8">
-            <Hoje
-              data={p.hoje}
-              itens={itens}
-              semTempo={semTempo}
-              aoMarcar={(...args) => {
-                setAnuncioPainel('');
-                marcar(...args);
-              }}
-              aoEstudar={(item) => {
-                const r = rapidoDe(item);
-                if (r) void rapido.estudei(r);
-              }}
-              aoDesfazer={(item) => {
-                const r = rapidoDe(item);
-                if (r && item.sessaoRapidaId) void rapido.desfazer(r, item.sessaoRapidaId);
-              }}
-            />
-            <RevisoesHoje pendentes={p.revisoesPendentes} hoje={p.hoje} />
-          </div>
-        </div>
-        <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          <Progresso disciplinas={p.disciplinas} concluidos={concluidos} />
-        </div>
-        <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+      {/* Celular: Hoje, Revisões, Semana, Progresso. Tela larga: Progresso vira a coluna da direita. */}
+      <div className="grid grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_19rem] xl:gap-x-8">
+        <div className="flex min-w-0 flex-col gap-8 xl:col-start-1 xl:row-start-1">
+          <Hoje
+            data={p.hoje}
+            itens={itens}
+            semTempo={semTempo}
+            aoMarcar={(...args) => {
+              setAnuncioPainel('');
+              marcar(...args);
+            }}
+            aoEstudar={(item) => {
+              const r = rapidoDe(item);
+              if (r) void rapido.estudei(r);
+            }}
+            aoDesfazer={(item) => {
+              const r = rapidoDe(item);
+              if (r && item.sessaoRapidaId) void rapido.desfazer(r, item.sessaoRapidaId);
+            }}
+          />
+          <RevisoesHoje pendentes={p.revisoesPendentes} hoje={p.hoje} indices={indices} />
           <Semana
             hoje={p.hoje}
             dias={semana(p.gerado, p.hoje, { offsetMinutos: p.offsetCiclo, minutosPorDia: p.minutosPorDia })}
             ciclo={p.gerado.modo === 'ciclo' ? p.gerado.ciclo : null}
             nomes={porId}
+            indices={indices}
           />
+        </div>
+        <div className="min-w-0 xl:sticky xl:top-24 xl:col-start-2 xl:row-start-1">
+          <Progresso disciplinas={p.disciplinas} concluidos={concluidos} />
         </div>
       </div>
     </div>

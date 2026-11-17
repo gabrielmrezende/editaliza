@@ -1,85 +1,311 @@
 @import "tailwindcss";
 
 /*
- * Editaliza: papel frio, tinta de caneta azul (a das folhas de resposta) e um único
- * marca-texto para o que é "agora" (hoje, progresso).
+ * Editaliza — visual herdado da "Central de Estudos" (legado/index-etapa3.html):
+ * navy no menu e no cartão "Agora", rust só para a seção ativa e alertas fortes,
+ * mint para o que está feito e para a ação principal dentro do destaque.
+ * Todos os tokens em hex (o teste de contraste lê este arquivo).
  */
-/* Paleta clara: valores originais. */
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --papel: #f5f6f8;
-  --folha: #ffffff;
-  --tinta: #16213a;
-  --tinta-suave: #556079;
-  --caneta: #1f44c2;
-  --caneta-escura: #17338f;
-  --caneta-clara: #e8edfb;
-  --na-caneta: #ffffff;
-  --marca: #eef36a;
-  --na-marca: #16213a;
-  --linha: #d7dce6;
-  --erro: #b42318;
-  --erro-claro: #fdecea;
+  --fundo: #f3f4f9;
+  --superficie: #ffffff;
+  --superficie-alt: #f6f7fb;
+  --texto: #0d134c;
+  --texto-medio: #3d4870;
+  --texto-suave: #5c678c;
+  --borda: #e1e5ef;
+  --borda-forte: #c3cbdd;
+  --acao: #0d134c;
+  --acao-hover: #1a2060;
+  --na-acao: #ffffff;
+  --link: #285da0;
+  --suave: #e9ecf8;
+  --navy: #0d134c;
+  --navy-forte: #1a2060;
+  --lateral: #0d134c;
+  --na-navy: #ffffff;
+  --na-navy-suave: #b4bbdf;
+  --rust: #c8102e;
+  --rust-forte: #a50e25;
+  --na-rust: #ffffff;
+  --rust-texto: #c8102e;
+  --rust-claro: #fdecee;
+  --mint: #afe8d0;
+  --mint-forte: #7dcfb0;
+  --na-mint: #0d134c;
+  --ok: #15803d;
+  --ok-claro: #dcfce7;
+  --aviso: #b45309;
+  --aviso-claro: #fef3c7;
+  --erro: #b91c1c;
+  --erro-claro: #fee2e2;
+  --foco: #306ac9;
+  /* contorno das bolinhas de matéria (cores claras no claro, escuras no escuro) */
+  --anel-bolinha: rgba(13, 19, 76, 0.28);
+  --sombra-cartao: 0 1px 2px rgba(13, 19, 76, 0.06);
+  --sombra-destaque: 0 14px 40px -12px rgba(13, 19, 76, 0.45);
 }
 
-/* Paleta escura (a classe data-theme vem do script de pré-pintura / do botão). */
 [data-theme="dark"] {
   color-scheme: dark;
-  --papel: #0f1420;
-  --folha: #171e2e;
-  --tinta: #e6e9f0;
-  --tinta-suave: #a3acc2;
-  --caneta: #8aa4ff;
-  --caneta-escura: #b3c4ff;
-  --caneta-clara: #1d2a52;
-  --na-caneta: #0f1420;
-  --marca: #e3e85a;
-  --na-marca: #0f1420;
-  --linha: #2f3a55;
-  --erro: #ff8a80;
+  --fundo: #0b0f22;
+  --superficie: #141a36;
+  --superficie-alt: #1a2144;
+  --texto: #e8ebf7;
+  --texto-medio: #b9c0dd;
+  --texto-suave: #8f98bf;
+  --borda: #283160;
+  --borda-forte: #3a4578;
+  --acao: #3446b8;
+  --acao-hover: #4256d0;
+  --na-acao: #ffffff;
+  --link: #93b4f5;
+  --suave: #1e2650;
+  --navy: #1b2366;
+  --navy-forte: #26307d;
+  --lateral: #090d27;
+  --na-navy: #ffffff;
+  --na-navy-suave: #b4bbdf;
+  --rust: #c8102e;
+  --rust-forte: #a50e25;
+  --na-rust: #ffffff;
+  --rust-texto: #ff8a9b;
+  --rust-claro: #3a1622;
+  --mint: #afe8d0;
+  --mint-forte: #7dcfb0;
+  --na-mint: #0d134c;
+  --ok: #4ade80;
+  --ok-claro: #12301f;
+  --aviso: #fbbf24;
+  --aviso-claro: #33280d;
+  --erro: #fca5a5;
   --erro-claro: #3a1d1d;
+  --foco: #93b4f5;
+  --anel-bolinha: rgba(255, 255, 255, 0.4);
+  --sombra-cartao: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --sombra-destaque: 0 18px 44px -14px rgba(0, 0, 0, 0.7);
 }
 
 @theme inline {
-  --color-background: var(--papel);
-  --color-foreground: var(--tinta);
-  --color-papel: var(--papel);
-  --color-folha: var(--folha);
-  --color-tinta: var(--tinta);
-  --color-tinta-suave: var(--tinta-suave);
-  --color-caneta: var(--caneta);
-  --color-caneta-escura: var(--caneta-escura);
-  --color-caneta-clara: var(--caneta-clara);
-  --color-na-caneta: var(--na-caneta);
-  --color-marca: var(--marca);
-  --color-na-marca: var(--na-marca);
-  --color-linha: var(--linha);
+  --color-fundo: var(--fundo);
+  --color-superficie: var(--superficie);
+  --color-superficie-alt: var(--superficie-alt);
+  --color-texto: var(--texto);
+  --color-texto-medio: var(--texto-medio);
+  --color-texto-suave: var(--texto-suave);
+  --color-borda: var(--borda);
+  --color-borda-forte: var(--borda-forte);
+  --color-acao: var(--acao);
+  --color-acao-hover: var(--acao-hover);
+  --color-na-acao: var(--na-acao);
+  --color-link: var(--link);
+  --color-suave: var(--suave);
+  --color-navy: var(--navy);
+  --color-navy-forte: var(--navy-forte);
+  --color-lateral: var(--lateral);
+  --color-na-navy: var(--na-navy);
+  --color-na-navy-suave: var(--na-navy-suave);
+  --color-rust: var(--rust);
+  --color-rust-forte: var(--rust-forte);
+  --color-na-rust: var(--na-rust);
+  --color-rust-texto: var(--rust-texto);
+  --color-rust-claro: var(--rust-claro);
+  --color-mint: var(--mint);
+  --color-mint-forte: var(--mint-forte);
+  --color-na-mint: var(--na-mint);
+  --color-ok: var(--ok);
+  --color-ok-claro: var(--ok-claro);
+  --color-aviso: var(--aviso);
+  --color-aviso-claro: var(--aviso-claro);
   --color-erro: var(--erro);
   --color-erro-claro: var(--erro-claro);
-  --font-sans: var(--font-atkinson);
-  --font-mono: var(--font-geist-mono);
+  --color-foco: var(--foco);
+  --font-sans: var(--font-jakarta);
+  /* raios por hierarquia: destaque > cartão > linha */
+  --radius-destaque: 20px;
+  --radius-cartao: 14px;
+  --radius-linha: 10px;
+  --shadow-cartao: var(--sombra-cartao);
+  --shadow-destaque: var(--sombra-destaque);
+  --ease-saida: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--papel);
-  color: var(--tinta);
-  font-family: var(--font-atkinson), system-ui, sans-serif;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: var(--font-jakarta), system-ui, -apple-system, "Segoe UI", sans-serif;
   font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
 
 :focus-visible {
-  outline: 3px solid var(--caneta);
+  outline: 3px solid var(--foco);
   outline-offset: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-  }
+::selection {
+  background: var(--mint);
+  color: var(--na-mint);
+}
+
+/* ── Bolinha da matéria ─────────────────────────────────────────────── */
+.bolinha {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--cor-materia, var(--borda-forte));
+  box-shadow: 0 0 0 1.5px var(--anel-bolinha);
+}
+.sobre-navy {
+  --anel-bolinha: rgba(255, 255, 255, 0.55);
+}
+
+/* ── Bolha de marcar (folha de respostas) ───────────────────────────── */
+.bolha {
+  appearance: none;
+  display: inline-grid;
+  place-content: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 2px solid var(--borda-forte);
+  background: var(--superficie);
+  cursor: pointer;
+  transition:
+    background-color 0.18s var(--ease-saida),
+    border-color 0.18s var(--ease-saida);
+}
+.bolha::after {
+  content: "";
+  width: 0.75rem;
+  height: 0.75rem;
+  background: var(--na-mint);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  transform: scale(0);
+  transition: transform 0.2s var(--ease-saida);
+}
+.bolha:hover {
+  border-color: var(--texto-suave);
+}
+.bolha:checked {
+  background: var(--mint);
+  border-color: var(--mint-forte);
+  animation: encher 0.32s var(--ease-saida);
+}
+.bolha:checked::after {
+  transform: scale(1);
+}
+.sobre-navy .bolha {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.55);
+}
+.sobre-navy .bolha:checked {
+  background: var(--mint);
+  border-color: var(--mint);
+}
+@keyframes encher {
+  0% { transform: scale(0.82); }
+  55% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* ── Cartão "Agora": entrada orquestrada, uma vez ───────────────────── */
+@keyframes agora-cartao {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes agora-item {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.agora-entrada {
+  animation: agora-cartao 0.5s var(--ease-saida) both;
+}
+.agora-entrada [data-passo] {
+  animation: agora-item 0.45s var(--ease-saida) both;
+  animation-delay: calc(0.12s + var(--passo, 0) * 0.08s);
+}
+
+/* ── Cronômetro respirando enquanto conta ───────────────────────────── */
+@keyframes respirar {
+  0%, 100% { transform: scale(1); opacity: 0.55; }
+  50% { transform: scale(1.035); opacity: 1; }
+}
+@keyframes respirar-digitos {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.86; }
+}
+.relogio-anel {
+  position: relative;
+}
+.relogio-anel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid var(--mint);
+  opacity: 0;
+  pointer-events: none;
+}
+.relogio-anel[data-rodando="true"]::before {
+  animation: respirar 2.6s ease-in-out infinite;
+}
+.relogio-anel[data-rodando="true"] [role="timer"] {
+  animation: respirar-digitos 2.6s ease-in-out infinite;
+}
+
+/* ── Check desenhado ("Registrado", "Sessão registrada") ────────────── */
+@keyframes desenhar {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes surgir {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: none; }
+}
+.check-animado {
+  animation: surgir 0.25s var(--ease-saida) both;
+}
+.check-animado path {
+  stroke-dasharray: 24;
+  animation: desenhar 0.4s 0.1s var(--ease-saida) both;
+}
+
+/* ── Diálogos: fade + scale ─────────────────────────────────────────── */
+@keyframes dialogo-abrir {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fundo-abrir {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+dialog[open] {
+  animation: dialogo-abrir 0.22s var(--ease-saida);
+}
+dialog[open]::backdrop {
+  background: rgba(9, 13, 39, 0.55);
+  animation: fundo-abrir 0.22s ease-out;
+}
+
+/* ── Barras de progresso crescem quando mudam ───────────────────────── */
+.barra {
+  transition: width 0.6s var(--ease-saida);
+}
+
+/* ── Indicador que desliza entre as seções ──────────────────────────── */
+.indicador {
+  transition: transform 0.32s var(--ease-saida);
 }
 
 /* Marca-texto que percorre as linhas enquanto o edital é lido. */
@@ -92,6 +318,25 @@ body {
   width: 0;
   animation: grifar 1.8s ease-in-out infinite;
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .grifo { animation: none; width: 45%; }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+  }
+  .relogio-anel[data-rodando="true"]::before {
+    animation: none;
+    opacity: 1;
+  }
+  .relogio-anel[data-rodando="true"] [role="timer"] {
+    animation: none;
+  }
+  .grifo {
+    animation: none;
+    width: 45%;
+  }
 }

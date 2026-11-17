@@ -3,12 +3,20 @@
 import { useId } from 'react';
 import { MINUTOS_POR_REVISAO, agruparAgenda } from '@/lib/acompanhamento/revisoes';
 import type { Revisao } from '@/lib/dominio/acompanhamento';
-import { alerta } from '../estilos';
+import { alerta, listaLinhas } from '../estilos';
 import { ItemRevisao } from '../revisoes/ItemRevisao';
 import { useRevisoes } from '../revisoes/useRevisoes';
 
 /** Revisões que vencem hoje e as atrasadas (atrasadas primeiro); não consomem os minutos do plano. */
-export function RevisoesHoje({ pendentes, hoje }: { pendentes: Revisao[]; hoje: string }) {
+export function RevisoesHoje({
+  pendentes,
+  hoje,
+  indices,
+}: {
+  pendentes: Revisao[];
+  hoje: string;
+  indices: Map<string, number>;
+}) {
   const id = useId();
   const { revisoes, concluir, erro, anuncio } = useRevisoes(pendentes);
   // Concluídas agora continuam na lista (marcadas) até recarregar, para poder desfazer.
@@ -22,10 +30,10 @@ export function RevisoesHoje({ pendentes, hoje }: { pendentes: Revisao[]; hoje: 
   return (
     <section aria-labelledby={`${id}-titulo`} className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 id={`${id}-titulo`} className="text-2xl font-bold tracking-tight">
+        <h2 id={`${id}-titulo`} className="text-xl font-extrabold tracking-tight">
           Revisões de hoje
         </h2>
-        <p className="text-tinta-suave">≈ {minutos} min de revisão</p>
+        <p className="text-sm font-medium text-texto-suave">≈ {minutos} min de revisão</p>
       </div>
       {erro && (
         <p role="alert" className={alerta}>
@@ -35,9 +43,9 @@ export function RevisoesHoje({ pendentes, hoje }: { pendentes: Revisao[]; hoje: 
       <p role="status" className="sr-only">
         {anuncio}
       </p>
-      <ul className="flex flex-col divide-y divide-linha rounded-xl border border-linha bg-folha">
+      <ul className={listaLinhas}>
         {itens.map((r) => (
-          <ItemRevisao key={r.id} revisao={r} hoje={hoje} mostrarMateria aoConcluir={concluir} />
+          <ItemRevisao key={r.id} revisao={r} hoje={hoje} indiceMateria={indices.get(r.disciplinaId)} mostrarMateria aoConcluir={concluir} />
         ))}
       </ul>
     </section>

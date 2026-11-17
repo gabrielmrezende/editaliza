@@ -4,7 +4,8 @@ import { useId, useState } from 'react';
 import { agruparAgenda } from '@/lib/acompanhamento/revisoes';
 import type { Revisao } from '@/lib/dominio/acompanhamento';
 import { Confirmacao } from '../Dialogo';
-import { alerta } from '../estilos';
+import { estiloMateria } from '../cores';
+import { alerta, listaLinhas, vazio } from '../estilos';
 import { ItemRevisao } from './ItemRevisao';
 import { useRevisoes } from './useRevisoes';
 
@@ -16,7 +17,16 @@ function porMateria(revisoes: Revisao[]): [string, Revisao[]][] {
 }
 
 /** Agenda de revisões: atrasadas, hoje, esta semana, próximas e concluídas. */
-export function Agenda({ revisoes: iniciais, hoje }: { revisoes: Revisao[]; hoje: string }) {
+export function Agenda({
+  revisoes: iniciais,
+  hoje,
+  indices,
+}: {
+  revisoes: Revisao[];
+  hoje: string;
+  /** Matéria do plano ativo → posição (cor da bolinha). */
+  indices: Map<string, number>;
+}) {
   const id = useId();
   const { revisoes, concluir, excluir, erro, anuncio } = useRevisoes(iniciais);
   const [aExcluir, setAExcluir] = useState<Revisao | null>(null);
@@ -30,7 +40,7 @@ export function Agenda({ revisoes: iniciais, hoje }: { revisoes: Revisao[]; hoje
   ].filter((g) => g.itens.length > 0);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex max-w-3xl flex-col gap-9">
       {erro && (
         <p role="alert" className={alerta}>
           {erro}
@@ -41,25 +51,47 @@ export function Agenda({ revisoes: iniciais, hoje }: { revisoes: Revisao[]; hoje
       </p>
 
       {grupos.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-linha bg-folha px-5 py-6">
+        <p className={vazio}>
           Nenhuma revisão agendada. Elas aparecem quando você registra estudo de um tópico.
         </p>
       ) : (
         grupos.map((g) => (
-          <section key={g.chave} aria-labelledby={`${id}-${g.chave}`} className="flex flex-col gap-3">
-            <h2 id={`${id}-${g.chave}`} className="text-2xl font-bold tracking-tight">
-              {g.titulo} ({g.itens.length})
+          <section key={g.chave} aria-labelledby={`${id}-${g.chave}`} className="flex flex-col gap-4">
+            <h2 id={`${id}-${g.chave}`} className="flex items-baseline gap-2.5 text-xl font-extrabold tracking-tight">
+              {g.titulo}
+              <span
+                aria-hidden
+                className={`rounded-full px-2.5 py-0.5 text-sm font-bold ${
+                  g.chave === 'atrasadas' ? 'bg-rust-claro text-rust-texto' : 'bg-suave text-texto-medio'
+                }`}
+              >
+                {g.itens.length}
+              </span>
+              <span className="sr-only"> ({g.itens.length})</span>
             </h2>
-            {porMateria(g.itens).map(([materia, itens]) => (
-              <div key={materia} className="flex flex-col gap-1">
-                <h3 className="text-sm font-bold text-caneta">{materia}</h3>
-                <ul className="flex flex-col divide-y divide-linha rounded-xl border border-linha bg-folha">
-                  {itens.map((r) => (
-                    <ItemRevisao key={r.id} revisao={r} hoje={hoje} aoConcluir={concluir} aoExcluir={setAExcluir} />
-                  ))}
-                </ul>
-              </div>
-            ))}
+            {porMateria(g.itens).map(([materia, itens]) => {
+              const indice = indices.get(itens[0].disciplinaId);
+              return (
+                <div key={materia} className="flex flex-col gap-2" style={indice !== undefined ? estiloMateria(indice) : undefined}>
+                  <h3 className="flex items-center gap-2 text-sm font-bold text-texto-medio">
+                    <span aria-hidden className="bolinha" />
+                    {materia}
+                  </h3>
+                  <ul className={listaLinhas}>
+                    {itens.map((r) => (
+                      <ItemRevisao
+                        key={r.id}
+                        revisao={r}
+                        hoje={hoje}
+                        indiceMateria={indice}
+                        aoConcluir={concluir}
+                        aoExcluir={setAExcluir}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </section>
         ))
       )}

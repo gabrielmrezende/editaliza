@@ -97,13 +97,13 @@ export function FluxoNovo() {
   return (
     <div className="flex flex-col gap-6">
       <nav aria-label="Etapas" className="flex flex-col gap-2">
-        <p className="text-sm text-tinta-suave">
+        <p className="text-sm text-texto-suave">
           Etapa {indice + 1} de {ETAPAS.length}
         </p>
         <ol className="grid grid-cols-6 gap-1.5">
           {ETAPAS.map((e, i) => (
             <li key={e.chave} aria-current={i === indice ? 'step' : undefined}>
-              <span className={`block h-1.5 rounded-full ${i <= indice ? 'bg-caneta' : 'bg-linha'}`} />
+              <span className={`block h-1.5 rounded-full ${i <= indice ? 'bg-acao' : 'bg-borda'}`} />
               <span className="sr-only">
                 {e.titulo}
                 {i < indice ? ' (feita)' : ''}

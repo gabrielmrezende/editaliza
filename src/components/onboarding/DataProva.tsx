@@ -59,7 +59,7 @@ export function DataProva({
           onChange={(e) => mudar({ data: e.target.value, semData })}
           className={`${campo} max-w-56 disabled:opacity-50`}
         />
-        <p id="data-ajuda" className="text-sm text-tinta-suave">
+        <p id="data-ajuda" className="text-sm text-texto-suave">
           {semData
             ? 'Sem data, montamos um ciclo contínuo de matérias. Você atualiza quando a data sair.'
             : faltam !== null
@@ -75,7 +75,7 @@ export function DataProva({
           type="checkbox"
           checked={semData}
           onChange={(e) => mudar({ data, semData: e.target.checked })}
-          className="h-5 w-5 accent-caneta"
+          className="h-5 w-5 accent-acao"
         />
         A data ainda não saiu
       </label>

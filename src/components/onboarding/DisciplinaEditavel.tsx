@@ -4,7 +4,7 @@ import type { Disciplina } from '@/lib/dominio/tipos';
 import { campo } from '../estilos';
 
 const botaoRemover =
-  'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-tinta-suave transition-colors hover:bg-erro-claro hover:text-erro';
+  'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-linha text-texto-suave transition-colors hover:bg-erro-claro hover:text-erro';
 
 function Xis() {
   return (
@@ -40,10 +40,10 @@ export function DisciplinaEditavel({
   };
 
   return (
-    <section aria-label={`Matéria ${nome}`} className="rounded-xl border border-linha bg-folha">
-      <div className="flex items-end gap-2 border-b border-linha p-4 sm:gap-3">
+    <section aria-label={`Matéria ${nome}`} className="rounded-cartao border border-borda bg-superficie">
+      <div className="flex items-end gap-2 border-b border-borda p-4 sm:gap-3">
         <label className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-sm text-tinta-suave">Matéria</span>
+          <span className="text-sm text-texto-suave">Matéria</span>
           <input
             ref={focar(d.id)}
             aria-label="Nome da matéria"
@@ -53,7 +53,7 @@ export function DisciplinaEditavel({
           />
         </label>
         <label className="flex w-20 flex-col gap-1 sm:w-24">
-          <span className="text-sm text-tinta-suave">Questões</span>
+          <span className="text-sm text-texto-suave">Questões</span>
           <input
             type="number"
             min={0}
@@ -72,12 +72,12 @@ export function DisciplinaEditavel({
       </div>
 
       {d.topicos.length === 0 ? (
-        <p className="px-4 pt-3 text-sm text-tinta-suave">Sem tópicos: esta matéria fica fora do plano.</p>
+        <p className="px-4 pt-3 text-sm text-texto-suave">Sem tópicos: esta matéria fica fora do plano.</p>
       ) : (
         <ol className="flex flex-col gap-1 px-2 pt-3 sm:px-4">
           {d.topicos.map((t, j) => (
             <li key={t.id} className="flex items-start gap-1 sm:gap-2">
-              <span aria-hidden className="w-6 shrink-0 pt-2.5 text-right text-sm text-tinta-suave">
+              <span aria-hidden className="w-6 shrink-0 pt-2.5 text-right text-sm text-texto-suave">
                 {j + 1}
               </span>
               <textarea
@@ -90,7 +90,7 @@ export function DisciplinaEditavel({
                   const texto = e.target.value.replace(/\s*\n\s*/g, ' ');
                   aoMudar({ ...d, topicos: d.topicos.map((x) => (x.id === t.id ? { ...x, nome: texto } : x)) });
                 }}
-                className={`${campo} resize-none border-transparent bg-transparent leading-snug [field-sizing:content] hover:border-linha`}
+                className={`${campo} resize-none border-transparent bg-transparent leading-snug [field-sizing:content] hover:border-borda`}
               />
               <button
                 type="button"
@@ -106,7 +106,7 @@ export function DisciplinaEditavel({
         </ol>
       )}
       <div className="px-4 pb-2 pt-1">
-        <button type="button" onClick={aoAdicionarTopico} className="min-h-11 text-sm font-bold text-caneta underline-offset-4 hover:underline">
+        <button type="button" onClick={aoAdicionarTopico} className="min-h-11 text-sm font-bold text-link underline-offset-4 hover:underline">
           Adicionar tópico
         </button>
       </div>

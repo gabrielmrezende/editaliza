@@ -13,7 +13,7 @@ export function Navegacao({
   ocupado?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-linha pt-5">
+    <div className="flex items-center justify-between gap-3 border-t border-borda pt-5">
       <button type="button" onClick={aoVoltar} className={botaoSecundario} disabled={ocupado}>
         Voltar
       </button>

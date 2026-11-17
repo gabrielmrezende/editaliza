@@ -1,7 +1,8 @@
 'use client';
 
 import { useId, useState, useSyncExternalStore } from 'react';
-import { alerta, botaoPrimario, campo, rotulo } from '@/components/estilos';
+import { CheckAnimado } from '@/components/CheckAnimado';
+import { alerta, botaoPrimario, campo, cartao, rotulo } from '@/components/estilos';
 import { hojeEmSaoPaulo } from '@/lib/datas';
 import { INTERVALOS_REVISAO } from '@/lib/dominio/acompanhamento';
 import type { DisciplinaPlano } from '@/lib/dominio/tipos';
@@ -120,15 +121,15 @@ export function RegistroRapido({
   }
 
   return (
-    <section aria-labelledby={`${id}-titulo`} className="flex flex-col gap-4 rounded-xl border border-linha bg-folha p-4 sm:p-5">
+    <section aria-labelledby={`${id}-titulo`} className={`${cartao} flex flex-col gap-4 p-4 sm:p-6`}>
       <div>
-        <h2 id={`${id}-titulo`} className="text-xl font-bold tracking-tight">
+        <h2 id={`${id}-titulo`} className="text-xl font-extrabold tracking-tight">
           Registro rápido
         </h2>
-        <p className="text-sm text-tinta-suave">Já estudou? Registre só o tempo; as revisões entram no padrão.</p>
+        <p className="text-sm text-texto-suave">Já estudou? Registre só o tempo; as revisões entram no padrão.</p>
       </div>
       <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
-        <div className="grid gap-4 sm:grid-cols-[1fr_1fr_8rem]">
+        <div className="grid gap-4">
           <div className="flex flex-col gap-1">
             <label htmlFor={`${id}-disciplina`} className={rotulo}>
               Matéria
@@ -196,7 +197,8 @@ export function RegistroRapido({
             {salvando ? 'Registrando…' : 'Registrar'}
           </button>
         </div>
-        <p role="status" className="font-bold text-caneta">
+        <p role="status" className="flex items-center gap-2 text-sm font-bold text-ok">
+          {anuncio && <CheckAnimado />}
           {anuncio}
         </p>
       </form>

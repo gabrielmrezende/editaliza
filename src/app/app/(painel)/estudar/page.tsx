@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { MolduraApp } from '@/components/app/MolduraApp';
+import { Carregando } from '@/components/Carregando';
 import { Cronometro, type PedidoInicio } from '@/components/estudo/Cronometro';
 import { RegistroManual } from '@/components/estudo/FormularioSessao';
 import { RegistroRapido } from '@/components/estudo/RegistroRapido';
@@ -26,14 +26,16 @@ async function Conteudo({ searchParams }: { searchParams: Busca }) {
   const hoje = hojeEmSaoPaulo();
   const disciplinas = plano.conteudo;
   return (
-    <div className="flex flex-col gap-6">
-      <Cronometro
-        userId={usuario.id}
-        planoId={plano.id}
-        hoje={hoje}
-        disciplinas={disciplinas}
-        pedido={lerPedido(busca, disciplinas)}
-      />
+    <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">
+      <div className="xl:col-span-2">
+        <Cronometro
+          userId={usuario.id}
+          planoId={plano.id}
+          hoje={hoje}
+          disciplinas={disciplinas}
+          pedido={lerPedido(busca, disciplinas)}
+        />
+      </div>
       <RegistroManual planoId={plano.id} disciplinas={disciplinas} hoje={hoje} />
       <RegistroRapido userId={usuario.id} planoId={plano.id} disciplinas={disciplinas} />
     </div>
@@ -42,10 +44,8 @@ async function Conteudo({ searchParams }: { searchParams: Busca }) {
 
 export default function Pagina({ searchParams }: { searchParams: Busca }) {
   return (
-    <MolduraApp titulo="Estudar">
-      <Suspense fallback={<p role="status">Carregando…</p>}>
-        <Conteudo searchParams={searchParams} />
-      </Suspense>
-    </MolduraApp>
+    <Suspense fallback={<Carregando />}>
+      <Conteudo searchParams={searchParams} />
+    </Suspense>
   );
 }

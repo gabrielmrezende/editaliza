@@ -104,7 +104,7 @@ export function EscolhaCargo({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-tinta-suave">
+      <p className="text-texto-suave">
         {edital.cargos.length === 1 ? 'Encontramos 1 cargo' : `Encontramos ${edital.cargos.length} cargos`}
         {origem && ` no edital de ${origem}`}.
       </p>
@@ -114,16 +114,16 @@ export function EscolhaCargo({
             <button
               type="button"
               onClick={() => escolher(c)}
-              className="group flex w-full items-center gap-4 rounded-xl border border-linha bg-folha px-4 py-4 text-left text-lg font-bold transition-colors hover:border-caneta"
+              className="group flex w-full items-center gap-4 rounded-cartao border border-borda bg-superficie px-4 py-4 text-left text-lg font-bold transition-colors hover:border-acao"
             >
-              <span aria-hidden className="h-4 w-6 shrink-0 rounded-full border-2 border-tinta-suave transition-colors group-hover:border-caneta group-hover:bg-caneta" />
+              <span aria-hidden className="h-4 w-6 shrink-0 rounded-full border-2 border-borda-forte transition-colors group-hover:border-acao group-hover:bg-acao" />
               {c.nome}
             </button>
           </li>
         ))}
       </ul>
       <div>
-        <button type="button" className="text-sm font-bold text-caneta underline-offset-4 hover:underline" onClick={aoTrocarArquivo}>
+        <button type="button" className="text-sm font-bold text-link underline-offset-4 hover:underline" onClick={aoTrocarArquivo}>
           Enviar outro arquivo
         </button>
       </div>

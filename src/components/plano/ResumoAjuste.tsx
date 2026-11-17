@@ -2,6 +2,7 @@
 
 import { useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { RefreshCw, Sparkles } from 'lucide-react';
 import { pedir } from '@/components/onboarding/api';
 import { dataPorExtenso } from '@/lib/datas';
 import type { ItemResumo } from '@/lib/plano/ajuste';
@@ -74,12 +75,13 @@ export function ResumoAjuste({
       {visivel && (
         <section
           aria-labelledby={`${id}-titulo`}
-          className="flex flex-col gap-3 rounded-xl border border-caneta bg-caneta-clara p-4 sm:p-5"
+          className="flex flex-col gap-3 rounded-cartao border border-borda border-l-4 border-l-mint-forte bg-superficie p-4 shadow-cartao sm:p-5"
         >
-          <h2 id={`${id}-titulo`} className="text-xl font-bold tracking-tight">
+          <h2 id={`${id}-titulo`} className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
+            <Sparkles aria-hidden className="size-[18px] text-texto-suave" />
             Seu plano foi ajustado
           </h2>
-          <ul className="flex list-disc flex-col gap-1 pl-5">
+          <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-texto-medio marker:text-mint-forte">
             {ajuste.resumo.map((item, i) => (
               <li key={i}>{textoDoResumo(item)}</li>
             ))}
@@ -91,9 +93,14 @@ export function ResumoAjuste({
           </div>
         </section>
       )}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        {ultimoAjuste && <p className="text-tinta-suave">Último ajuste em {dataCurta(ultimoAjuste)}.</p>}
-        <button type="button" className={botaoTexto} disabled={ajustando} onClick={ajustar}>
+      <div className="flex items-center gap-x-2 rounded-linha border border-borda bg-superficie-alt py-0.5 pl-3 pr-1 text-sm">
+        <RefreshCw aria-hidden className={`size-4 shrink-0 text-texto-suave ${ajustando ? 'animate-spin' : ''}`} />
+        {ultimoAjuste ? (
+          <p className="min-w-0 flex-1 py-2 leading-snug text-texto-suave">Último ajuste em {dataCurta(ultimoAjuste)}.</p>
+        ) : (
+          <p className="min-w-0 flex-1 py-2 leading-snug text-texto-suave">O plano se ajusta toda semana ao que você estudou.</p>
+        )}
+        <button type="button" className={`${botaoTexto} shrink-0`} disabled={ajustando} onClick={ajustar}>
           {ajustando ? 'Ajustando…' : 'Ajustar agora'}
         </button>
       </div>

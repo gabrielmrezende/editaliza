@@ -45,14 +45,14 @@ export function Disponibilidade({
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="text-tinta-suave">Quantas horas você consegue estudar em cada dia? Use 1,5 para uma hora e meia.</p>
+      <p className="text-texto-suave">Quantas horas você consegue estudar em cada dia? Use 1,5 para uma hora e meia.</p>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
         {DIAS.map((d) => {
           const invalido = minutos[d.indice] === null;
           return (
             <label
               key={d.indice}
-              className="flex items-center justify-between gap-3 rounded-lg border border-linha bg-folha px-4 py-2 sm:flex-col sm:items-stretch sm:px-2 sm:py-3"
+              className="flex items-center justify-between gap-3 rounded-linha border border-borda bg-superficie px-4 py-2 sm:flex-col sm:items-stretch sm:px-2 sm:py-3"
             >
               <span className="font-bold sm:text-center sm:text-sm">{d.nome}</span>
               <span className="flex items-baseline gap-1 sm:justify-center">
@@ -66,11 +66,11 @@ export function Disponibilidade({
                     setErro(null);
                     aoMudar(horas.map((h, i) => (i === d.indice ? e.target.value : h)));
                   }}
-                  className={`w-16 rounded-md border bg-folha px-2 py-2 text-center text-lg font-bold focus:border-caneta focus:outline-none sm:w-full ${
-                    invalido ? 'border-erro' : 'border-linha'
+                  className={`w-16 rounded-linha border bg-superficie px-2 py-2 text-center text-lg font-bold focus:border-acao focus:outline-none sm:w-full ${
+                    invalido ? 'border-erro' : 'border-borda'
                   }`}
                 />
-                <span aria-hidden className="text-tinta-suave">
+                <span aria-hidden className="text-texto-suave">
                   h
                 </span>
               </span>

@@ -36,11 +36,11 @@ export function Dialogo({
         e.preventDefault();
         aoFechar();
       }}
-      className={`m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border border-linha bg-folha p-5 text-tinta backdrop:bg-black/50 ${
+      className={`m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto rounded-destaque border border-borda bg-superficie p-5 text-texto shadow-[0_24px_64px_-12px_rgba(9,13,39,0.45)] sm:p-6 ${
         largo ? 'max-w-2xl' : 'max-w-md'
       }`}
     >
-      <h2 id={`${id}-titulo`} className="text-xl font-bold">
+      <h2 id={`${id}-titulo`} className="text-xl font-extrabold tracking-tight">
         {titulo}
       </h2>
       {aberto && children}
@@ -68,7 +68,7 @@ export function Confirmacao({
 }) {
   return (
     <Dialogo aberto={aberto} titulo={titulo} aoFechar={aoCancelar}>
-      <div className="mt-2 text-tinta-suave">{children}</div>
+      <div className="mt-2 text-sm leading-relaxed text-texto-medio">{children}</div>
       <div className="mt-5 flex flex-wrap justify-end gap-3">
         <button type="button" className={botaoSecundario} onClick={aoCancelar}>
           {cancelar}

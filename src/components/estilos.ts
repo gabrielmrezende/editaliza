@@ -1,11 +1,19 @@
-/** Classes compartilhadas (Tailwind) para manter botões e campos iguais em todas as telas. */
+/** Classes compartilhadas (Tailwind) para manter botões, campos e superfícies iguais em todas as telas. */
 export const botaoPrimario =
-  'inline-flex min-h-11 items-center justify-center rounded-lg bg-caneta px-5 py-2.5 font-bold text-na-caneta transition-colors hover:bg-caneta-escura disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-linha bg-acao px-5 py-2.5 text-sm font-bold text-na-acao transition-colors hover:bg-acao-hover disabled:cursor-not-allowed disabled:opacity-60';
 export const botaoSecundario =
-  'inline-flex min-h-11 items-center justify-center rounded-lg border border-linha bg-folha px-4 py-2.5 font-bold text-tinta transition-colors hover:border-tinta-suave disabled:opacity-60';
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-linha border border-borda bg-superficie px-4 py-2.5 text-sm font-bold text-texto-medio transition-colors hover:border-texto-suave hover:text-texto disabled:cursor-not-allowed disabled:opacity-60';
 export const botaoTexto =
-  'inline-flex min-h-11 items-center rounded-md px-2 font-bold text-caneta underline-offset-4 hover:underline';
+  'inline-flex min-h-11 items-center gap-1.5 rounded-linha px-2 text-sm font-bold text-link underline-offset-4 hover:underline disabled:opacity-60';
 export const campo =
-  'w-full rounded-md border border-linha bg-folha px-3 py-2 text-tinta placeholder:text-tinta-suave/70 focus:border-caneta focus:outline-none focus-visible:outline-3 focus-visible:outline-caneta/30';
-export const rotulo = 'text-sm font-bold text-tinta';
-export const alerta = 'rounded-md border-l-4 border-erro bg-erro-claro px-4 py-3 text-erro';
+  'w-full min-w-0 rounded-linha border border-borda bg-superficie-alt px-3 py-2 text-texto placeholder:text-texto-suave transition-colors hover:border-borda-forte focus:border-link focus:bg-superficie disabled:cursor-not-allowed disabled:opacity-70';
+export const rotulo = 'text-sm font-bold text-texto-medio';
+export const alerta = 'rounded-linha border-l-4 border-erro bg-erro-claro px-4 py-3 text-sm font-semibold text-erro';
+/** Superfície calma (cartão comum): branca, borda fina, raio de cartão. */
+export const cartao = 'rounded-cartao border border-borda bg-superficie shadow-cartao';
+/** Título de seção dentro das telas. */
+export const tituloSecao = 'text-lg font-extrabold tracking-tight text-texto';
+/** Lista em linhas dentro de um cartão. */
+export const listaLinhas = 'flex flex-col divide-y divide-borda rounded-cartao border border-borda bg-superficie shadow-cartao';
+/** Estado vazio: convite a agir. */
+export const vazio = 'rounded-cartao border border-dashed border-borda-forte bg-superficie px-5 py-6 text-texto-medio';

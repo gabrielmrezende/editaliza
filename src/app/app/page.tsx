@@ -17,7 +17,7 @@ async function Destino(): Promise<never> {
 
 export default function PaginaApp() {
   return (
-    <Suspense fallback={<p className="p-4">Carregando…</p>}>
+    <Suspense fallback={<p className="p-5 text-sm font-semibold text-texto-suave">Carregando…</p>}>
       <Destino />
     </Suspense>
   );

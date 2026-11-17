@@ -1,7 +1,8 @@
 'use client';
 
 import { useId, useState, type ReactNode } from 'react';
-import { alerta, botaoPrimario, campo, rotulo } from '@/components/estilos';
+import { CheckAnimado } from '@/components/CheckAnimado';
+import { alerta, botaoPrimario, campo, cartao, rotulo } from '@/components/estilos';
 import { somarDias } from '@/lib/datas';
 import { INTERVALOS_REVISAO, TIPOS_SESSAO, type TipoSessao } from '@/lib/dominio/acompanhamento';
 import type { DisciplinaPlano } from '@/lib/dominio/tipos';
@@ -233,8 +234,8 @@ export function FormularioSessao({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="col-span-2 flex flex-col gap-1 sm:col-span-1">
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4">
+        <div className="col-span-3 flex flex-col gap-1 sm:col-span-1">
           <label htmlFor={campoId('data')} className={rotulo}>
             Data
           </label>
@@ -335,12 +336,15 @@ export function FormularioSessao({
         <>
           <fieldset className="flex flex-col gap-1">
             <legend className={`${rotulo} mb-1`}>Agendar revisões</legend>
-            <div className="flex flex-wrap gap-x-4">
+            <div className="flex flex-wrap gap-2">
               {INTERVALOS_REVISAO.map((i) => (
-                <label key={i} className="flex min-h-11 cursor-pointer items-center gap-2">
+                <label
+                  key={i}
+                  className="flex min-h-11 cursor-pointer items-center gap-2 rounded-linha border border-borda bg-superficie-alt py-1 pl-2 pr-3 text-sm font-semibold text-texto-medio has-checked:border-mint-forte has-checked:text-texto"
+                >
                   <input
                     type="checkbox"
-                    className="size-5 accent-caneta"
+                    className="bolha"
                     checked={valores.intervalos.includes(i)}
                     onChange={(e) => alternarIntervalo(i, e.target.checked)}
                   />
@@ -349,10 +353,10 @@ export function FormularioSessao({
               ))}
             </div>
           </fieldset>
-          <label className="flex min-h-11 cursor-pointer items-center gap-2 font-bold">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm font-bold">
             <input
               type="checkbox"
-              className="size-5 accent-caneta"
+              className="bolha"
               checked={valores.concluir}
               onChange={(e) => mudar({ concluir: e.target.checked })}
             />
@@ -373,7 +377,8 @@ export function FormularioSessao({
         {acoes}
       </div>
       {modo === 'manual' && (
-        <p role="status" className="font-bold text-caneta">
+        <p role="status" className="flex items-center gap-2 text-sm font-bold text-ok">
+          {anuncio && <CheckAnimado />}
           {anuncio}
         </p>
       )}
@@ -393,10 +398,13 @@ export function RegistroManual({
 }) {
   const id = useId();
   return (
-    <section aria-labelledby={`${id}-titulo`} className="flex flex-col gap-4 rounded-xl border border-linha bg-folha p-4 sm:p-5">
-      <h2 id={`${id}-titulo`} className="text-xl font-bold tracking-tight">
-        Registrar sessão
-      </h2>
+    <section aria-labelledby={`${id}-titulo`} className={`${cartao} flex flex-col gap-4 p-4 sm:p-6`}>
+      <div>
+        <h2 id={`${id}-titulo`} className="text-xl font-extrabold tracking-tight">
+          Registrar sessão
+        </h2>
+        <p className="text-sm text-texto-suave">Estudou sem o cronômetro? Informe o tempo, as questões e as revisões.</p>
+      </div>
       <FormularioSessao
         modo="manual"
         disciplinas={disciplinas}

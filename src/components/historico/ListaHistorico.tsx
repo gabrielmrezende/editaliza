@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Confirmacao, Dialogo } from '@/components/Dialogo';
-import { alerta, botaoSecundario, botaoTexto } from '@/components/estilos';
+import { Pencil, Trash2 } from 'lucide-react';
+import { estiloMateria, indicesDasMaterias } from '@/components/cores';
+import { alerta, botaoSecundario, listaLinhas } from '@/components/estilos';
 import { pedir } from '@/components/onboarding/api';
 import { FormularioSessao, ROTULO_TIPO, type DadosSessao } from '@/components/estudo/FormularioSessao';
 import { dataPorExtenso } from '@/lib/datas';
@@ -98,6 +100,7 @@ export function ListaHistorico({
     router.refresh();
   }
 
+  const indices = indicesDasMaterias(disciplinas);
   const edicao = editando ? conteudoDaEdicao(editando, planoId, disciplinas) : null;
 
   return (
@@ -110,39 +113,65 @@ export function ListaHistorico({
       <p role="status" className="sr-only">
         {anuncio}
       </p>
-      <ul aria-label="Sessões" className="flex flex-col divide-y divide-linha rounded-xl border border-linha bg-folha">
+      <ul aria-label="Sessões" className={listaLinhas}>
         {sessoes.map((s) => {
           const q = questoes(s);
-          const detalhes = [formatarMinutos(s.minutos), q, s.tipo ? ROTULO_TIPO[s.tipo] : null, ROTULO_ORIGEM[s.origem]];
+          const detalhes = [formatarMinutos(s.minutos), q, s.tipo ? ROTULO_TIPO[s.tipo] : null, ROTULO_ORIGEM[s.origem]].filter(
+            (d): d is string => Boolean(d),
+          );
+          const indice = s.planoId === planoId ? indices.get(s.disciplinaId) : undefined;
           return (
-            <li key={s.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:gap-5 sm:p-5">
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <p className="text-sm text-tinta-suave">{dataCurta(s.data)}</p>
-                <p className="text-sm font-bold text-caneta">{s.disciplinaNome}</p>
-                <p className="font-bold leading-snug">{s.topicoNome ?? 'Sem tópico específico'}</p>
-                <p className="text-sm text-tinta-suave">{detalhes.filter(Boolean).join(' · ')}</p>
-                {s.observacao && <p className="text-sm break-words whitespace-pre-line">{s.observacao}</p>}
+            <li
+              key={s.id}
+              className="flex gap-3 p-3 sm:gap-4 sm:p-4"
+              style={indice !== undefined ? estiloMateria(indice) : undefined}
+            >
+              <p className="flex w-12 shrink-0 flex-col items-center self-start rounded-linha bg-superficie-alt py-1.5 text-center leading-none">
+                <span className="text-lg font-extrabold text-texto">{dataPorExtenso(s.data, { day: '2-digit' })}</span>
+                <span className="mt-0.5 text-[0.6875rem] font-semibold text-texto-suave">
+                  {dataPorExtenso(s.data, { month: 'short' }).replace('.', '')}
+                </span>
+                <span className="sr-only">{dataCurta(s.data)}</span>
+              </p>
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <p className="flex items-center gap-2 text-xs font-semibold text-texto-suave">
+                  <span aria-hidden className="bolinha" />
+                  {s.disciplinaNome}
+                </p>
+                <p className="font-bold leading-snug break-words">{s.topicoNome ?? 'Sem tópico específico'}</p>
+                {/* Não é lista (role list) para não misturar com as linhas de "Sessões". */}
+                <p className="mt-0.5 flex flex-wrap gap-1.5">
+                  {detalhes.map((d, i) => (
+                    <span key={d} className="rounded-full bg-superficie-alt px-2 py-0.5 text-xs font-semibold text-texto-medio ring-1 ring-borda ring-inset">
+                      {d}
+                      {i < detalhes.length - 1 && <span className="sr-only">,</span>}
+                    </span>
+                  ))}
+                </p>
+                {s.observacao && <p className="text-sm break-words whitespace-pre-line text-texto-medio">{s.observacao}</p>}
               </div>
-              <div className="flex shrink-0 flex-wrap gap-2">
+              <div className="flex shrink-0 items-start gap-1">
                 <button
                   type="button"
-                  className={botaoSecundario}
+                  className="grid size-11 place-items-center rounded-linha text-texto-suave transition-colors hover:bg-suave hover:text-texto"
                   aria-label={`Editar a sessão de ${s.disciplinaNome} em ${dataCurta(s.data)}`}
+                  title="Editar"
                   onClick={() => {
                     setErro(null);
                     setAnuncio('');
                     setEditando(s);
                   }}
                 >
-                  Editar
+                  <Pencil aria-hidden className="size-[18px]" />
                 </button>
                 <button
                   type="button"
-                  className={botaoTexto}
+                  className="grid size-11 place-items-center rounded-linha text-texto-suave transition-colors hover:bg-rust-claro hover:text-rust-texto"
                   aria-label={`Excluir a sessão de ${s.disciplinaNome} em ${dataCurta(s.data)}`}
+                  title="Excluir"
                   onClick={() => setExcluindo(s)}
                 >
-                  Excluir
+                  <Trash2 aria-hidden className="size-[18px]" />
                 </button>
               </div>
             </li>
@@ -154,7 +183,7 @@ export function ListaHistorico({
         {editando && edicao && (
           <div className="mt-4 flex flex-col gap-3">
             {edicao.travado && (
-              <p className="text-sm text-tinta-suave">
+              <p className="text-sm text-texto-suave">
                 Esta sessão é de um plano antigo ou de uma matéria que saiu do plano: dá para mudar data, tempo,
                 questões, tipo e observação.
               </p>

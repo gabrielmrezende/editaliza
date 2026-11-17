@@ -26,16 +26,41 @@ function contraste(a: string, b: string): number {
 }
 
 const TOKENS = [
-  'papel', 'folha', 'tinta', 'tinta-suave', 'caneta', 'caneta-escura', 'caneta-clara',
-  'na-caneta', 'na-marca', 'marca', 'linha', 'erro', 'erro-claro',
+  'fundo', 'superficie', 'superficie-alt', 'texto', 'texto-medio', 'texto-suave', 'borda', 'borda-forte',
+  'acao', 'acao-hover', 'na-acao', 'link', 'suave', 'navy', 'navy-forte', 'lateral', 'na-navy', 'na-navy-suave',
+  'rust', 'na-rust', 'rust-texto', 'rust-claro', 'mint', 'mint-forte', 'na-mint', 'ok', 'ok-claro', 'aviso',
+  'aviso-claro', 'erro', 'erro-claro',
 ];
+/** Texto sobre fundo: todos os pares que aparecem nas telas. */
 const PARES: [string, string][] = [
-  ['tinta', 'papel'],
-  ['tinta', 'folha'],
-  ['tinta-suave', 'folha'],
-  ['caneta', 'folha'],
-  ['na-caneta', 'caneta'],
-  ['na-marca', 'marca'],
+  ['texto', 'fundo'],
+  ['texto', 'superficie'],
+  ['texto', 'superficie-alt'],
+  ['texto', 'suave'],
+  ['texto-medio', 'superficie'],
+  ['texto-medio', 'superficie-alt'],
+  ['texto-suave', 'superficie'],
+  ['texto-suave', 'fundo'],
+  ['texto-suave', 'superficie-alt'],
+  ['link', 'superficie'],
+  ['link', 'superficie-alt'],
+  ['na-acao', 'acao'],
+  ['na-acao', 'acao-hover'],
+  // Texto sobre navy (menu lateral e cartão "Agora").
+  ['na-navy', 'navy'],
+  ['na-navy', 'lateral'],
+  ['na-navy-suave', 'navy'],
+  ['na-navy-suave', 'lateral'],
+  ['mint', 'navy'],
+  // Texto sobre mint ("Iniciar") e sobre rust (seção ativa).
+  ['na-mint', 'mint'],
+  ['na-mint', 'mint-forte'],
+  ['na-rust', 'rust'],
+  ['rust-texto', 'superficie'],
+  ['rust-texto', 'rust-claro'],
+  ['ok', 'superficie'],
+  ['ok', 'superficie-alt'],
+  ['aviso', 'aviso-claro'],
   ['erro', 'erro-claro'],
 ];
 

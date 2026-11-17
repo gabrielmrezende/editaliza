@@ -131,9 +131,9 @@ export function EnvioEdital({ aoPronto }: { aoPronto: (editalId: string, edital:
           aria-describedby="pdf-ajuda"
           disabled={enviando}
           onChange={() => setEstado({ fase: 'escolher' })}
-          className="block w-full cursor-pointer rounded-xl border-2 border-dashed border-linha bg-folha p-5 text-tinta-suave transition-colors file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-caneta-clara file:px-4 file:py-2.5 file:font-bold file:text-caneta hover:border-caneta/50"
+          className="block w-full cursor-pointer rounded-cartao border-2 border-dashed border-borda bg-superficie p-5 text-texto-suave transition-colors file:mr-4 file:cursor-pointer file:rounded-linha file:border-0 file:bg-suave file:px-4 file:py-2.5 file:font-bold file:text-link hover:border-borda-forte"
         />
-        <p id="pdf-ajuda" className="text-sm text-tinta-suave">
+        <p id="pdf-ajuda" className="text-sm text-texto-suave">
           O edital completo, como foi publicado. Até 50 MB e 600 páginas.
         </p>
       </div>

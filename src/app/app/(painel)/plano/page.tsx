@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { MolduraApp } from '@/components/app/MolduraApp';
+import { Carregando } from '@/components/Carregando';
 import { PainelPlano } from '@/components/plano/PainelPlano';
 import { diaDaSemana, hojeEmSaoPaulo } from '@/lib/datas';
 import {
@@ -76,10 +76,8 @@ async function Plano() {
 
 export default function PaginaPlano() {
   return (
-    <MolduraApp>
-      <Suspense fallback={<p role="status">Carregando seu plano…</p>}>
-        <Plano />
-      </Suspense>
-    </MolduraApp>
+    <Suspense fallback={<Carregando texto="Carregando seu plano…" />}>
+      <Plano />
+    </Suspense>
   );
 }

@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
+import { Carregando } from '@/components/Carregando';
 import Form from 'next/form';
 import Link from 'next/link';
-import { MolduraApp } from '@/components/app/MolduraApp';
-import { botaoPrimario, botaoTexto, campo, rotulo } from '@/components/estilos';
+import { botaoPrimario, botaoTexto, campo, cartao, rotulo, vazio } from '@/components/estilos';
 import { ListaHistorico } from '@/components/historico/ListaHistorico';
 import { POR_PAGINA, materiasDoHistorico, planoAtivo, sessoesDoUsuario } from '@/lib/acompanhamento/consultas';
 import { hojeEmSaoPaulo } from '@/lib/datas';
@@ -57,14 +57,14 @@ async function Conteudo({ searchParams }: { searchParams: Busca }) {
   const chaveFiltros = `${filtros.materia ?? ''}|${filtros.de ?? ''}|${filtros.ate ?? ''}`;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-4xl flex-col gap-6">
       {(total > 0 || filtrando) && (
         <Form
           key={chaveFiltros}
           action="/app/historico"
-          className="grid gap-4 rounded-xl border border-linha bg-folha p-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end sm:p-5"
+          className={`${cartao} grid grid-cols-2 gap-3 p-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end sm:gap-4 sm:p-5`}
         >
-          <div className="flex flex-col gap-1">
+          <div className="col-span-2 flex flex-col gap-1 sm:col-span-1">
             <label htmlFor="filtro-materia" className={rotulo}>
               Matéria
             </label>
@@ -89,7 +89,7 @@ async function Conteudo({ searchParams }: { searchParams: Busca }) {
             </label>
             <input id="filtro-ate" type="date" name="ate" defaultValue={filtros.ate} max={hoje} className={`${campo} min-h-11`} />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="col-span-2 flex flex-wrap items-center gap-2 sm:col-span-1">
             <button type="submit" className={botaoPrimario}>
               Filtrar
             </button>
@@ -103,13 +103,13 @@ async function Conteudo({ searchParams }: { searchParams: Busca }) {
       )}
 
       {total === 0 ? (
-        <p className="rounded-xl border border-dashed border-linha bg-folha px-5 py-6">
+        <p className={vazio}>
           {filtrando ? 'Nenhuma sessão encontrada com esses filtros.' : 'Nenhuma sessão registrada ainda.'}
         </p>
       ) : sessoes.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-linha bg-folha px-5 py-6">
+        <p className={vazio}>
           Nenhuma sessão nesta página.{' '}
-          <Link href={enderecoDaPagina(filtros, 1)} className="font-bold text-caneta underline underline-offset-4">
+          <Link href={enderecoDaPagina(filtros, 1)} className="font-bold text-link underline underline-offset-4">
             Ir para a primeira página
           </Link>
         </p>
@@ -131,7 +131,7 @@ async function Conteudo({ searchParams }: { searchParams: Busca }) {
           ) : (
             <span />
           )}
-          <p className="text-tinta-suave">
+          <p className="text-sm font-semibold text-texto-suave">
             Página {filtros.pagina} de {paginas}
           </p>
           {filtros.pagina < paginas ? (
@@ -149,10 +149,8 @@ async function Conteudo({ searchParams }: { searchParams: Busca }) {
 
 export default function Pagina({ searchParams }: { searchParams: Busca }) {
   return (
-    <MolduraApp titulo="Histórico">
-      <Suspense fallback={<p role="status">Carregando…</p>}>
-        <Conteudo searchParams={searchParams} />
-      </Suspense>
-    </MolduraApp>
+    <Suspense fallback={<Carregando />}>
+      <Conteudo searchParams={searchParams} />
+    </Suspense>
   );
 }

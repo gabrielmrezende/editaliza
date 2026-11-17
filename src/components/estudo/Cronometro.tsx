@@ -3,7 +3,9 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Confirmacao } from '@/components/Dialogo';
-import { botaoPrimario, botaoSecundario, campo, rotulo } from '@/components/estilos';
+import { Pause, Play, Square } from 'lucide-react';
+import { CheckAnimado } from '@/components/CheckAnimado';
+import { botaoPrimario, botaoSecundario, campo, cartao, rotulo } from '@/components/estilos';
 import { ESQUECIDO_SEG, minutosParaRegistro, type FormularioRascunho } from '@/lib/acompanhamento/cronometro';
 import type { DisciplinaPlano } from '@/lib/dominio/tipos';
 import { registrarSessao } from './api';
@@ -163,106 +165,132 @@ export function Cronometro({
     minutos: String(minutos),
   };
 
+  const claseMint =
+    'inline-flex min-h-12 items-center justify-center gap-2 rounded-linha bg-mint px-6 font-extrabold text-na-mint transition-colors hover:bg-mint-forte disabled:cursor-not-allowed disabled:opacity-60';
+
   return (
-    <section aria-labelledby={`${id}-titulo`} className="flex flex-col gap-4 rounded-xl border border-linha bg-folha p-4 sm:p-5">
-      <h2 id={`${id}-titulo`} className="text-xl font-bold tracking-tight">
-        Cronômetro
-      </h2>
-
-      <p
-        role="timer"
-        aria-label="Tempo de estudo"
-        className="font-mono text-5xl font-bold tabular-nums tracking-tight sm:text-6xl"
-      >
-        {formatarRelogio(segundos)}
-      </p>
-
-      <p role="status" className="text-sm text-tinta-suave">
-        {anuncio ||
-          (c.recuperado && ativo && !parado
-            ? `Recuperamos o cronômetro${disciplina ? ` de ${disciplina.nome}` : ''} que estava em andamento.`
-            : '')}
-      </p>
+    <section aria-labelledby={`${id}-titulo`} className={`${cartao} flex flex-col gap-5 p-4 sm:p-6`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 id={`${id}-titulo`} className="text-xl font-extrabold tracking-tight">
+          Cronômetro
+        </h2>
+        {disciplina && <p className="text-sm font-semibold text-texto-suave">{disciplina.nome}</p>}
+      </div>
 
       {!parado && (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1">
-              <label htmlFor={`${id}-disciplina`} className={rotulo}>
-                Matéria
-              </label>
-              <select
-                id={`${id}-disciplina`}
-                className={`${campo} min-h-11`}
-                value={formulario.disciplinaId ?? ''}
-                disabled={!carregado}
-                onChange={(e) => escolher({ disciplinaId: e.target.value || null, topicoId: null, concluir: false })}
-              >
-                <option value="">Escolha a matéria</option>
-                {disciplinas.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor={`${id}-topico`} className={rotulo}>
-                Tópico
-              </label>
-              <select
-                id={`${id}-topico`}
-                className={`${campo} min-h-11`}
-                value={formulario.topicoId ?? ''}
-                disabled={!carregado || !disciplina}
-                onChange={(e) => escolher({ topicoId: e.target.value || null })}
-              >
-                <option value="">Sem tópico específico</option>
-                {disciplina?.topicos.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1">
+            <label htmlFor={`${id}-disciplina`} className={rotulo}>
+              Matéria
+            </label>
+            <select
+              id={`${id}-disciplina`}
+              className={`${campo} min-h-11`}
+              value={formulario.disciplinaId ?? ''}
+              disabled={!carregado}
+              onChange={(e) => escolher({ disciplinaId: e.target.value || null, topicoId: null, concluir: false })}
+            >
+              <option value="">Escolha a matéria</option>
+              {disciplinas.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.nome}
+                </option>
+              ))}
+            </select>
           </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor={`${id}-topico`} className={rotulo}>
+              Tópico
+            </label>
+            <select
+              id={`${id}-topico`}
+              className={`${campo} min-h-11`}
+              value={formulario.topicoId ?? ''}
+              disabled={!carregado || !disciplina}
+              onChange={(e) => escolher({ topicoId: e.target.value || null })}
+            >
+              <option value="">Sem tópico específico</option>
+              {disciplina?.topicos.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
-          <div className="flex flex-wrap gap-3">
+      <div
+        className="relogio-anel sobre-navy flex flex-col items-center justify-center gap-1 rounded-destaque bg-navy px-4 py-8 text-na-navy shadow-destaque sm:py-10"
+        data-rodando={estado.rodando ? 'true' : 'false'}
+      >
+        <p
+          role="timer"
+          aria-label="Tempo de estudo"
+          className="text-[3.25rem] font-extrabold leading-none tracking-tight tabular-nums sm:text-7xl"
+        >
+          {formatarRelogio(segundos)}
+        </p>
+        <p aria-hidden className="flex items-center gap-2 text-sm font-semibold text-na-navy-suave">
+          <span className={`size-2 rounded-full ${estado.rodando ? 'bg-mint' : ativo ? 'bg-aviso' : 'bg-white/30'}`} />
+          {estado.rodando ? 'Contando' : ativo ? 'Pausado' : 'Parado'}
+        </p>
+        {!parado && (
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             {estado.rodando ? (
-              <button type="button" className={botaoPrimario} onClick={c.pausar}>
+              <button type="button" className={claseMint} onClick={c.pausar}>
+                <Pause aria-hidden className="size-4 fill-current" />
                 Pausar
               </button>
             ) : (
               <button
                 type="button"
-                className={botaoPrimario}
+                className={claseMint}
                 disabled={!carregado}
                 onClick={() => {
                   setAnuncio('');
                   c.iniciar();
                 }}
               >
+                <Play aria-hidden className="size-4 fill-current" />
                 {ativo ? 'Continuar' : 'Iniciar'}
               </button>
-            )}
-            {ativo && (
-              <>
-                <button type="button" className={botaoSecundario} onClick={parar}>
-                  Parar
-                </button>
-                <button type="button" className={botaoSecundario} onClick={() => setConfirmarDescarte(true)}>
-                  Descartar
-                </button>
-              </>
-            )}
-          </div>
-        </>
-      )}
+              )}
+              {ativo && (
+                <>
+                  <button
+                  type="button"
+                  className="inline-flex min-h-12 items-center gap-2 rounded-linha border border-white/25 px-5 text-sm font-bold text-na-navy transition-colors hover:border-white/50 hover:bg-white/8"
+                  onClick={parar}
+                >
+                    <Square aria-hidden className="size-3.5 fill-current" />
+                    Parar
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex min-h-12 items-center rounded-linha px-3 text-sm font-bold text-na-navy-suave underline-offset-4 hover:text-na-navy hover:underline"
+                    onClick={() => setConfirmarDescarte(true)}
+                  >
+                    Descartar
+                  </button>
+                </>
+              )}
+            </div>
+        )}
+      </div>
+
+      <p role="status" className="-my-2 flex items-center gap-2 text-sm font-semibold text-texto-medio">
+        {anuncio === 'Sessão registrada' && <CheckAnimado className="size-4 text-ok" />}
+        {anuncio ||
+          (c.recuperado && ativo && !parado
+            ? `Recuperamos o cronômetro${disciplina ? ` de ${disciplina.nome}` : ''} que estava em andamento.`
+            : '')}
+      </p>
 
       {parado && minutos === 0 && (
-        <div className="flex flex-col gap-3">
-          <p>
-            <strong>Menos de 1 minuto marcado.</strong> Não há tempo para registrar.
+        <div className="flex flex-col gap-3 rounded-cartao bg-superficie-alt p-4">
+          <p className="text-texto-medio">
+            <strong className="text-texto">Menos de 1 minuto marcado.</strong> Não há tempo para registrar.
           </p>
           <div className="flex flex-wrap gap-3">
             <button type="button" className={botaoPrimario} onClick={continuar}>
@@ -278,7 +306,7 @@ export function Cronometro({
       {parado && minutos > 0 && (
         <>
           {segundos > ESQUECIDO_SEG && (
-            <p className="rounded-md border-l-4 border-caneta bg-caneta-clara px-4 py-3 font-bold">
+            <p className="rounded-linha border-l-4 border-aviso bg-aviso-claro px-4 py-3 text-sm font-bold text-texto">
               O cronômetro ficou ligado por {formatarDuracao(segundos)}. Confira o tempo antes de salvar.
             </p>
           )}
