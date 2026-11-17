@@ -39,7 +39,7 @@ test.describe('conteúdos', () => {
     ]);
     expect(resposta.status()).toBe(204);
 
-    await page.getByRole('link', { name: 'Plano', exact: true }).first().click();
+    await page.getByRole('link', { name: 'Início', exact: true }).first().click();
     await expect(page).toHaveURL(/\/app\/plano$/);
     await expect(cartao.getByText('Tópico já concluído')).toBeVisible();
   });

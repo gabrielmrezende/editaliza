@@ -176,4 +176,14 @@ test.describe('início', () => {
     await expect(cartao(page).getByRole('button', { name: 'Pausar' })).toBeVisible();
     await expect(page).toHaveURL(/\/app\/plano$/);
   });
+
+  test('Estudar redireciona para o Início e inicia o cronômetro', async ({ page }) => {
+    await criarPlano(page, { prefixo: 'inicio' });
+    await page.goto('/app/estudar?disciplina=d0&topico=d0-t0&iniciar=1');
+    await expect(page).toHaveURL(/\/app\/plano$/);
+    await expect(cartao(page).getByRole('button', { name: 'Pausar' })).toBeVisible();
+    const secoes = page.getByRole('navigation', { name: 'Seções' }).first();
+    await expect(secoes.getByRole('link', { name: 'Estudar' })).toHaveCount(0);
+    await expect(secoes.getByRole('link', { name: 'Início' })).toHaveAttribute('aria-current', 'page');
+  });
 });

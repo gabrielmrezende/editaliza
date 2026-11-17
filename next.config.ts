@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   cacheComponents: true,
   partialPrefetching: true,
+  // A aba Estudar acabou: o cronômetro vive no Início. A query (?iniciar=1) passa adiante.
+  async redirects() {
+    return [{ source: "/app/estudar", destination: "/app/plano", permanent: false }];
+  },
   turbopack: {
     rules: {
       "*.css": {

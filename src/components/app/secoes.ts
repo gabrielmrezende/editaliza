@@ -1,4 +1,4 @@
-import { ChartColumn, History, ListChecks, ListTree, Repeat2, Timer, type LucideIcon } from 'lucide-react';
+import { ChartColumn, History, House, ListTree, Repeat2, type LucideIcon } from 'lucide-react';
 
 export interface Secao {
   href: string;
@@ -8,8 +8,7 @@ export interface Secao {
 
 /** Seções da área logada, na ordem do menu lateral e da barra inferior. */
 export const SECOES: Secao[] = [
-  { href: '/app/plano', rotulo: 'Plano', icone: ListChecks },
-  { href: '/app/estudar', rotulo: 'Estudar', icone: Timer },
+  { href: '/app/plano', rotulo: 'Início', icone: House },
   { href: '/app/revisoes', rotulo: 'Revisões', icone: Repeat2 },
   { href: '/app/historico', rotulo: 'Histórico', icone: History },
   { href: '/app/relatorio', rotulo: 'Relatório', icone: ChartColumn },
