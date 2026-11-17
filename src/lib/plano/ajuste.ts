@@ -1,6 +1,5 @@
 import { diaDaSemana, diasEntre, somarDias } from '@/lib/datas';
-import type { DisciplinaPlano, ItemCiclo, MinutosPorDia, PlanoGerado, PosicaoCiclo } from '@/lib/dominio/tipos';
-import { converterPosicao } from '@/lib/planos/ciclo';
+import type { DisciplinaPlano, ItemCiclo, MinutosPorDia, PlanoGerado } from '@/lib/dominio/tipos';
 import {
   ACERTO_ALTO,
   ACERTO_BAIXO,
@@ -14,12 +13,14 @@ import {
   MIN_QUESTOES_ACERTO,
   MIN_REVISOES_ATRASADAS,
 } from './constantes';
+import { converterPosicaoFila } from './fila';
 import { gerarPlano } from './gerar';
 
 /** Item do resumo do ajuste (o texto é montado na tela por `textoDoResumo`). */
 export type ItemResumo =
   | { tipo: 'horas'; estudados: number; planejados: number; diasAteProva: number | null }
   | { tipo: 'sem_estudo' }
+  | { tipo: 'fila_refeita' }
   | {
       tipo: 'prioridade';
       disciplinaId: string;
@@ -43,7 +44,7 @@ export interface EntradaAjuste {
   criadoEm: string;
   /** Fatores só de acerto do ajuste anterior (chave ausente = ×1). */
   fatoresAcertoVigentes: Record<string, number>;
-  /** Minutos percorridos no ciclo hoje (calculado pelo chamador como na página do plano). */
+  /** Posição atual da fila (`planos.fila_posicao`). */
   posicaoAtual: number;
   sessoes: { data: string; disciplinaId: string; minutos: number; acertos: number; erros: number }[];
   concluidos: string[];
@@ -56,7 +57,8 @@ export interface ResultadoAjuste {
   ajustes: Record<string, number>;
   /** Fatores só de acerto deste ajuste (matérias com ×1 ficam de fora), para comparar no próximo. */
   fatoresAcerto: Record<string, number>;
-  cicloInicio: PosicaoCiclo | null;
+  /** Nova posição da fila e início dela; null = manter `fila_posicao` e `fila_desde`. `desde` null = manter `fila_desde`. */
+  fila: { posicao: number; desde: string | null } | null;
   resumo: ItemResumo[];
   janela: { inicio: string; fim: string };
 }
@@ -139,7 +141,7 @@ export function ajustarPlano(e: EntradaAjuste): ResultadoAjuste {
   const base = { disciplinas: e.conteudo, minutosPorDia: e.minutosPorDia, concluidos: e.concluidos, pesosInformados: e.pesosInformados, ajustes };
 
   let gerado = e.gerado;
-  let cicloInicio: PosicaoCiclo | null = null;
+  let fila: ResultadoAjuste['fila'] = null;
   let diasAteProva: number | null = null;
   if (e.gerado.modo === 'prazo') {
     if (e.dataProva !== null && e.dataProva > amanha) {
@@ -147,6 +149,7 @@ export function ajustarPlano(e: EntradaAjuste): ResultadoAjuste {
       if (novo.modo === 'prazo') {
         gerado = { ...novo, dias: [...e.gerado.dias.filter((d) => d.data <= e.hoje), ...novo.dias] };
         diasAteProva = diasEntre(e.hoje, e.dataProva);
+        fila = { posicao: 0, desde: amanha };
       }
     }
   } else {
@@ -156,7 +159,7 @@ export function ajustarPlano(e: EntradaAjuste): ResultadoAjuste {
     if (novo.modo === 'ciclo') {
       const ciclo = naOrdemAntiga(e.gerado.ciclo, novo.ciclo);
       gerado = { ...novo, ciclo };
-      cicloInicio = converterPosicao(e.gerado.ciclo, e.posicaoAtual, ciclo);
+      fila = { posicao: converterPosicaoFila(e.gerado.ciclo, e.posicaoAtual, ciclo), desde: null };
     }
   }
 
@@ -166,6 +169,7 @@ export function ajustarPlano(e: EntradaAjuste): ResultadoAjuste {
   const resumo: ItemResumo[] = [];
   const horas = itemDeHoras(e, janela, diasAteProva);
   if (horas) resumo.push(horas);
+  if (e.gerado.modo === 'prazo' && fila !== null) resumo.push({ tipo: 'fila_refeita' });
   resumo.push(...itensDePrioridade(e));
   const revisoes = itemDeRevisoes(e);
   if (revisoes) resumo.push(revisoes);
@@ -177,7 +181,7 @@ export function ajustarPlano(e: EntradaAjuste): ResultadoAjuste {
     gerado,
     ajustes,
     fatoresAcerto: calcularFatoresAcerto(e),
-    cicloInicio,
+    fila,
     resumo: resumo.length > 0 ? resumo.slice(0, MAX_ITENS_RESUMO) : [{ tipo: 'em_dia' }],
     janela,
   };

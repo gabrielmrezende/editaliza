@@ -13,6 +13,8 @@ export function textoDoResumo(item: ItemResumo): string {
     }
     case 'sem_estudo':
       return 'Nenhum estudo registrado nos últimos 7 dias.';
+    case 'fila_refeita':
+      return 'A fila foi refeita com o que falta estudar.';
     case 'prioridade':
       if (item.direcao === 'normal') return `${item.nome} voltou à prioridade normal.`;
       return item.direcao === 'sobe'

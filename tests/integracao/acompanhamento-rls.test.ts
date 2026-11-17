@@ -186,9 +186,11 @@ describe('acompanhamento (banco)', () => {
     const args = (agora: string) => ({
       p_plano: p,
       p_ajustado_lido: null,
+      p_fila_lida: 0,
       p_gerado: { modo: 'ciclo', ajustado: true },
       p_ajustes: { d0: 1.25 },
-      p_ciclo_inicio: { indice: 1, minutos: 10 },
+      p_fila_posicao: 3,
+      p_fila_desde: '2026-11-17',
       p_janela_inicio: '2026-10-19',
       p_janela_fim: '2026-11-16',
       p_resumo: [{ tipo: 'aumentou', disciplina_id: 'd0' }],
@@ -205,13 +207,45 @@ describe('acompanhamento (banco)', () => {
     expect((await admin().from('ajustes_plano').select('id').eq('plano_id', p)).data).toHaveLength(1);
     const { data: plano } = await admin()
       .from('planos')
-      .select('ajustes, ciclo_inicio, ajustado_em, gerado')
+      .select('ajustes, fila_posicao, fila_desde, ajustado_em, gerado')
       .eq('id', p)
       .single();
     expect(plano!.ajustes).toEqual({ d0: 1.25 });
-    expect(plano!.ciclo_inicio).toEqual({ indice: 1, minutos: 10 });
+    expect(plano!.fila_posicao).toBe(3);
+    expect(plano!.fila_desde).toBe('2026-11-17');
     expect(new Date(plano!.ajustado_em).toISOString()).toBe('2026-11-16T15:00:00.000Z');
     expect(plano!.gerado).toEqual({ modo: 'ciclo', ajustado: true });
+  });
+
+  it('aplicar_ajuste com p_fila_lida velho devolve null e não grava', async () => {
+    const u = await criarUsuarioTeste(emailUnico('acomp-fila'));
+    const p = await criarPlano(u.id);
+    // A posição mudou (concluiu um bloco) entre a leitura do ajuste e a gravação.
+    await admin().from('planos').update({ ativo: true, fila_posicao: 4 }).eq('id', p);
+    const r = await admin().rpc('aplicar_ajuste', {
+      p_plano: p,
+      p_ajustado_lido: null,
+      p_fila_lida: 3,
+      p_gerado: { modo: 'ciclo', ajustado: true },
+      p_ajustes: { d0: 1.25 },
+      p_fila_posicao: 0,
+      p_fila_desde: '2026-11-17',
+      p_janela_inicio: '2026-10-19',
+      p_janela_fim: '2026-11-16',
+      p_resumo: [],
+      p_gerado_anterior: { modo: 'ciclo' },
+      p_multiplicadores: {},
+      p_agora: '2026-11-16T15:00:00Z',
+    });
+    expect(r.error).toBeNull();
+    expect(r.data).toBeNull();
+    expect((await admin().from('ajustes_plano').select('id').eq('plano_id', p)).data).toEqual([]);
+    const { data: plano } = await admin()
+      .from('planos')
+      .select('ajustes, fila_posicao, fila_desde, ajustado_em, gerado')
+      .eq('id', p)
+      .single();
+    expect(plano).toEqual({ ajustes: {}, fila_posicao: 4, fila_desde: null, ajustado_em: null, gerado: { modo: 'ciclo' } });
   });
 
   describe('checks', () => {
@@ -281,9 +315,11 @@ describe('acompanhamento (funções)', () => {
     const aj = await u.cliente.rpc('aplicar_ajuste', {
       p_plano: p,
       p_ajustado_lido: null,
+      p_fila_lida: 0,
       p_gerado: {},
       p_ajustes: {},
-      p_ciclo_inicio: null,
+      p_fila_posicao: null,
+      p_fila_desde: null,
       p_janela_inicio: '2026-10-19',
       p_janela_fim: '2026-11-16',
       p_resumo: [],
@@ -309,9 +345,11 @@ describe('acompanhamento (funções)', () => {
     const r = await admin().rpc('aplicar_ajuste', {
       p_plano: p,
       p_ajustado_lido: null,
+      p_fila_lida: 0,
       p_gerado: { x: 1 },
       p_ajustes: {},
-      p_ciclo_inicio: null,
+      p_fila_posicao: null,
+      p_fila_desde: null,
       p_janela_inicio: '2026-10-19',
       p_janela_fim: '2026-11-16',
       p_resumo: [],

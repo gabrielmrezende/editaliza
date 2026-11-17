@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { admin, criarUsuarioTeste, emailUnico } from './ajuda';
-import type { DisciplinaPlano, MinutosPorDia } from '@/lib/dominio/tipos';
+import type { DisciplinaPlano, MinutosPorDia, PlanoGerado } from '@/lib/dominio/tipos';
 import { hojeEmSaoPaulo } from '@/lib/datas';
 import { gerarPlano } from '@/lib/plano/gerar';
 
@@ -28,11 +28,15 @@ const CONTEUDO: DisciplinaPlano[] = [
   { id: 'd1', nome: 'Direito', questoes: 10, pontos: null, nivel: 'basico', topicos: [{ id: 'd1-t0', nome: 'Atos' }] },
 ];
 
-/** Plano ativo (ciclo) criado em `criadoEm`, como se gerado naquele dia. */
-async function criarPlano(userId: string, criadoEm = '2026-11-08T15:00:00Z'): Promise<string> {
+/** Plano ativo (ciclo, ou prazo com `dataProva`) criado em `criadoEm`, como se gerado naquele dia. */
+async function criarPlano(
+  userId: string,
+  criadoEm = '2026-11-08T15:00:00Z',
+  { dataProva = null, filaPosicao = 0 }: { dataProva?: string | null; filaPosicao?: number } = {},
+): Promise<string> {
   const gerado = gerarPlano({
     disciplinas: CONTEUDO,
-    dataProva: null,
+    dataProva,
     hoje: criadoEm.slice(0, 10),
     minutosPorDia: MINUTOS,
     concluidos: [],
@@ -40,7 +44,16 @@ async function criarPlano(userId: string, criadoEm = '2026-11-08T15:00:00Z'): Pr
   });
   const { data, error } = await admin()
     .from('planos')
-    .insert({ user_id: userId, ativo: true, minutos_por_dia: MINUTOS, conteudo: CONTEUDO, gerado, created_at: criadoEm })
+    .insert({
+      user_id: userId,
+      ativo: true,
+      minutos_por_dia: MINUTOS,
+      conteudo: CONTEUDO,
+      gerado,
+      data_prova: dataProva,
+      fila_posicao: filaPosicao,
+      created_at: criadoEm,
+    })
     .select('id')
     .single();
   if (error) throw error;
@@ -94,13 +107,14 @@ describe('ajuste semanal (serviço)', () => {
 
     const { data: plano, error } = await admin()
       .from('planos')
-      .select('ajustes, ajustado_em, ciclo_inicio, gerado')
+      .select('ajustes, ajustado_em, fila_posicao, fila_desde, gerado')
       .eq('id', a.planoId)
       .single();
     if (error) throw error;
     expect(plano.ajustes).toEqual({ d0: 1.25 });
     expect(new Date(plano.ajustado_em as string).toISOString()).toBe(AGORA.toISOString());
-    expect(plano.ciclo_inicio).not.toBeNull();
+    expect(plano.fila_posicao).toBe(0);
+    expect(plano.fila_desde).toBeNull();
 
     const ajustes = await ajustesDe(a.planoId);
     expect(ajustes).toHaveLength(1);
@@ -114,6 +128,46 @@ describe('ajuste semanal (serviço)', () => {
 
     expect(await ajustarSeVencido(a.id, minutosDepois(5))).toBe(false);
     expect(await ajustesDe(a.planoId)).toHaveLength(1);
+  });
+
+  it('prazo vencido com fila_posicao 5 → fila_posicao 0, fila_desde amanhã e resumo com fila_refeita', async () => {
+    const u = await criarUsuarioTeste(emailUnico('ajuste'));
+    const planoId = await criarPlano(u.id, '2026-11-08T15:00:00Z', { dataProva: '2026-12-20', filaPosicao: 5 });
+    expect(await ajustarSeVencido(u.id, AGORA)).toBe(true);
+
+    const { data: plano, error } = await admin()
+      .from('planos')
+      .select('fila_posicao, fila_desde')
+      .eq('id', planoId)
+      .single();
+    if (error) throw error;
+    expect(plano).toEqual({ fila_posicao: 0, fila_desde: '2026-11-17' });
+    const ajustes = await ajustesDe(planoId);
+    expect(ajustes).toHaveLength(1);
+    expect(ajustes[0].resumo).toContainEqual({ tipo: 'fila_refeita' });
+  });
+
+  it('ciclo vencido com fila_posicao 3 → posição na mesma matéria e volta', async () => {
+    const u = await criarUsuarioTeste(emailUnico('ajuste'));
+    const planoId = await criarPlano(u.id, '2026-11-08T15:00:00Z', { filaPosicao: 3 });
+    await sessaoDeBaixoAcerto(u.id, planoId);
+    const antes = await admin().from('planos').select('gerado').eq('id', planoId).single();
+    if (antes.error) throw antes.error;
+    const antigo = (antes.data.gerado as PlanoGerado & { modo: 'ciclo' }).ciclo;
+    expect(await ajustarSeVencido(u.id, AGORA)).toBe(true);
+
+    const { data: plano, error } = await admin()
+      .from('planos')
+      .select('fila_posicao, fila_desde, gerado')
+      .eq('id', planoId)
+      .single();
+    if (error) throw error;
+    const novo = (plano.gerado as PlanoGerado & { modo: 'ciclo' }).ciclo;
+    const posicao = plano.fila_posicao as number;
+    expect(novo[posicao % novo.length].disciplinaId).toBe(antigo[3 % antigo.length].disciplinaId);
+    expect(Math.floor(posicao / novo.length)).toBe(Math.floor(3 / antigo.length));
+    expect(plano.fila_desde).toBeNull();
+    expect((await ajustesDe(planoId))[0].resumo).not.toContainEqual({ tipo: 'fila_refeita' });
   });
 
   it('o próximo ajuste compara com o fator de acerto vigente (sem repetir "ganhou prioridade")', async () => {

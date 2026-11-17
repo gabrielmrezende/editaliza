@@ -43,6 +43,9 @@ describe('textoDoResumo', () => {
     expect(textoDoResumo({ tipo: 'nao_cabe', agora: 12, antes: 5 })).toBe('Agora 12 tópicos não cabem até a prova (antes: 5).');
     expect(textoDoResumo({ tipo: 'nao_cabe', agora: 0, antes: 5 })).toBe('Todo o edital voltou a caber até a prova.');
   });
+  it('fila refeita', () => {
+    expect(textoDoResumo({ tipo: 'fila_refeita' })).toBe('A fila foi refeita com o que falta estudar.');
+  });
   it('em dia', () => {
     expect(textoDoResumo({ tipo: 'em_dia' })).toBe('Seu plano está em dia. Nada mudou.');
   });

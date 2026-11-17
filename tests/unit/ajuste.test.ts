@@ -218,7 +218,24 @@ describe('ajustarPlano no prazo', () => {
     const r = ajustarPlano(entrada({ gerado, dataProva, criadoEm, sessoes: [sessao(somarDias(HOJE, -1), 'd1', 390)] }));
     expect(r.resumo[0]).toEqual({ tipo: 'horas', estudados: 390, planejados: 600, diasAteProva: 41 });
     expect(r.janela).toEqual({ inicio, fim: somarDias(HOJE, -1) });
-    expect(r.cicloInicio).toBeNull();
+    expect(r.fila).toEqual({ posicao: 0, desde: AMANHA });
+  });
+
+  it('prazo regerado: fila volta a 0 desde amanha e o resumo diz fila_refeita', () => {
+    const gerado = planoPrazo(criadoEm, dataProva);
+    const sessoes = [sessao(somarDias(HOJE, -1), 'd1', 60, 1, 11)];
+    const r = ajustarPlano(entrada({ gerado, dataProva, criadoEm, sessoes, posicaoAtual: 5 }));
+    expect(r.fila).toEqual({ posicao: 0, desde: somarDias(HOJE, 1) });
+    const tipos = r.resumo.map((i) => i.tipo);
+    expect(tipos).toEqual(['horas', 'fila_refeita', 'prioridade']);
+    expect(tipos.indexOf('fila_refeita')).toBe(tipos.indexOf('horas') + 1);
+  });
+
+  it('prova amanha: fila null e sem fila_refeita', () => {
+    const gerado = planoPrazo(criadoEm, AMANHA);
+    const r = ajustarPlano(entrada({ gerado, dataProva: AMANHA, criadoEm, posicaoAtual: 5, sessoes: [sessao(somarDias(HOJE, -1), 'd1', 60)] }));
+    expect(r.fila).toBeNull();
+    expect(r.resumo.some((i) => i.tipo === 'fila_refeita')).toBe(false);
   });
 
   it('prova amanha: gerado fica igual ao de entrada', () => {
@@ -232,14 +249,14 @@ describe('ajustarPlano no prazo', () => {
   it('avisa quando o numero de topicos que nao cabem muda', () => {
     const gerado: PlanoGerado = { modo: 'prazo', dias: [], inicioReserva: null, avisos: [{ tipo: 'nao_cabe', topicosFora: ['a', 'b', 'c', 'd', 'e'] }] };
     const r = ajustarPlano(entrada({ gerado, dataProva, criadoEm: HOJE }));
-    expect(r.resumo).toEqual([{ tipo: 'nao_cabe', agora: 0, antes: 5 }]);
+    expect(r.resumo).toEqual([{ tipo: 'fila_refeita' }, { tipo: 'nao_cabe', agora: 0, antes: 5 }]);
   });
 
   it('plano criado hoje nao tem item de horas', () => {
     const gerado = planoPrazo(HOJE, dataProva);
     const r = ajustarPlano(entrada({ gerado, dataProva, criadoEm: HOJE, sessoes: [sessao(somarDias(HOJE, -2), 'd1', 60, 1, 9)] }));
     expect(r.resumo.some((i) => i.tipo === 'horas' || i.tipo === 'sem_estudo')).toBe(false);
-    expect(r.resumo.map((i) => i.tipo)).toEqual(['prioridade']);
+    expect(r.resumo.map((i) => i.tipo)).toEqual(['fila_refeita', 'prioridade']);
   });
 });
 
@@ -261,19 +278,22 @@ describe('ajustarPlano no ciclo', () => {
     expect(r.janela).toEqual({ inicio: criadoEm, fim: somarDias(HOJE, -1) });
   });
 
-  it('preserva a ordem dos itens (novos no fim) e cicloInicio aponta para a mesma materia', () => {
+  it('preserva a ordem dos itens (novos no fim) e a fila aponta para a mesma matéria na mesma volta', () => {
     const conteudo = [...CONTEUDO, disc('d4', 'Informática', 2)];
     const sessoes = [sessao(somarDias(HOJE, -2), 'd2', 60, 2, 18)];
-    const r = ajustarPlano(entrada({ conteudo, sessoes, posicaoAtual: 60 + 30 }));
+    const r = ajustarPlano(entrada({ conteudo, sessoes, posicaoAtual: 4 })); // volta 1, d1 (2º item)
     if (r.gerado.modo !== 'ciclo') throw new Error('esperava ciclo');
     expect(r.gerado.ciclo.map((i) => i.disciplinaId)).toEqual(['d3', 'd1', 'd2', 'd4']);
     const novo = gerarPlano({ disciplinas: conteudo, dataProva: null, hoje: HOJE, minutosPorDia: MPD, concluidos: [], pesosInformados: true, ajustes: { d2: 1.25 } });
     if (novo.modo !== 'ciclo') throw new Error('esperava ciclo');
     const minutosDe = (id: string) => novo.ciclo.find((i) => i.disciplinaId === id)!.minutos;
     expect(r.gerado.ciclo).toEqual(['d3', 'd1', 'd2', 'd4'].map((id) => ({ disciplinaId: id, minutos: minutosDe(id) })));
-    expect(r.cicloInicio).not.toBeNull();
-    expect(r.gerado.ciclo[r.cicloInicio!.indice].disciplinaId).toBe('d1');
-    expect(r.cicloInicio!.minutos).toBe(Math.round(0.25 * minutosDe('d1')));
+    expect(r.fila).not.toBeNull();
+    const n = r.gerado.ciclo.length;
+    expect(r.gerado.ciclo[r.fila!.posicao % n].disciplinaId).toBe('d1');
+    expect(Math.floor(r.fila!.posicao / n)).toBe(1);
+    expect(r.fila!.desde).toBeNull();
+    expect(r.resumo.some((i) => i.tipo === 'fila_refeita')).toBe(false);
   });
 
   it('nada mudou: em_dia', () => {

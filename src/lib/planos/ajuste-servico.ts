@@ -2,11 +2,10 @@ import 'server-only';
 import { z } from 'zod';
 import { AcompanhamentoError, exigirPodeRegistrar } from '@/lib/acompanhamento/servico';
 import { FUSO, hojeEmSaoPaulo, somarDias } from '@/lib/datas';
-import type { ConteudoCargo, DisciplinaPlano, MinutosPorDia, PlanoGerado, PosicaoCiclo } from '@/lib/dominio/tipos';
+import type { ConteudoCargo, DisciplinaPlano, MinutosPorDia, PlanoGerado } from '@/lib/dominio/tipos';
 import { ajustarPlano, ajusteVencido, type ItemResumo } from '@/lib/plano/ajuste';
 import { INTERVALO_AJUSTE_MANUAL_MIN, JANELA_ACERTO_DIAS } from '@/lib/plano/constantes';
 import { criarClienteAdmin } from '@/lib/supabase/admin';
-import { minutosRegistradosNoCiclo, posicaoEmMinutos } from './ciclo';
 import { msgAjusteRecente } from './mensagens';
 import { pesosDoPlano } from './servico';
 
@@ -25,13 +24,15 @@ interface LinhaPlano {
   created_at: string;
   /** Exatamente como o PostgREST devolveu: volta igual para a checagem otimista de `aplicar_ajuste`. */
   ajustado_em: string | null;
-  ciclo_inicio: PosicaoCiclo | null;
+  /** Posição lida da fila: volta para a checagem otimista de `aplicar_ajuste` (`p_fila_lida`). */
+  fila_posicao: number;
+  fila_desde: string | null;
 }
 
 async function lerPlano(planoId: string): Promise<LinhaPlano | null> {
   const { data, error } = await criarClienteAdmin()
     .from('planos')
-    .select('id, ativo, cargo_id, data_prova, minutos_por_dia, conteudo, gerado, created_at, ajustado_em, ciclo_inicio')
+    .select('id, ativo, cargo_id, data_prova, minutos_por_dia, conteudo, gerado, created_at, ajustado_em, fila_posicao, fila_desde')
     .eq('id', planoId)
     .maybeSingle();
   if (error) throw error;
@@ -119,23 +120,16 @@ async function executarAjuste(plano: LinhaPlano, agora: Date): Promise<string | 
   const db = criarClienteAdmin();
   const hoje = hojeEmSaoPaulo(agora);
   const inicioAcerto = somarDias(hoje, -JANELA_ACERTO_DIAS);
-  // O ciclo anda pelas sessões em [desde, hoje), como na página do plano.
-  const desde = hojeEmSaoPaulo(new Date(plano.ajustado_em ?? plano.created_at));
 
-  const [conteudoCargo, vigentes, todas, feitos, pendentes] = await Promise.all([
+  const [conteudoCargo, vigentes, sessoes, feitos, pendentes] = await Promise.all([
     conteudoDoCargo(plano.cargo_id),
     fatoresAcertoVigentes(plano.id),
-    sessoesDesde(plano.id, desde < inicioAcerto ? desde : inicioAcerto),
+    sessoesDesde(plano.id, inicioAcerto),
     db.from('topicos_concluidos').select('topico_id').eq('plano_id', plano.id),
     db.from('revisoes').select('disciplina_id, data_revisao').eq('plano_id', plano.id).is('concluida_em', null),
   ]);
   if (feitos.error) throw feitos.error;
   if (pendentes.error) throw pendentes.error;
-
-  const posicaoAtual =
-    plano.gerado.modo === 'ciclo'
-      ? posicaoEmMinutos(plano.gerado.ciclo, plano.ciclo_inicio, minutosRegistradosNoCiclo(todas, desde, hoje))
-      : 0;
 
   const resultado = ajustarPlano({
     conteudo: plano.conteudo,
@@ -145,8 +139,8 @@ async function executarAjuste(plano: LinhaPlano, agora: Date): Promise<string | 
     pesosInformados: pesosDoPlano(conteudoCargo, plano.conteudo),
     criadoEm: hojeEmSaoPaulo(new Date(plano.created_at)),
     fatoresAcertoVigentes: vigentes,
-    posicaoAtual,
-    sessoes: todas.filter((s) => s.data >= inicioAcerto),
+    posicaoAtual: plano.fila_posicao,
+    sessoes,
     concluidos: (feitos.data ?? []).map((f) => f.topico_id as string),
     revisoesPendentes: (pendentes.data ?? []).map((r) => ({
       disciplinaId: r.disciplina_id as string,
@@ -158,9 +152,11 @@ async function executarAjuste(plano: LinhaPlano, agora: Date): Promise<string | 
   const { data: ajusteId, error } = await db.rpc('aplicar_ajuste', {
     p_plano: plano.id,
     p_ajustado_lido: plano.ajustado_em,
+    p_fila_lida: plano.fila_posicao,
     p_gerado: resultado.gerado,
     p_ajustes: resultado.ajustes,
-    p_ciclo_inicio: resultado.cicloInicio,
+    p_fila_posicao: resultado.fila?.posicao ?? null,
+    p_fila_desde: resultado.fila?.desde ?? null,
     p_janela_inicio: resultado.janela.inicio,
     p_janela_fim: resultado.janela.fim,
     p_resumo: resultado.resumo,
