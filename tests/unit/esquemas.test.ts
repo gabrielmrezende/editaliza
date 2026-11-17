@@ -145,7 +145,14 @@ describe('EsquemaEdicaoSessao', () => {
 });
 
 describe('EsquemaConcluirBloco', () => {
-  const base = { posicaoEsperada: 0, minutos: 50, origem: 'cronometro' as const };
+  const base = {
+    posicaoEsperada: 0,
+    ajustadoLido: null,
+    disciplinaId: 'd0',
+    topicoId: 'd0-t0',
+    minutos: 50,
+    origem: 'cronometro' as const,
+  };
 
   it('aplica padrões', () => {
     expect(EsquemaConcluirBloco.parse(base)).toEqual({
@@ -168,12 +175,25 @@ describe('EsquemaConcluirBloco', () => {
     expect(EsquemaConcluirBloco.safeParse({ ...base, origem: 'manual' }).success).toBe(false);
     expect(EsquemaConcluirBloco.safeParse({ ...base, origem: 'rapido' }).success).toBe(true);
   });
+
+  it('exige a fila lida e o bloco mostrado (tópico pode ser nulo)', () => {
+    expect(EsquemaConcluirBloco.safeParse({ ...base, topicoId: null }).success).toBe(true);
+    expect(EsquemaConcluirBloco.safeParse({ ...base, ajustadoLido: '2026-11-17T10:00:00.5+00:00' }).success).toBe(true);
+    for (const chave of ['ajustadoLido', 'disciplinaId', 'topicoId']) {
+      const sem = Object.fromEntries(Object.entries(base).filter(([c]) => c !== chave));
+      expect(EsquemaConcluirBloco.safeParse(sem).success).toBe(false);
+    }
+  });
 });
 
 describe('EsquemaVoltarBloco', () => {
-  it('exige posição inteira >= 0', () => {
-    expect(EsquemaVoltarBloco.parse({ posicaoEsperada: 3 })).toEqual({ posicaoEsperada: 3 });
-    expect(EsquemaVoltarBloco.safeParse({ posicaoEsperada: -1 }).success).toBe(false);
+  it('exige posição inteira >= 0 e o ajustado_em lido', () => {
+    expect(EsquemaVoltarBloco.parse({ posicaoEsperada: 3, ajustadoLido: null })).toEqual({
+      posicaoEsperada: 3,
+      ajustadoLido: null,
+    });
+    expect(EsquemaVoltarBloco.safeParse({ posicaoEsperada: -1, ajustadoLido: null }).success).toBe(false);
+    expect(EsquemaVoltarBloco.safeParse({ posicaoEsperada: 3 }).success).toBe(false);
     expect(EsquemaVoltarBloco.safeParse({}).success).toBe(false);
   });
 });

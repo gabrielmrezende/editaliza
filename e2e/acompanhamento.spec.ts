@@ -101,13 +101,23 @@ test.describe('acompanhamento', () => {
   test('ajustar agora mostra resumo', async ({ page }) => {
     await criarPlano(page, { prefixo: 'acompanhamento' });
     const ajustar = page.getByRole('button', { name: 'Ajustar agora' });
+    // No prazo o ajuste pode refazer a fila: pede confirmação antes; Cancelar não ajusta.
+    const confirmacao = page.getByRole('dialog', { name: 'Ajustar o plano agora?' });
     await ajustar.click();
+    await expect(confirmacao).toContainText('A fila recomeça com o que falta estudar.');
+    await confirmacao.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(confirmacao).toBeHidden();
+    await expect(page.getByText('O plano se ajusta toda semana ao que você estudou.')).toBeVisible();
+
+    await ajustar.click();
+    await confirmacao.getByRole('button', { name: 'Ajustar' }).click();
     const resumo = page.getByRole('region', { name: 'Seu plano foi ajustado' });
     await expect(resumo).toBeVisible();
     await expect(resumo.getByRole('listitem').first()).not.toBeEmpty();
     await expect(page.getByText(/^Último ajuste em \d{2}\/\d{2}\/\d{4}\.$/)).toBeVisible();
 
     await ajustar.click();
+    await confirmacao.getByRole('button', { name: 'Ajustar' }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'Você ajustou há pouco' })).toBeVisible();
 
     const [visto] = await Promise.all([

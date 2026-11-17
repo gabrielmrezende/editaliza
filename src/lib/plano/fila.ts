@@ -80,6 +80,17 @@ export function topicoDoBloco(
 }
 
 /**
+ * Prazo: o bloco da posição tem tópico e é o último bloco desse tópico daqui até o fim da fila (o
+ * "Concluí este tópico" vem marcado). Ciclo, fim da fila ou bloco sem tópico: false.
+ */
+export function ultimoBlocoDoTopico(fila: Fila, posicao: number): boolean {
+  if (fila.modo !== 'prazo') return false;
+  const topicoId = fila.blocos[posicao]?.topicoId;
+  if (!topicoId) return false;
+  return !fila.blocos.slice(posicao + 1).some((b) => b.topicoId === topicoId);
+}
+
+/**
  * Converte a posição da fila do ciclo quando os itens mudam (ajuste): mantém a volta e aponta para a
  * mesma matéria no novo ciclo; se ela saiu, para o próximo item (na ordem antiga, dando a volta) que exista no novo.
  */

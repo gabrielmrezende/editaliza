@@ -101,10 +101,24 @@ export const EsquemaEdicaoSessao = z
   .partial()
   .refine((e) => Object.values(e).some((v) => v !== undefined), 'Informe ao menos um campo.');
 
-/** Concluir (ou só salvar) o bloco atual da fila. A posição esperada protege contra clique duplo e tela velha. */
+/**
+ * O que a tela leu da fila: a posição e o `ajustado_em` do plano (exatamente como o servidor mandou;
+ * null se nunca ajustado). Protege contra clique duplo, outra aba e tela aberta antes de um ajuste.
+ */
+const filaLida = {
+  posicaoEsperada: z.number().int().min(0),
+  ajustadoLido: z.string().max(64).nullable(),
+};
+
+/**
+ * Concluir (ou só salvar) o bloco atual da fila. Além da fila lida, a tela manda a matéria e o tópico
+ * que mostrou: se o servidor calcular outro bloco (fila refeita, tópico marcado noutra aba), é 409.
+ */
 export const EsquemaConcluirBloco = z
   .object({
-    posicaoEsperada: z.number().int().min(0),
+    ...filaLida,
+    disciplinaId: idCurto,
+    topicoId: idCurto.nullable(),
     minutos: z.number().int().min(0).max(1440),
     acertos: contagem.default(0),
     erros: contagem.default(0),
@@ -118,7 +132,7 @@ export const EsquemaConcluirBloco = z
   });
 
 /** Voltar um bloco da fila. */
-export const EsquemaVoltarBloco = z.object({ posicaoEsperada: z.number().int().min(0) });
+export const EsquemaVoltarBloco = z.object(filaLida);
 
 export function atribuirIds(ia: ConteudoCargoIA): ConteudoCargo {
   return {

@@ -85,10 +85,26 @@ async function novoAluno(gerado: PlanoGerado = PRAZO, extra: Record<string, unkn
   return { ...u, planoId: await criarPlano(u.id, gerado, extra) };
 }
 
+/** Padrão: a tela leu o bloco 0 do PRAZO (Português · Crase) num plano nunca ajustado. */
 const entrada = (campos: Record<string, unknown> = {}) =>
-  EsquemaConcluirBloco.parse({ posicaoEsperada: 0, minutos: 50, origem: 'cronometro', ...campos });
+  EsquemaConcluirBloco.parse({
+    posicaoEsperada: 0,
+    ajustadoLido: null,
+    disciplinaId: 'd0',
+    topicoId: 'd0-t0',
+    minutos: 50,
+    origem: 'cronometro',
+    ...campos,
+  });
 
-const voltar = (posicaoEsperada: number) => EsquemaVoltarBloco.parse({ posicaoEsperada });
+const voltar = (posicaoEsperada: number, ajustadoLido: string | null = null) =>
+  EsquemaVoltarBloco.parse({ posicaoEsperada, ajustadoLido });
+
+async function ajustadoEm(planoId: string) {
+  const { data, error } = await admin().from('planos').select('ajustado_em').eq('id', planoId).single();
+  if (error) throw error;
+  return data.ajustado_em as string | null;
+}
 
 async function esperarErro(p: Promise<unknown>, status: number, mensagem?: string) {
   const erro = await p.then(
@@ -179,8 +195,13 @@ describe('concluirBloco', () => {
 
   it('bloco de simulado: sessão sem tópico, tipo simulado, sem revisões; revisao_geral → tipo revisao', async () => {
     const a = await novoAluno(PRAZO, { fila_posicao: 2 });
-    await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 2, concluirTopico: true }), AGORA);
-    await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 3, minutos: 90 }), AGORA);
+    await concluirBloco(
+      a.id,
+      a.planoId,
+      entrada({ posicaoEsperada: 2, disciplinaId: 'd1', topicoId: null, concluirTopico: true }),
+      AGORA,
+    );
+    await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 3, topicoId: null, minutos: 90 }), AGORA);
     const sessoes = await sessoesDe(a.planoId);
     expect(sessoes.map((s) => [s.disciplina_id, s.topico_id, s.topico_nome, s.tipo])).toEqual([
       ['d1', null, null, 'revisao'],
@@ -193,7 +214,7 @@ describe('concluirBloco', () => {
 
   it('fila_desde: o bloco 0 é o primeiro com data >= fila_desde', async () => {
     const a = await novoAluno(PRAZO, { fila_desde: '2026-11-18' });
-    await concluirBloco(a.id, a.planoId, entrada(), AGORA);
+    await concluirBloco(a.id, a.planoId, entrada({ disciplinaId: 'd1', topicoId: null }), AGORA);
     const [s] = await sessoesDe(a.planoId);
     expect([s.disciplina_id, s.tipo]).toEqual(['d1', 'revisao']);
   });
@@ -207,11 +228,12 @@ describe('concluirBloco', () => {
 
   it('ciclo: o tópico é o primeiro pendente e só muda com Concluí este tópico', async () => {
     const a = await novoAluno(CICLO);
+    const d1 = { disciplinaId: 'd1', topicoId: 'd1-t0' };
     await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 0 }), AGORA);
-    await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 1 }), AGORA);
+    await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 1, ...d1 }), AGORA);
     await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 2, concluirTopico: true }), AGORA);
-    await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 3 }), AGORA);
-    const r = await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 4 }), AGORA);
+    await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 3, ...d1 }), AGORA);
+    const r = await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 4, topicoId: 'd0-t1' }), AGORA);
     expect(r.posicao).toBe(5);
     const sessoes = await sessoesDe(a.planoId);
     expect(sessoes.map((s) => s.topico_id)).toEqual(['d0-t0', 'd1-t0', 'd0-t0', 'd1-t0', 'd0-t1']);
@@ -227,7 +249,7 @@ describe('concluirBloco', () => {
         { plano_id: a.planoId, topico_id: 'd0-t1' },
       ]);
     if (error) throw error;
-    await concluirBloco(a.id, a.planoId, entrada({ concluirTopico: true }), AGORA);
+    await concluirBloco(a.id, a.planoId, entrada({ topicoId: null, concluirTopico: true }), AGORA);
     const [s] = await sessoesDe(a.planoId);
     expect([s.disciplina_id, s.disciplina_nome, s.topico_id, s.topico_nome]).toEqual(['d0', 'Português', null, null]);
     expect(await contarRevisoes(a.planoId)).toBe(0);
@@ -238,8 +260,49 @@ describe('concluirBloco', () => {
     const a = await novoAluno(PRAZO, { ajustado_em: '2026-11-16T12:34:56.123456+00:00' });
     const { data } = await admin().from('planos').select('ajustado_em').eq('id', a.planoId).single();
     expect(data?.ajustado_em).toMatch(/\.123456/);
-    const r = await concluirBloco(a.id, a.planoId, entrada(), AGORA);
+    const r = await concluirBloco(a.id, a.planoId, entrada({ ajustadoLido: data?.ajustado_em }), AGORA);
     expect(r.posicao).toBe(1);
+  });
+
+  it('ajuste refaz a fila na mesma posição 0: tela com o ajustado_em antigo → 409 e nada gravado', async () => {
+    const a = await novoAluno(PRAZO, { fila_posicao: 0, ajustado_em: '2026-11-10T09:00:00+00:00' });
+    const lido = await ajustadoEm(a.planoId);
+    // O ajuste (noutra aba ou o semanal) refaz a fila: posição 0 de novo, outro bloco 0.
+    const { error } = await admin()
+      .from('planos')
+      .update({ ajustado_em: '2026-11-17T14:00:00.25+00:00', fila_posicao: 0, fila_desde: '2026-11-18' })
+      .eq('id', a.planoId);
+    if (error) throw error;
+    await esperarErro(concluirBloco(a.id, a.planoId, entrada({ ajustadoLido: lido }), AGORA), 409, MSG_FILA_MUDOU);
+    expect(await sessoesDe(a.planoId)).toHaveLength(0);
+    expect(await contarRevisoes(a.planoId)).toBe(0);
+    expect(await posicao(a.planoId)).toBe(0);
+
+    // Tela de antes do primeiro ajuste (null) com o plano já ajustado: também 409.
+    await esperarErro(concluirBloco(a.id, a.planoId, entrada({ ajustadoLido: null }), AGORA), 409, MSG_FILA_MUDOU);
+    expect(await sessoesDe(a.planoId)).toHaveLength(0);
+  });
+
+  it('bloco mostrado diferente do bloco do servidor → 409 e nada gravado', async () => {
+    // Prazo: a tela mostra outra matéria na posição 0.
+    const a = await novoAluno();
+    await esperarErro(
+      concluirBloco(a.id, a.planoId, entrada({ disciplinaId: 'd1', topicoId: 'd1-t0' }), AGORA),
+      409,
+      MSG_FILA_MUDOU,
+    );
+    // Ciclo: o tópico mostrado foi concluído em Conteúdos noutra aba (o servidor escolhe o seguinte).
+    const b = await novoAluno(CICLO);
+    const { error } = await admin().from('topicos_concluidos').insert({ plano_id: b.planoId, topico_id: 'd0-t0' });
+    if (error) throw error;
+    await esperarErro(concluirBloco(b.id, b.planoId, entrada({ concluirTopico: true }), AGORA), 409, MSG_FILA_MUDOU);
+    for (const plano of [a.planoId, b.planoId]) {
+      expect(await sessoesDe(plano)).toHaveLength(0);
+      expect(await contarRevisoes(plano)).toBe(0);
+      expect(await posicao(plano)).toBe(0);
+    }
+    const { data } = await admin().from('topicos_concluidos').select('topico_id').eq('plano_id', b.planoId);
+    expect(data).toEqual([{ topico_id: 'd0-t0' }]);
   });
 
   it('tela velha depois do ajuste → 409 e nada gravado', async () => {
@@ -255,7 +318,7 @@ describe('concluirBloco', () => {
       ciclo: [{ disciplinaId: 'd9', minutos: 60 }],
     };
     const a = await novoAluno(gerado);
-    await esperarErro(concluirBloco(a.id, a.planoId, entrada(), AGORA), 400);
+    await esperarErro(concluirBloco(a.id, a.planoId, entrada({ disciplinaId: 'd9', topicoId: null }), AGORA), 400);
     expect(await posicao(a.planoId)).toBe(0);
   });
 
@@ -275,7 +338,7 @@ describe('voltarBloco', () => {
   it('recua 1 e não apaga a sessão do bloco', async () => {
     const a = await novoAluno();
     await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 0 }), AGORA);
-    await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 1 }), AGORA);
+    await concluirBloco(a.id, a.planoId, entrada({ posicaoEsperada: 1, disciplinaId: 'd1', topicoId: 'd1-t0' }), AGORA);
     expect(await voltarBloco(a.id, a.planoId, voltar(2))).toEqual({ posicao: 1 });
     expect(await posicao(a.planoId)).toBe(1);
     expect(await sessoesDe(a.planoId)).toHaveLength(2);
@@ -289,6 +352,19 @@ describe('voltarBloco', () => {
     const b = await novoAluno(PRAZO, { fila_posicao: 3 });
     await esperarErro(voltarBloco(b.id, b.planoId, voltar(0)), 409, MSG_FILA_MUDOU);
     expect(await posicao(b.planoId)).toBe(3);
+  });
+
+  it('ajustado_em lido diferente do banco → 409 e a posição fica; igual → recua', async () => {
+    const a = await novoAluno(PRAZO, { fila_posicao: 2, ajustado_em: '2026-11-17T14:00:00.123456+00:00' });
+    const lido = await ajustadoEm(a.planoId);
+    await esperarErro(voltarBloco(a.id, a.planoId, voltar(2, null)), 409, MSG_FILA_MUDOU);
+    await esperarErro(voltarBloco(a.id, a.planoId, voltar(2, '2026-11-10T09:00:00+00:00')), 409, MSG_FILA_MUDOU);
+    expect(await posicao(a.planoId)).toBe(2);
+    expect(await voltarBloco(a.id, a.planoId, voltar(2, lido))).toEqual({ posicao: 1 });
+
+    const b = await novoAluno(PRAZO, { ajustado_em: '2026-11-17T14:00:00+00:00' });
+    await esperarErro(voltarBloco(b.id, b.planoId, voltar(0, null)), 409, MSG_FILA_MUDOU);
+    expect(await voltarBloco(b.id, b.planoId, voltar(0, await ajustadoEm(b.planoId)))).toEqual({ posicao: 0 });
   });
 
   it('esperada errada → 409 e a posição fica', async () => {

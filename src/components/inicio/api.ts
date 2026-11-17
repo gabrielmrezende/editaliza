@@ -11,11 +11,21 @@ async function postar(url: string, corpo: unknown): Promise<RespostaFila> {
   return r.ok ? { ok: true, posicao: r.dados.posicao } : { ok: false, status: r.status, erro: r.erro };
 }
 
-/** "Concluir bloco" (`avancar: true`) ou "Salvar sem concluir" (`avancar: false`). */
+/** O que a tela leu da fila: a posição e o `ajustado_em` do plano, como o servidor mandou. */
+export interface FilaLida {
+  posicaoEsperada: number;
+  ajustadoLido: string | null;
+}
+
+/**
+ * "Concluir bloco" (`avancar: true`) ou "Salvar sem concluir" (`avancar: false`). A matéria e o tópico
+ * são os mostrados na tela: o servidor recusa (409) se o bloco dele for outro.
+ */
 export function concluirBlocoNaApi(
   planoId: string,
-  corpo: {
-    posicaoEsperada: number;
+  corpo: FilaLida & {
+    disciplinaId: string;
+    topicoId: string | null;
     minutos: number;
     acertos: number;
     erros: number;
@@ -28,6 +38,6 @@ export function concluirBlocoNaApi(
 }
 
 /** "Voltar um bloco": só recua a posição. */
-export function voltarBlocoNaApi(planoId: string, posicaoEsperada: number): Promise<RespostaFila> {
-  return postar(urlFila(planoId, 'voltar'), { posicaoEsperada });
+export function voltarBlocoNaApi(planoId: string, lida: FilaLida): Promise<RespostaFila> {
+  return postar(urlFila(planoId, 'voltar'), lida);
 }

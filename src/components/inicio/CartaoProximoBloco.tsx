@@ -5,13 +5,22 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, Clock, Pause, Play, Undo2 } from 'lucide-react';
 import { CheckAnimado } from '@/components/CheckAnimado';
+import { Confirmacao } from '@/components/Dialogo';
 import { estiloMateria } from '@/components/cores';
 import { botaoContornoNavy, botaoMint, botaoTextoNavy } from '@/components/estilos';
 import { FORMULARIO_VAZIO, formatarRelogio, useCronometro } from '@/components/estudo/useCronometro';
 import { Bolha } from '@/components/plano/Bolha';
 import type { DisciplinaPlano } from '@/lib/dominio/tipos';
 import { formatarMinutos } from '@/lib/formatar';
-import { blocoDaFila, rotuloDoBloco, topicoDoBloco, totalDaFila, type BlocoFila, type Fila } from '@/lib/plano/fila';
+import {
+  blocoDaFila,
+  rotuloDoBloco,
+  topicoDoBloco,
+  totalDaFila,
+  ultimoBlocoDoTopico,
+  type BlocoFila,
+  type Fila,
+} from '@/lib/plano/fila';
 import { concluirBlocoNaApi, voltarBlocoNaApi } from './api';
 import { PassoConcluir, type ValoresConcluir } from './PassoConcluir';
 
@@ -37,6 +46,7 @@ export function CartaoProximoBloco({
   userId,
   fila,
   posicao,
+  ajustadoEm,
   disciplinas,
   concluidos,
   indices,
@@ -49,6 +59,8 @@ export function CartaoProximoBloco({
   userId: string;
   fila: Fila;
   posicao: number;
+  /** `ajustado_em` do plano como o servidor mandou: vai de volta ao concluir/voltar (tela velha → 409). */
+  ajustadoEm: string | null;
   disciplinas: DisciplinaPlano[];
   concluidos: ReadonlySet<string>;
   indices: Map<string, number>;
@@ -68,12 +80,14 @@ export function CartaoProximoBloco({
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [anuncio, setAnuncio] = useState('');
+  const [confirmarZerar, setConfirmarZerar] = useState(false);
   const emVoo = useRef(false); // trava síncrona: dois cliques seguidos não fazem duas requisições
   const pedidoTratado = useRef(false);
   // Foco depois de abrir/fechar o passo ou de trocar de bloco (o botão clicado some da tela).
   const gatilhoRef = useRef<HTMLButtonElement>(null);
+  const iniciarRef = useRef<HTMLButtonElement>(null);
   const tituloRef = useRef<HTMLElement>(null);
-  const focoPendente = useRef<'gatilho' | 'titulo' | null>(null);
+  const focoPendente = useRef<'gatilho' | 'titulo' | 'iniciar' | null>(null);
   const guardarTitulo = (el: HTMLElement | null) => {
     tituloRef.current = el;
   };
@@ -84,7 +98,10 @@ export function CartaoProximoBloco({
   const disciplina = bloco ? disciplinas.find((d) => d.id === bloco.disciplinaId) : undefined;
   const topicoId = bloco && bloco.tipo === 'estudo' ? topicoDoBloco(bloco, fila, disciplinas, concluidos) : null;
   const jaConcluido = topicoId !== null && concluidos.has(topicoId);
-  const marcado = marca?.posicao === posicao && marca.marcado;
+  // No prazo, o último bloco do tópico na fila já vem com "Concluí este tópico" marcado (dá para
+  // desmarcar): um ajuste refaz a fila só com o que falta, e o tópico estudado não volta.
+  const marcadoPorPadrao = !jaConcluido && ultimoBlocoDoTopico(fila, posicao);
+  const marcado = marca?.posicao === posicao ? marca.marcado : marcadoPorPadrao;
   const ocupado = enviando || atualizando;
   const ativo = estado.rodando || estado.acumuladoSeg > 0;
   // O passo vale para o bloco em que foi aberto: se a fila andou (outra aba), ele fecha.
@@ -105,6 +122,7 @@ export function CartaoProximoBloco({
     () => () => {
       pedidoTratado.current = false;
       setPassoDe(null);
+      setConfirmarZerar(false);
       setErro(null);
       setAnuncio('');
     },
@@ -129,11 +147,12 @@ export function CartaoProximoBloco({
   useEffect(() => {
     const alvo = focoPendente.current;
     if (!alvo) return;
-    const elemento = alvo === 'gatilho' ? gatilhoRef.current : tituloRef.current;
+    const elemento =
+      alvo === 'gatilho' ? gatilhoRef.current : alvo === 'iniciar' ? iniciarRef.current : tituloRef.current;
     if (!elemento || (alvo === 'gatilho' && ocupado)) return;
     focoPendente.current = null;
     elemento.focus();
-  }, [ocupado, posicao, passoAberto]);
+  }, [ocupado, posicao, passoAberto, ativo]);
 
   async function concluir(valores: ValoresConcluir, avancar: boolean) {
     if (emVoo.current || !bloco) return;
@@ -144,6 +163,9 @@ export function CartaoProximoBloco({
     const doCronometro = valores.usouCronometro;
     const r = await concluirBlocoNaApi(planoId, {
       posicaoEsperada: posicao,
+      ajustadoLido: ajustadoEm,
+      disciplinaId: bloco.disciplinaId,
+      topicoId,
       minutos: valores.minutos,
       acertos: valores.acertos,
       erros: valores.erros,
@@ -176,7 +198,7 @@ export function CartaoProximoBloco({
     setEnviando(true);
     setErro(null);
     setAnuncio('');
-    const r = await voltarBlocoNaApi(planoId, posicao);
+    const r = await voltarBlocoNaApi(planoId, { posicaoEsperada: posicao, ajustadoLido: ajustadoEm });
     emVoo.current = false;
     setEnviando(false);
     if (r.ok) {
@@ -211,7 +233,7 @@ export function CartaoProximoBloco({
       style={indice >= 0 ? estiloMateria(indice) : undefined}
     >
       {/* Faixa da cor da matéria: liga o destaque às bolinhas da grade e do menu. */}
-      <span aria-hidden className="absolute inset-y-0 left-0 w-1.5 bg-[var(--cor-materia,var(--mint))]" />
+      <span aria-hidden className="faixa-materia absolute inset-y-0 left-0 w-1.5" />
       <div className="flex flex-col gap-5 py-6 pl-6 pr-5 sm:py-8 sm:pl-10 sm:pr-8">
         <h2 id={`${id}-titulo`} className="text-xl font-semibold tracking-tight text-mint">
           Próximo bloco
@@ -266,18 +288,26 @@ export function CartaoProximoBloco({
                     Pausar
                   </button>
                 ) : (
-                  <button type="button" className={botaoMint} disabled={!carregado} onClick={iniciar}>
+                  <button ref={iniciarRef} type="button" className={botaoMint} disabled={!carregado} onClick={iniciar}>
                     <Play aria-hidden className="size-4 fill-current" />
                     {ativo ? 'Retomar' : 'Iniciar'}
                   </button>
                 )}
-                <p
-                  role="timer"
-                  aria-label="Tempo de estudo"
-                  className="min-w-[6.5ch] pl-3 text-2xl font-semibold leading-none tracking-tight tabular-nums"
-                >
-                  {formatarRelogio(segundos)}
-                </p>
+                <div className="flex items-center gap-1">
+                  <p
+                    role="timer"
+                    aria-label="Tempo de estudo"
+                    className="min-w-[6.5ch] pl-3 text-2xl font-semibold leading-none tracking-tight tabular-nums"
+                  >
+                    {formatarRelogio(segundos)}
+                  </p>
+                  {/* Pausado com tempo marcado: dá para descartar o tempo (com confirmação). */}
+                  {ativo && !estado.rodando && !passoAberto && (
+                    <button type="button" className={botaoTextoNavy} onClick={() => setConfirmarZerar(true)}>
+                      Zerar
+                    </button>
+                  )}
+                </div>
               </div>
               {!passoAberto && (
                 <div className="flex w-full flex-wrap items-center gap-x-1 gap-y-1 sm:ml-auto sm:w-auto">
@@ -344,6 +374,22 @@ export function CartaoProximoBloco({
           {anuncio}
         </p>
       </div>
+
+      <Confirmacao
+        aberto={confirmarZerar}
+        titulo="Descartar o tempo?"
+        confirmar="Descartar"
+        cancelar="Cancelar"
+        aoConfirmar={() => {
+          setConfirmarZerar(false);
+          // O "Zerar" some com o tempo: o foco vai para o "Iniciar".
+          focoPendente.current = 'iniciar';
+          c.descartar();
+        }}
+        aoCancelar={() => setConfirmarZerar(false)}
+      >
+        O tempo marcado no cronômetro será perdido.
+      </Confirmacao>
     </section>
   );
 }

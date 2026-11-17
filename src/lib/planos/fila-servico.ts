@@ -42,7 +42,7 @@ interface LinhaFila {
   conteudo: DisciplinaPlano[];
   fila_posicao: number;
   fila_desde: string | null;
-  /** Exatamente como o PostgREST devolveu: volta igual para a checagem otimista de `concluir_bloco`. */
+  /** Exatamente como o PostgREST devolveu (a tela recebe a mesma string e a manda de volta). */
   ajustado_em: string | null;
 }
 
@@ -67,7 +67,10 @@ export async function concluirBloco(
   if (error) throw error;
   if (errFeitos) throw errFeitos;
   if (!linha) throw naoEncontrado();
-  if (entrada.posicaoEsperada !== linha.fila_posicao) throw filaMudou();
+  // A tela leu a fila antes de um ajuste (que pode ter refeito a fila na mesma posição): 409.
+  if (entrada.posicaoEsperada !== linha.fila_posicao || entrada.ajustadoLido !== linha.ajustado_em) {
+    throw filaMudou();
+  }
 
   const fila = montarFila(linha.gerado, linha.fila_desde);
   const bloco = blocoDaFila(fila, linha.fila_posicao);
@@ -75,6 +78,8 @@ export async function concluirBloco(
 
   const concluidos = new Set((feitos ?? []).map((f) => f.topico_id as string));
   const topicoId = bloco.tipo === 'estudo' ? topicoDoBloco(bloco, fila, linha.conteudo, concluidos) : null;
+  // O estudo é gravado no bloco que a tela mostrou, nunca noutro (ex.: tópico do ciclo marcado noutra aba).
+  if (entrada.disciplinaId !== bloco.disciplinaId || entrada.topicoId !== topicoId) throw filaMudou();
   const { disciplinaNome, topicoNome } = resolverNomes(linha.conteudo, bloco.disciplinaId, topicoId);
 
   const hoje = hojeEmSaoPaulo(agora);
@@ -91,7 +96,8 @@ export async function concluirBloco(
     p_user: userId,
     p_plano: id,
     p_esperada: entrada.posicaoEsperada,
-    p_ajustado_lido: linha.ajustado_em,
+    // O que a tela leu: um ajuste entre esta leitura e a função também dá 409.
+    p_ajustado_lido: entrada.ajustadoLido,
     p_avancar: entrada.avancar,
     p_sessao: {
       data: hoje,
@@ -118,7 +124,7 @@ export async function concluirBloco(
   return { posicao: resultado.posicao, sessaoId: resultado.sessao_id };
 }
 
-/** Recua a fila 1 bloco (mínimo 0). Não apaga sessão. */
+/** Recua a fila 1 bloco (mínimo 0). Não apaga sessão. Fila mudada (posição ou ajuste) → 409. */
 export async function voltarBloco(
   userId: string,
   planoId: string,
@@ -131,25 +137,29 @@ export async function voltarBloco(
   if (esperada === 0) {
     const { data, error } = await db
       .from('planos')
-      .select('fila_posicao')
+      .select('fila_posicao, ajustado_em')
       .eq('id', id)
       .eq('user_id', userId)
       .eq('ativo', true)
-      .maybeSingle();
+      .maybeSingle<{ fila_posicao: number; ajustado_em: string | null }>();
     if (error) throw error;
     if (!data) throw naoEncontrado();
-    if (data.fila_posicao !== 0) throw filaMudou();
+    if (data.fila_posicao !== 0 || data.ajustado_em !== entrada.ajustadoLido) throw filaMudou();
     return { posicao: 0 };
   }
 
-  const { data, error } = await db
+  const atualizar = db
     .from('planos')
     .update({ fila_posicao: esperada - 1, updated_at: new Date().toISOString() })
     .eq('id', id)
     .eq('user_id', userId)
     .eq('ativo', true)
-    .eq('fila_posicao', esperada)
-    .select('fila_posicao');
+    .eq('fila_posicao', esperada);
+  // Mesma guarda do concluir: o banco compara como timestamptz (o texto do PostgREST volta igual).
+  const { data, error } = await (entrada.ajustadoLido === null
+    ? atualizar.is('ajustado_em', null)
+    : atualizar.eq('ajustado_em', entrada.ajustadoLido)
+  ).select('fila_posicao');
   if (error) throw error;
   if (!data?.length) throw filaMudou();
   return { posicao: data[0].fila_posicao as number };

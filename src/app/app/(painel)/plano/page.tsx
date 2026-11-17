@@ -55,6 +55,8 @@ async function Inicio({ searchParams }: { searchParams: Busca }) {
       gerado={plano.gerado}
       filaDesde={plano.fila_desde}
       posicao={plano.fila_posicao}
+      // A string do PostgREST, sem passar por Date: o servidor compara com o que leu do banco.
+      ajustadoEm={plano.ajustado_em}
       concluidos={(feitos.data ?? []).map((f) => f.topico_id as string)}
       revisoes={revisoes}
       sessoes={sessoes}

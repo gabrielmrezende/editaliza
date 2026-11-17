@@ -32,6 +32,8 @@ export interface PropsInicio {
   filaDesde: string | null;
   /** Posição na fila, como está no servidor. */
   posicao: number;
+  /** `ajustado_em` do plano, exatamente como o servidor leu (volta no concluir/voltar). */
+  ajustadoEm: string | null;
   concluidos: string[];
   /** Revisões do plano (todas); o Início mostra as de hoje e as atrasadas. */
   revisoes: Revisao[];
@@ -103,6 +105,7 @@ export function PainelInicio(p: PropsInicio) {
         planoId={p.planoId}
         ajuste={p.ajusteNaoVisto}
         ultimoAjuste={p.ultimoAjuste}
+        confirmarAjuste={fila.modo === 'prazo'}
         aoAnunciar={setAnuncioAjuste}
       />
       <p role="status" className="sr-only">
@@ -117,6 +120,7 @@ export function PainelInicio(p: PropsInicio) {
         userId={p.userId}
         fila={fila}
         posicao={posicao}
+        ajustadoEm={p.ajustadoEm}
         disciplinas={p.disciplinas}
         concluidos={concluidos}
         indices={indices}

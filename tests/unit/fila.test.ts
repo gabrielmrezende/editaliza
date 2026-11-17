@@ -11,6 +11,7 @@ import {
   topicoDoBloco,
   topicoDoCiclo,
   totalDaFila,
+  ultimoBlocoDoTopico,
   type Fila,
 } from '@/lib/plano/fila';
 
@@ -104,6 +105,20 @@ describe('fila', () => {
     const fc: Fila = { modo: 'ciclo', itens: [{ disciplinaId: 'd0', minutos: 90 }] };
     const bc = blocoDaFila(fc, 0)!;
     expect(topicoDoBloco(bc, fc, disciplinas, new Set(['t0']))).toBe('t1');
+  });
+
+  it('ultimoBlocoDoTopico: só o último bloco do tópico daqui em diante, no prazo', () => {
+    const f: Fila = {
+      modo: 'prazo',
+      blocos: [
+        { disciplinaId: 'd0', topicoId: 't0', tipo: 'estudo', minutos: 60 },
+        { disciplinaId: 'd1', topicoId: 'u0', tipo: 'estudo', minutos: 60 },
+        { disciplinaId: 'd0', topicoId: 't0', tipo: 'estudo', minutos: 30 },
+        { disciplinaId: 'd0', topicoId: null, tipo: 'simulado', minutos: 60 },
+      ],
+    };
+    expect([0, 1, 2, 3, 4].map((p) => ultimoBlocoDoTopico(f, p))).toEqual([false, true, true, false, false]);
+    expect(ultimoBlocoDoTopico(montarFila(ciclo, null), 0)).toBe(false);
   });
 
   it('converterPosicaoFila', () => {

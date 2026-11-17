@@ -136,7 +136,7 @@ test.describe('início', () => {
     await expect(cartao(page)).toContainText(/Bloco 2 de/);
 
     await concluir(outra);
-    await expect(cartao(outra).getByRole('alert')).toContainText('A fila mudou em outra tela');
+    await expect(cartao(outra).getByRole('alert')).toContainText('Sua fila mudou (em outra tela ou por um ajuste)');
     await expect(cartao(outra)).toContainText(/Bloco 2 de/);
     const antes = emSegundos(await relogio(outra).textContent());
     await expect.poll(async () => emSegundos(await relogio(outra).textContent())).toBeGreaterThan(antes);
@@ -208,6 +208,66 @@ test.describe('início', () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await expect(visiveis).toHaveCount(12);
     await expect(page.getByRole('button', { name: 'Ver mais blocos' })).toBeHidden();
+  });
+
+  test('Zerar descarta o tempo do cronômetro pausado (com confirmação)', async ({ page }) => {
+    await criarPlano(page, { prefixo: 'inicio' });
+    const zerar = cartao(page).getByRole('button', { name: 'Zerar' });
+    const iniciar = cartao(page).getByRole('button', { name: 'Iniciar' });
+    await expect(zerar).toBeHidden();
+    await iniciar.click();
+    await expect.poll(async () => emSegundos(await relogio(page).textContent())).toBeGreaterThanOrEqual(1);
+    await expect(zerar).toBeHidden(); // rodando: só "Pausar"
+    await cartao(page).getByRole('button', { name: 'Pausar' }).click();
+
+    const dialogo = page.getByRole('dialog', { name: 'Descartar o tempo?' });
+    await zerar.click();
+    await expect(dialogo).toContainText('O tempo marcado no cronômetro será perdido.');
+    await dialogo.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(dialogo).toBeHidden();
+    await expect(relogio(page)).not.toHaveText('00:00:00');
+
+    await zerar.click();
+    await dialogo.getByRole('button', { name: 'Descartar' }).click();
+    await expect(relogio(page)).toHaveText('00:00:00');
+    await expect(iniciar).toBeVisible();
+    await expect(iniciar).toBeFocused();
+    await expect(zerar).toBeHidden();
+
+    await page.reload();
+    await expect(relogio(page)).toHaveText('00:00:00');
+    await expect(iniciar).toBeVisible();
+  });
+
+  test('prazo: "Concluí este tópico" vem marcado só no último bloco do tópico', async ({ page }) => {
+    test.setTimeout(240_000);
+    await criarPlano(page, { prefixo: 'inicio' });
+    const caixa = cartao(page).getByRole('checkbox', { name: 'Concluí este tópico' });
+    const numero = async () => Number(/Bloco (\d+) de/.exec((await cartao(page).textContent()) ?? '')?.[1]);
+    const desmarcados = new Set<string>();
+    let marcado: string | null = null;
+    for (let i = 0; i < 40 && marcado === null; i++) {
+      const topico = (await topicoDoCartao(page).textContent())!.trim();
+      const seguintes = (await grade(page).locator('[data-topico]').allTextContents()).map((t) => t.trim());
+      if (seguintes.includes(topico)) {
+        // O tópico ainda volta na fila: a caixa vem desmarcada.
+        await expect(caixa).not.toBeChecked();
+        desmarcados.add(topico);
+      } else if (await caixa.isChecked()) {
+        marcado = topico;
+        break;
+      }
+      const antes = await numero();
+      await concluir(page);
+      await expect.poll(numero).toBe(antes + 1);
+    }
+    // O último bloco de um tópico que já apareceu desmarcado antes vem marcado (e dá para desmarcar).
+    expect(marcado).not.toBeNull();
+    expect([...desmarcados]).toContain(marcado);
+    await caixa.uncheck();
+    await expect(caixa).not.toBeChecked();
+    await cartao(page).getByRole('button', { name: 'Concluir bloco' }).click();
+    await expect(cartao(page).getByRole('form', { name: 'Concluir o bloco' }).getByRole('checkbox')).not.toBeChecked();
   });
 
   test('capturas do Início', async ({ page }) => {
