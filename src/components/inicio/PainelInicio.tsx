@@ -8,10 +8,12 @@ import { RegistroManual } from '@/components/estudo/FormularioSessao';
 import { RegistroRapido } from '@/components/estudo/RegistroRapido';
 import { ResumoAjuste, type AjusteNaoVisto } from '@/components/plano/ResumoAjuste';
 import { RevisoesHoje } from '@/components/plano/RevisoesHoje';
+import { useRevisoes } from '@/components/revisoes/useRevisoes';
 import { dataPorExtenso, diasEntre } from '@/lib/datas';
 import type { Revisao, Sessao } from '@/lib/dominio/acompanhamento';
 import type { DisciplinaPlano, PlanoGerado } from '@/lib/dominio/tipos';
 import { montarFila } from '@/lib/plano/fila';
+import { Calendario } from './Calendario';
 import { CartaoProximoBloco } from './CartaoProximoBloco';
 import { MeuProgresso } from './MeuProgresso';
 import { ProximosBlocos } from './ProximosBlocos';
@@ -20,6 +22,8 @@ export interface PropsInicio {
   planoId: string;
   userId: string;
   hoje: string;
+  /** Mês do calendário (aaaa-mm), de `?mes=`. */
+  mes: string;
   titulo: string;
   origem: string | null;
   dataProva: string | null;
@@ -31,7 +35,7 @@ export interface PropsInicio {
   concluidos: string[];
   /** Revisões do plano (todas); o Início mostra as de hoje e as atrasadas. */
   revisoes: Revisao[];
-  /** Sessões do plano desde o começo da semana. */
+  /** Sessões do plano do começo da semana (ou da grade do mês, se antes) até hoje (ou o fim da grade). */
   sessoes: Sessao[];
   minutosPorDia: number[];
   iniciarAoAbrir: boolean;
@@ -47,8 +51,16 @@ export function PainelInicio(p: PropsInicio) {
   const fila = useMemo(() => montarFila(p.gerado, p.filaDesde), [p.gerado, p.filaDesde]);
   const concluidos = useMemo(() => new Set(p.concluidos), [p.concluidos]);
   const indices = useMemo(() => indicesDasMaterias(p.disciplinas), [p.disciplinas]);
-  const pendentes = useMemo(
-    () => p.revisoes.filter((r) => !r.concluidaEm && r.dataRevisao <= p.hoje),
+  // Um só estado de revisões para "Revisões de hoje" e o calendário: concluir num aparece no outro.
+  const revisoes = useRevisoes(p.revisoes);
+  const [origemRevisao, setOrigemRevisao] = useState<'hoje' | 'calendario'>('hoje');
+  const concluirRevisao = (origem: 'hoje' | 'calendario') => (id: string, concluida: boolean) => {
+    setOrigemRevisao(origem);
+    revisoes.concluir(id, concluida);
+  };
+  // "Revisões de hoje": as pendentes até hoje ao abrir (concluídas agora ficam, marcadas, para desfazer).
+  const idsDeHoje = useMemo(
+    () => new Set(p.revisoes.filter((r) => !r.concluidaEm && r.dataRevisao <= p.hoje).map((r) => r.id)),
     [p.revisoes, p.hoje],
   );
   const [anuncioAjuste, setAnuncioAjuste] = useState('');
@@ -96,6 +108,9 @@ export function PainelInicio(p: PropsInicio) {
       <p role="status" className="sr-only">
         {anuncioAjuste}
       </p>
+      <p role="status" className="sr-only">
+        {revisoes.anuncio}
+      </p>
 
       <CartaoProximoBloco
         planoId={p.planoId}
@@ -113,13 +128,33 @@ export function PainelInicio(p: PropsInicio) {
 
       <MeuProgresso disciplinas={p.disciplinas} concluidos={p.concluidos} sessoes={p.sessoes} hoje={p.hoje} />
 
-      {/* Tela larga: a coluna da direita recebe o calendário do mês. */}
-      <div className="grid grid-cols-1 items-start gap-8 min-[1100px]:gap-x-8">
+      {/* Tela larga: próximos blocos à esquerda, calendário do mês à direita. */}
+      <div className="grid grid-cols-1 items-start gap-8 min-[1100px]:grid-cols-2 min-[1100px]:gap-x-8">
         <ProximosBlocos fila={fila} posicao={posicao} disciplinas={p.disciplinas} indices={indices} />
+        <Calendario
+          mes={p.mes}
+          hoje={p.hoje}
+          fila={fila}
+          posicao={posicao}
+          minutosPorDia={p.minutosPorDia}
+          dataProva={p.gerado.modo === 'prazo' ? p.dataProva : null}
+          sessoes={p.sessoes}
+          revisoes={revisoes.revisoes}
+          disciplinas={p.disciplinas}
+          indices={indices}
+          erroRevisao={origemRevisao === 'calendario' ? revisoes.erro : null}
+          aoConcluirRevisao={concluirRevisao('calendario')}
+        />
       </div>
 
       <div className="grid grid-cols-1 items-start gap-8 min-[1100px]:grid-cols-2 min-[1100px]:gap-x-8">
-        <RevisoesHoje pendentes={pendentes} hoje={p.hoje} indices={indices} />
+        <RevisoesHoje
+          revisoes={revisoes.revisoes.filter((r) => idsDeHoje.has(r.id))}
+          hoje={p.hoje}
+          indices={indices}
+          erro={origemRevisao === 'hoje' ? revisoes.erro : null}
+          aoConcluir={concluirRevisao('hoje')}
+        />
         <details className="group rounded-cartao border border-borda bg-superficie shadow-cartao">
           <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-cartao px-4 text-xl font-semibold tracking-tight sm:px-5 [&::-webkit-details-marker]:hidden">
             Registrar sem cronômetro

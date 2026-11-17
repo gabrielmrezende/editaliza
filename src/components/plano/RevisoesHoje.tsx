@@ -5,20 +5,26 @@ import { MINUTOS_POR_REVISAO, agruparAgenda } from '@/lib/acompanhamento/revisoe
 import type { Revisao } from '@/lib/dominio/acompanhamento';
 import { alerta, listaLinhas } from '../estilos';
 import { ItemRevisao } from '../revisoes/ItemRevisao';
-import { useRevisoes } from '../revisoes/useRevisoes';
 
-/** Revisões que vencem hoje e as atrasadas (atrasadas primeiro); não consomem os minutos do plano. */
+/**
+ * Revisões que vencem hoje e as atrasadas (atrasadas primeiro); não consomem os minutos do plano.
+ * O estado (e a gravação) vem de um `useRevisoes` do Início, o mesmo do calendário.
+ */
 export function RevisoesHoje({
-  pendentes,
+  revisoes,
   hoje,
   indices,
+  erro,
+  aoConcluir,
 }: {
-  pendentes: Revisao[];
+  /** As pendentes de hoje e atrasadas ao abrir a tela, no estado atual. */
+  revisoes: Revisao[];
   hoje: string;
   indices: Map<string, number>;
+  erro: string | null;
+  aoConcluir: (id: string, concluida: boolean) => void;
 }) {
   const id = useId();
-  const { revisoes, concluir, erro, anuncio } = useRevisoes(pendentes);
   // Concluídas agora continuam na lista (marcadas) até recarregar, para poder desfazer.
   const vencidas = revisoes.filter((r) => r.dataRevisao <= hoje);
   const { atrasadas, hoje: doDia } = agruparAgenda(vencidas.filter((r) => !r.concluidaEm), hoje);
@@ -40,12 +46,9 @@ export function RevisoesHoje({
           {erro}
         </p>
       )}
-      <p role="status" className="sr-only">
-        {anuncio}
-      </p>
       <ul className={listaLinhas}>
         {itens.map((r) => (
-          <ItemRevisao key={r.id} revisao={r} hoje={hoje} indiceMateria={indices.get(r.disciplinaId)} mostrarMateria aoConcluir={concluir} />
+          <ItemRevisao key={r.id} revisao={r} hoje={hoje} indiceMateria={indices.get(r.disciplinaId)} mostrarMateria aoConcluir={aoConcluir} />
         ))}
       </ul>
     </section>

@@ -73,6 +73,16 @@ describe('projetarFila', () => {
     expect(projetarFila(entrada({ minutosPorDia: [0, 0, 0, 0, 0, 0, 0] })).size).toBe(0);
     expect(projetarFila(entrada({ fila: { modo: 'ciclo', itens: [] } })).size).toBe(0);
   });
+  it('bloco de 0 minuto não trava nem ocupa dia', () => {
+    expect(projetarFila(entrada({ fila: { modo: 'ciclo', itens: [{ disciplinaId: 'a', minutos: 0 }] } })).size).toBe(0);
+    const comZero: Fila = { modo: 'ciclo', itens: [{ disciplinaId: 'a', minutos: 0 }, { disciplinaId: 'b', minutos: 60 }] };
+    expect(resumo(projetarFila(entrada({ fila: comZero, ate: '2026-11-18' })))).toEqual([['2026-11-17', ['b@1']], ['2026-11-18', ['b@3']]]);
+    const prazo: Fila = {
+      modo: 'prazo',
+      blocos: [0, 60, 0].map((minutos) => ({ disciplinaId: 'a', topicoId: null, tipo: 'estudo' as const, minutos })),
+    };
+    expect(resumo(projetarFila(entrada({ fila: prazo })))).toEqual([['2026-11-17', ['a@1']]]);
+  });
 });
 
 describe('montarCalendario / rotuloDoDia', () => {
@@ -96,6 +106,11 @@ describe('montarCalendario / rotuloDoDia', () => {
     expect(dia('2026-11-17')).toMatchObject({ ehHoje: true, passado: false, minutosEstudados: 25, previstos: [bloco(0, 45)] });
     expect(dia('2026-11-18')).toMatchObject({ revisoesPendentes: 1, revisoesFeitas: 1 });
     expect(dia('2026-12-01').doMes).toBe(false);
+  });
+  it('dia futuro não tem minutos estudados', () => {
+    const [d] = montarCalendario({ mes: '2026-11', hoje: HOJE, sessoes: [{ data: '2026-11-20', minutos: 30 }], revisoes: [], projecao: new Map() })
+      .filter((x) => x.data === '2026-11-20');
+    expect(d.minutosEstudados).toBe(0);
   });
   it('rótulos', () => {
     expect(rotuloDoDia(dia('2026-11-18'))).toBe('18 de novembro: 1 h previstos, 1 revisão pendente, 1 revisão feita');

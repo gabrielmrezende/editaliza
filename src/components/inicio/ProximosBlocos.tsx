@@ -34,7 +34,7 @@ export function ProximosBlocos({
       </h2>
       <ol
         aria-label="Próximos blocos"
-        className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 lg:grid-cols-3 min-[1280px]:grid-cols-4"
+        className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 lg:max-[1099px]:grid-cols-3"
       >
         {blocos.map((b) => {
           const disciplina = porId.get(b.disciplinaId);

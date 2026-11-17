@@ -17,6 +17,8 @@ export interface EntradaProjecao {
 export function projetarFila(e: EntradaProjecao): Map<string, BlocoFila[]> {
   const mapa = new Map<string, BlocoFila[]>();
   if (e.minutosPorDia.reduce((s, m) => s + m, 0) === 0 || blocoDaFila(e.fila, e.posicao) === null) return mapa;
+  // Bloco sem minutos não ocupa dia; um ciclo só com eles não tem o que projetar (e não acabaria).
+  if (e.fila.modo === 'ciclo' && e.fila.itens.every((i) => i.minutos <= 0)) return mapa;
   const cap = (d: string) => e.minutosPorDia[diaDaSemana(d)];
   let dia = e.hoje;
   let livre = Math.max(0, cap(dia) - e.registradosHoje);
@@ -30,7 +32,9 @@ export function projetarFila(e: EntradaProjecao): Map<string, BlocoFila[]> {
   while (dia <= e.ate && (e.dataProva === null || dia < e.dataProva)) {
     const b = blocoDaFila(e.fila, p);
     if (!b) break;
-    if (cap(dia) > 0 && b.minutos <= livre) {
+    if (b.minutos <= 0) {
+      p++;
+    } else if (cap(dia) > 0 && b.minutos <= livre) {
       poe(b);
       livre -= b.minutos;
       vazio = false;
@@ -105,7 +109,7 @@ export function montarCalendario(e: {
       doMes: data.startsWith(`${e.mes}-`),
       ehHoje: data === e.hoje,
       passado: data < e.hoje,
-      minutosEstudados: e.sessoes.filter((s) => s.data === data).reduce((s, x) => s + x.minutos, 0),
+      minutosEstudados: data > e.hoje ? 0 : e.sessoes.filter((s) => s.data === data).reduce((s, x) => s + x.minutos, 0),
       revisoesPendentes: revisoesDoDia.filter((r) => r.concluidaEm === null).length,
       revisoesFeitas: revisoesDoDia.filter((r) => r.concluidaEm !== null).length,
       previstos: data >= e.hoje ? (e.projecao.get(data) ?? []) : [],

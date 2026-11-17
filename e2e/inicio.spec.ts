@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { criarPlano } from './ajuda';
+import { criarPlano, dataDaquiA } from './ajuda';
 
 /** "01:02:03" → 3723. */
 function emSegundos(texto: string | null): number {
@@ -18,6 +18,13 @@ async function concluir(page: Page, botao: 'Concluir bloco' | 'Salvar sem conclu
   await expect(cartao(page).getByRole('textbox', { name: 'Minutos' })).toHaveValue(/^\d+$/);
   await cartao(page).getByRole('button', { name: botao }).click();
 }
+
+/** '2026-11-18' → '18 de novembro' (como o rótulo do dia no calendário). */
+const diaPorExtenso = (iso: string) =>
+  new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${iso}T12:00:00Z`));
+const calendario = (page: Page) => page.getByRole('region', { name: 'Calendário', exact: true });
+const botaoDoDia = (page: Page, iso: string, depois = '') =>
+  calendario(page).getByRole('button', { name: new RegExp(`^${diaPorExtenso(iso)}:${depois}`) });
 
 async function sessoesNoHistorico(page: Page) {
   await page.goto('/app/historico');
@@ -135,6 +142,32 @@ test.describe('início', () => {
     await expect.poll(async () => emSegundos(await relogio(outra).textContent())).toBeGreaterThan(antes);
     await expect(cartao(outra).getByRole('button', { name: 'Pausar' })).toBeVisible();
     await expect(await sessoesNoHistorico(page)).toHaveCount(1);
+  });
+
+  test('calendário mostra revisões no dia certo', async ({ page }) => {
+    await criarPlano(page, { prefixo: 'inicio' });
+    const topico = (await topicoDoCartao(page).textContent())!.trim();
+    await concluir(page);
+    await expect(cartao(page)).toContainText(/Bloco 2 de/);
+
+    const hoje = dataDaquiA(0);
+    await expect(botaoDoDia(page, hoje, '.*estudados')).toBeVisible();
+
+    let mes = hoje.slice(0, 7);
+    for (const dias of [1, 7]) {
+      const data = dataDaquiA(dias);
+      if (data.slice(0, 7) !== mes) {
+        await calendario(page).getByRole('link', { name: 'Próximo mês' }).click();
+        mes = data.slice(0, 7);
+        await expect(page).toHaveURL(new RegExp(`mes=${mes}`));
+      }
+      const dia = botaoDoDia(page, data, '.*1 revisão pendente');
+      await expect(dia).toBeVisible();
+      await dia.click();
+      await expect(dia).toHaveAttribute('aria-pressed', 'true');
+      const revisoes = calendario(page).getByRole('region', { name: 'Revisões', exact: true });
+      await expect(revisoes).toContainText(topico);
+    }
   });
 
   test('/app/plano?iniciar=1 inicia o cronômetro', async ({ page }) => {
