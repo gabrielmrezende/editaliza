@@ -194,7 +194,7 @@ export function ListaHistorico({
         aoConfirmar={() => excluindo && excluir(excluindo)}
         aoCancelar={() => setExcluindo(null)}
       >
-        As revisões pendentes criadas por ela também serão apagadas.
+        As revisões pendentes dela saem da agenda, a não ser que outra sessão do mesmo tópico continue.
       </Confirmacao>
     </div>
   );

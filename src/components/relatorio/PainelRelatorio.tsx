@@ -110,7 +110,11 @@ export function PainelRelatorio({ relatorio: r, periodo }: { relatorio: Relatori
             valor={r.percentualAcerto === null ? '—' : `${r.percentualAcerto}%`}
             nota={variacaoAcerto(r.percentualAcerto, r.anterior.percentualAcerto)}
           />
-          <Numero rotulo="Dias com estudo" valor={String(r.diasComEstudo)} />
+          <Numero
+            rotulo="Dias com estudo"
+            valor={String(r.diasComEstudo)}
+            nota={variacao(r.diasComEstudo, r.anterior.diasComEstudo, String)}
+          />
         </dl>
       </section>
 
@@ -158,7 +162,7 @@ export function PainelRelatorio({ relatorio: r, periodo }: { relatorio: Relatori
 
       <section aria-labelledby="rel-revisoes" className={cartao}>
         <h2 id="rel-revisoes" className={titulo}>
-          Revisões da semana
+          {periodo === 'semana' ? 'Revisões da semana' : 'Revisões do período'}
         </h2>
         <dl className="grid grid-cols-3 gap-3">
           <Numero rotulo="Agendadas" valor={String(r.revisoes.agendadas)} />

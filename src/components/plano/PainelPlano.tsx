@@ -44,7 +44,7 @@ export function PainelPlano(p: Props) {
   const { concluidos, marcar, erro, anuncio } = useMarcacoes(p.planoId, p.concluidosIniciais);
   // Um só `role="status"` na tela: o último anúncio (registro rápido/ajuste, ou o da marcação).
   const [anuncioPainel, setAnuncioPainel] = useState('');
-  const rapido = useRegistroRapido(p.planoId, p.hoje, p.sessoesRapidasHoje, setAnuncioPainel);
+  const rapido = useRegistroRapido(p.planoId, p.sessoesRapidasHoje, setAnuncioPainel);
   const porId = new Map(p.disciplinas.map((d) => [d.id, d]));
 
   const blocos = tarefasDoDia(p.gerado, p.hoje, p.offsetCiclo, p.minutosPorDia[diaDaSemana(p.hoje)] ?? 0);

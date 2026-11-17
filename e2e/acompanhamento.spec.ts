@@ -53,6 +53,79 @@ test.describe('acompanhamento', () => {
     await expect(cronometro.getByText('Menos de 1 minuto marcado.')).toBeHidden();
   });
 
+  test('Iniciar retoma o cronômetro mesmo saindo antes de a página sem o pedido chegar', async ({ page }) => {
+    await criarPlano(page, { prefixo: 'acompanhamento', horasDomingo: '2' });
+    const secoes = page.getByRole('navigation', { name: 'Seções' });
+    const cronometro = page.getByRole('region', { name: 'Cronômetro' });
+    // Atrasa a resposta do servidor a `/app/estudar` sem o pedido (a limpeza da URL): o aluno sai
+    // da página antes de ela chegar, e a página fica escondida pela Activity com o pedido antigo.
+    await page.route(
+      (url) => url.pathname === '/app/estudar' && !url.searchParams.has('iniciar'),
+      async (rota) => {
+        if (!rota.request().headers()['rsc']) return rota.continue();
+        await new Promise((r) => setTimeout(r, 8000));
+        await rota.continue().catch(() => {}); // a navegação pode ter sido abandonada
+      },
+    );
+
+    await primeiroBloco(page).getByRole('link', { name: 'Iniciar' }).click();
+    await expect(cronometro.getByRole('button', { name: 'Pausar' })).toBeVisible();
+    await cronometro.getByRole('button', { name: 'Parar' }).click();
+    await expect(cronometro.getByText('Menos de 1 minuto marcado.')).toBeVisible();
+
+    await secoes.getByRole('link', { name: 'Plano' }).click();
+    await primeiroBloco(page).getByRole('link', { name: 'Iniciar' }).click();
+    await expect(cronometro.getByRole('button', { name: 'Pausar' })).toBeVisible();
+    await expect(cronometro.getByText('Menos de 1 minuto marcado.')).toBeHidden();
+    // A URL sai na hora, sem esperar o servidor.
+    await expect(page).toHaveURL(/\/app\/estudar$/, { timeout: 2000 });
+  });
+
+  test('cronômetro pausado continua pausado ao sair e voltar pela aba Estudar', async ({ page }) => {
+    await criarPlano(page, { prefixo: 'acompanhamento', horasDomingo: '2' });
+    const secoes = page.getByRole('navigation', { name: 'Seções' });
+    const cronometro = page.getByRole('region', { name: 'Cronômetro' });
+
+    await primeiroBloco(page).getByRole('link', { name: 'Iniciar' }).click();
+    await expect(cronometro.getByRole('timer')).toHaveText('00:00:02');
+    await cronometro.getByRole('button', { name: 'Pausar' }).click();
+    await expect(cronometro.getByRole('button', { name: 'Continuar' })).toBeVisible();
+
+    // O pedido "Iniciar" já foi atendido: voltar à página não o repete.
+    await secoes.getByRole('link', { name: 'Plano' }).click();
+    await expect(primeiroBloco(page)).toBeVisible();
+    await secoes.getByRole('link', { name: 'Estudar' }).click();
+    await expect(cronometro.getByRole('button', { name: 'Continuar' })).toBeVisible();
+    await page.waitForTimeout(1500);
+    await expect(cronometro.getByRole('button', { name: 'Continuar' })).toBeVisible();
+  });
+
+  test('tópico concluído em Estudar aparece concluído ao voltar para Plano pela aba', async ({ page }) => {
+    await criarPlano(page, { prefixo: 'acompanhamento', horasDomingo: '2' });
+    const secoes = page.getByRole('navigation', { name: 'Seções' });
+    const concluido = primeiroBloco(page).getByRole('checkbox', { name: 'Concluí este tópico' });
+    await expect(concluido).not.toBeChecked();
+    const href = await primeiroBloco(page).getByRole('link', { name: 'Iniciar' }).getAttribute('href');
+    const busca = new URL(href!, 'http://localhost').searchParams;
+
+    // Plano fica escondido (Activity), não desmontado, enquanto o tópico é concluído em Estudar.
+    await secoes.getByRole('link', { name: 'Estudar' }).click();
+    const registro = page.getByRole('region', { name: 'Registrar sessão' });
+    await registro.getByLabel('Matéria').selectOption(busca.get('disciplina')!);
+    await registro.getByLabel('Tópico').selectOption(busca.get('topico')!);
+    await registro.getByLabel('Minutos').fill('30');
+    await registro.getByLabel('Concluí este tópico').check();
+    const [resposta] = await Promise.all([
+      page.waitForResponse((r) => r.request().method() === 'POST' && r.url().endsWith('/api/sessoes')),
+      registro.getByRole('button', { name: 'Salvar sessão' }).click(),
+    ]);
+    expect(resposta.status()).toBe(201);
+
+    await secoes.getByRole('link', { name: 'Plano' }).click();
+    await expect(concluido).toBeChecked();
+    await expect(primeiroBloco(page).getByText('Registrado')).toBeHidden();
+  });
+
   test('histórico edita e exclui', async ({ page }) => {
     await criarPlano(page, { prefixo: 'acompanhamento', horasDomingo: '2' });
     await page.goto('/app/historico');
@@ -84,7 +157,9 @@ test.describe('acompanhamento', () => {
 
     await linhas.first().getByRole('button', { name: 'Excluir' }).click();
     const confirmacao = page.getByRole('dialog', { name: 'Excluir esta sessão?' });
-    await expect(confirmacao).toContainText('As revisões pendentes criadas por ela também serão apagadas.');
+    await expect(confirmacao).toContainText(
+      'As revisões pendentes dela saem da agenda, a não ser que outra sessão do mesmo tópico continue.',
+    );
     await confirmacao.getByRole('button', { name: 'Excluir' }).click();
     await expect(page.getByText('Nenhuma sessão registrada ainda.')).toBeVisible();
   });

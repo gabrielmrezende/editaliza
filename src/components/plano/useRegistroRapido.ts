@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { pedir } from '@/components/onboarding/api';
 import { registrarSessao } from '@/components/estudo/api';
+import { hojeEmSaoPaulo } from '@/lib/datas';
 import { INTERVALOS_REVISAO } from '@/lib/dominio/acompanhamento';
 
 /** Sessão de "Estudei" (origem `rapido`) gravada hoje no plano. */
@@ -37,18 +38,22 @@ export function associarSessoes(blocos: BlocoRapido[], sessoes: SessaoRapida[]):
 
 /**
  * "Estudei" em Hoje: grava a sessão do bloco (minutos do bloco, hoje, revisões padrão, origem
- * `rapido`) e "Desfazer" apaga essa sessão. Um pedido por bloco de cada vez.
+ * `rapido`) e "Desfazer" apaga essa sessão. Um pedido por bloco de cada vez. "Hoje" é o dia de
+ * São Paulo no momento do envio (a página pode ter sido aberta antes da meia-noite).
  */
-export function useRegistroRapido(
-  planoId: string,
-  hoje: string,
-  iniciais: SessaoRapida[],
-  anunciar: (texto: string) => void,
-) {
+export function useRegistroRapido(planoId: string, iniciais: SessaoRapida[], anunciar: (texto: string) => void) {
+  const [base, setBase] = useState(iniciais);
   const [sessoes, setSessoes] = useState(iniciais);
   const [pendentes, setPendentes] = useState<ReadonlySet<string>>(new Set());
   const [erro, setErro] = useState<string | null>(null);
   const emVoo = useRef(new Set<string>());
+
+  // A página volta escondida pela Activity (ou o servidor manda dados novos): adota as sessões do
+  // servidor (ex.: excluídas no histórico), mas só sem pedido em voo.
+  if (iniciais !== base && pendentes.size === 0) {
+    setBase(iniciais);
+    setSessoes(iniciais);
+  }
 
   function marcarPendente(chave: string, sim: boolean) {
     if (sim) emVoo.current.add(chave);
@@ -64,7 +69,7 @@ export function useRegistroRapido(
     try {
       const id = await registrarSessao({
         planoId,
-        data: hoje,
+        data: hojeEmSaoPaulo(),
         disciplinaId: bloco.disciplinaId,
         topicoId: bloco.topicoId,
         minutos: bloco.minutos,

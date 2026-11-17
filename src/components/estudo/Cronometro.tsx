@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Confirmacao } from '@/components/Dialogo';
 import { botaoPrimario, botaoSecundario, campo, rotulo } from '@/components/estilos';
@@ -60,7 +60,22 @@ export function Cronometro({
     disciplinaId: p.disciplinaId,
     topicoId: p.topicoId,
   });
-  const tirarPedidoDaUrl = () => router.replace('/app/estudar', { scroll: false });
+  // A URL sai na hora (síncrono: se o aluno navegar logo em seguida, ela já não repete o pedido);
+  // o `router.replace` traz a página sem o pedido do servidor, para ele não valer de novo.
+  const tirarPedidoDaUrl = () => {
+    window.history.replaceState(null, '', '/app/estudar');
+    router.replace('/app/estudar', { scroll: false });
+  };
+
+  // A página escondida pela Activity (navegação) não desmonta: esquece o pedido já tratado e o
+  // formulário de parada, para que um novo "Iniciar" do mesmo estudo seja atendido ao voltar.
+  useLayoutEffect(
+    () => () => {
+      pedidoTratado.current = null;
+      setParado(false);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!chavePedido) {

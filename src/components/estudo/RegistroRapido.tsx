@@ -2,6 +2,7 @@
 
 import { useId, useState, useSyncExternalStore } from 'react';
 import { alerta, botaoPrimario, campo, rotulo } from '@/components/estilos';
+import { hojeEmSaoPaulo } from '@/lib/datas';
 import { INTERVALOS_REVISAO } from '@/lib/dominio/acompanhamento';
 import type { DisciplinaPlano } from '@/lib/dominio/tipos';
 import { registrarSessao } from './api';
@@ -40,18 +41,17 @@ function interpretar(bruto: string | null, disciplinas: DisciplinaPlano[]): Ulti
 const nadaAssinar = () => () => {};
 
 /**
- * Registro rápido avulso (matéria, tópico, minutos): grava com a data de hoje, origem `rapido` e
+ * Registro rápido avulso (matéria, tópico, minutos): grava com a data de hoje (dia de São Paulo no
+ * momento do envio, para a página aberta antes da meia-noite), origem `rapido` e
  * as revisões padrão, e lembra a última matéria/tópico usados.
  */
 export function RegistroRapido({
   userId,
   planoId,
-  hoje,
   disciplinas,
 }: {
   userId: string;
   planoId: string;
-  hoje: string;
   disciplinas: DisciplinaPlano[];
 }) {
   const id = useId();
@@ -92,7 +92,7 @@ export function RegistroRapido({
       const topico = topicoId || null;
       await registrarSessao({
         planoId,
-        data: hoje,
+        data: hojeEmSaoPaulo(),
         disciplinaId: disciplina.id,
         topicoId: topico,
         minutos: Number(m),

@@ -9,13 +9,32 @@ const MSG_FALHA = 'Não foi possível salvar a alteração. Confira sua internet
  * confirmado (e mostra o motivo, se o servidor deu um).
  */
 export function useRevisoes(iniciais: Revisao[]) {
+  const [base, setBase] = useState(iniciais);
   const [revisoes, setRevisoes] = useState(iniciais);
   const [erro, setErro] = useState<string | null>(null);
   const [anuncio, setAnuncio] = useState('');
+  const [ocupadas, setOcupadas] = useState(0); // revisões com requisição em voo
   const confirmadas = useRef(new Map(iniciais.map((r) => [r.id, r.concluidaEm])));
   const desejadas = useRef(new Map<string, boolean>());
   const excluidas = useRef(new Map<string, Revisao>()); // exclusões pedidas, para restaurar se falhar
   const emVoo = useRef(new Set<string>());
+  const refsDe = useRef(iniciais); // de que `base` os refs acima partiram
+
+  // A página volta escondida pela Activity (ou o servidor manda dados novos): adota a lista do
+  // servidor, mas só sem requisição em voo, para não desfazer uma gravação em andamento.
+  if (iniciais !== base && ocupadas === 0) {
+    setBase(iniciais);
+    setRevisoes(iniciais);
+  }
+
+  /** Antes de gravar: se a base mudou, os refs passam a partir dela (nada está em voo). */
+  function alinharRefs() {
+    if (refsDe.current === base) return;
+    refsDe.current = base;
+    confirmadas.current = new Map(base.map((r) => [r.id, r.concluidaEm]));
+    desejadas.current.clear();
+    excluidas.current.clear();
+  }
 
   const trocar = (id: string, concluidaEm: string | null) =>
     setRevisoes((atual) => atual.map((r) => (r.id === id ? { ...r, concluidaEm } : r)));
@@ -37,6 +56,7 @@ export function useRevisoes(iniciais: Revisao[]) {
   async function sincronizar(id: string) {
     if (emVoo.current.has(id)) return; // a requisição em voo verá o novo desejo ao terminar
     emVoo.current.add(id);
+    setOcupadas(emVoo.current.size);
     try {
       for (;;) {
         const apagar = excluidas.current.get(id);
@@ -64,10 +84,12 @@ export function useRevisoes(iniciais: Revisao[]) {
       }
     } finally {
       emVoo.current.delete(id);
+      setOcupadas(emVoo.current.size);
     }
   }
 
   function concluir(id: string, concluida: boolean) {
+    alinharRefs();
     const r = revisoes.find((x) => x.id === id);
     if (!r) return;
     setErro(null);
@@ -78,6 +100,7 @@ export function useRevisoes(iniciais: Revisao[]) {
   }
 
   function excluir(id: string) {
+    alinharRefs();
     const r = revisoes.find((x) => x.id === id);
     if (!r) return;
     setErro(null);

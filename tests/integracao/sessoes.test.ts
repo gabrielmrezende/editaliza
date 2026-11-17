@@ -240,6 +240,19 @@ describe('sessões e revisões (serviço)', () => {
     await esperarErro(excluirRevisao(a.id, rev.id), 404);
   });
 
+  it('excluirRevisao só no plano ativo: revisão de plano antigo (ou sem plano ativo) → 404', async () => {
+    const u = await criarUsuarioTeste(emailUnico('sessoes-rev-antigo'));
+    const antigo = await criarPlano(u.id);
+    await registrarSessao(u.id, nova(antigo), AGORA);
+    const rev = (await revisoesDe(antigo))[0];
+    await admin().from('planos').update({ ativo: false }).eq('id', antigo);
+
+    await esperarErro(excluirRevisao(u.id, rev.id), 404); // sem plano ativo
+    await criarPlano(u.id);
+    await esperarErro(excluirRevisao(u.id, rev.id), 404); // plano ativo é outro
+    expect(await revisoesDe(antigo)).toHaveLength(4);
+  });
+
   it('desfazer revisão quando já existe pendente igual → 409', async () => {
     const a = await novoAluno();
     await registrarSessao(a.id, nova(a.planoId, { intervalos: [1] }), AGORA);

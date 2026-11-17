@@ -53,6 +53,8 @@ async function Plano() {
   const origem = [cargo?.editais?.orgao, cargo?.editais?.ano].filter(Boolean).join(' ');
   return (
     <PainelPlano
+      // Outro plano ("Novo plano"): estado do cliente do zero, sem herdar o do plano antigo.
+      key={plano.id}
       planoId={plano.id}
       titulo={cargo?.nome ?? 'Seu plano'}
       origem={origem || null}

@@ -35,7 +35,7 @@ async function Conteudo({ searchParams }: { searchParams: Busca }) {
         pedido={lerPedido(busca, disciplinas)}
       />
       <RegistroManual planoId={plano.id} disciplinas={disciplinas} hoje={hoje} />
-      <RegistroRapido userId={usuario.id} planoId={plano.id} hoje={hoje} disciplinas={disciplinas} />
+      <RegistroRapido userId={usuario.id} planoId={plano.id} disciplinas={disciplinas} />
     </div>
   );
 }

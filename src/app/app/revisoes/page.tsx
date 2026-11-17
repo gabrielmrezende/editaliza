@@ -7,7 +7,8 @@ import { planoAtivoOuRedireciona, revisoesDoPlano } from '@/lib/acompanhamento/c
 async function Conteudo() {
   const plano = await planoAtivoOuRedireciona();
   const revisoes = await revisoesDoPlano(plano.id);
-  return <Agenda revisoes={revisoes} hoje={hojeEmSaoPaulo()} />;
+  // key: outro plano ("Novo plano") começa do zero, sem herdar o estado do plano antigo.
+  return <Agenda key={plano.id} revisoes={revisoes} hoje={hojeEmSaoPaulo()} />;
 }
 
 export default function Pagina() {

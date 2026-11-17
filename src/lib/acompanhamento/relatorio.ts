@@ -20,7 +20,7 @@ export interface Relatorio {
   acertos: number;
   percentualAcerto: number | null;
   diasComEstudo: number;
-  anterior: { minutos: number; questoes: number; percentualAcerto: number | null };
+  anterior: { minutos: number; questoes: number; percentualAcerto: number | null; diasComEstudo: number };
   porDisciplina: {
     disciplinaId: string;
     nome: string;
@@ -90,7 +90,9 @@ function totais(sessoes: Sessao[]) {
     acertos += s.acertos;
     questoes += s.acertos + s.erros;
   }
-  return { minutos, acertos, questoes, percentualAcerto: percentual(acertos, questoes) };
+  // Dia com estudo = dia com tempo registrado (sessão só de questões não conta).
+  const diasComEstudo = new Set(sessoes.filter((s) => s.minutos > 0).map((s) => s.data)).size;
+  return { minutos, acertos, questoes, percentualAcerto: percentual(acertos, questoes), diasComEstudo };
 }
 
 export function montarRelatorio(e: {
@@ -106,8 +108,6 @@ export function montarRelatorio(e: {
   const noIntervalo = e.sessoes.filter((s) => dentro(s.data, intervalo));
   const t = totais(noIntervalo);
   const ant = totais(e.sessoes.filter((s) => dentro(s.data, periodoAnterior(intervalo))));
-
-  const diasComEstudo = new Set(noIntervalo.filter((s) => s.minutos > 0).map((s) => s.data)).size;
 
   const planejado = planejadoNoIntervalo(e.gerado, e.minutosPorDia, intervalo);
   const somaPlanejada = e.disciplinas.reduce((s, d) => s + (planejado[d.id] ?? 0), 0);
@@ -147,7 +147,8 @@ export function montarRelatorio(e: {
       topicoId,
       topicoNome: g.topicoNome,
       questoes: g.questoes,
-      percentual: Math.round((100 * g.acertos) / g.questoes),
+      // Truncado: 69,6% aparece como 69%, coerente com a regra "< 70%" (arredondar mostraria 70%).
+      percentual: Math.floor((100 * g.acertos) / g.questoes),
     }))
     .sort((a, b) => a.bruto - b.bruto || b.questoes - a.questoes)
     .slice(0, MAX_REFORCAR)
@@ -177,8 +178,13 @@ export function montarRelatorio(e: {
     questoes: t.questoes,
     acertos: t.acertos,
     percentualAcerto: t.percentualAcerto,
-    diasComEstudo,
-    anterior: { minutos: ant.minutos, questoes: ant.questoes, percentualAcerto: ant.percentualAcerto },
+    diasComEstudo: t.diasComEstudo,
+    anterior: {
+      minutos: ant.minutos,
+      questoes: ant.questoes,
+      percentualAcerto: ant.percentualAcerto,
+      diasComEstudo: ant.diasComEstudo,
+    },
     porDisciplina,
     reforcar,
     revisoes,

@@ -215,7 +215,10 @@ export async function editarSessao(
   if (!gravada?.length) throw naoEncontrado();
 }
 
-/** Exclui a sessão: revisões pendentes dela somem (ou passam para outra sessão do tópico), as concluídas ficam. */
+/**
+ * Exclui a sessão: revisões pendentes dela somem (ou passam para outra sessão do tópico), as concluídas ficam.
+ * Exclusão não passa pelo portão de registro (`exigirPodeRegistrar`) — decisão do Plano 2; Plano 3: revisar.
+ */
 export async function excluirSessao(userId: string, sessaoId: string): Promise<void> {
   if (!uuid.safeParse(sessaoId).success) throw naoEncontrado();
   const { data, error } = await criarClienteAdmin().rpc('excluir_sessao', { p_user: userId, p_sessao: sessaoId });
@@ -247,13 +250,32 @@ export async function marcarRevisao(
   if (!data?.length) throw naoEncontrado();
 }
 
+/** Id do plano ativo do usuário, ou null se ele não tem plano ativo. */
+async function idDoPlanoAtivo(userId: string): Promise<string | null> {
+  const { data, error } = await criarClienteAdmin()
+    .from('planos')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('ativo', true)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.id as string | undefined) ?? null;
+}
+
+/**
+ * Exclui uma revisão do plano ativo (fora dele, ou sem plano ativo: 404, como em `marcarRevisao`).
+ * Exclusão não passa pelo portão de registro (`exigirPodeRegistrar`) — decisão do Plano 2; Plano 3: revisar.
+ */
 export async function excluirRevisao(userId: string, revisaoId: string): Promise<void> {
   if (!uuid.safeParse(revisaoId).success) throw naoEncontrado();
+  const planoId = await idDoPlanoAtivo(userId);
+  if (!planoId) throw naoEncontrado();
   const { data, error } = await criarClienteAdmin()
     .from('revisoes')
     .delete()
     .eq('id', revisaoId)
     .eq('user_id', userId)
+    .eq('plano_id', planoId)
     .select('id');
   if (error) throw error;
   if (!data?.length) throw naoEncontrado();

@@ -124,7 +124,7 @@ describe('montarRelatorio', () => {
     expect(r.acertos).toBe(10);
     expect(r.percentualAcerto).toBe(71);
     expect(r.diasComEstudo).toBe(2);
-    expect(r.anterior).toEqual({ minutos: 45, questoes: 4, percentualAcerto: 75 });
+    expect(r.anterior).toEqual({ minutos: 45, questoes: 4, percentualAcerto: 75, diasComEstudo: 1 });
     expect(r.porDisciplina.map((d) => d.disciplinaId)).toEqual(['d0', 'd1']);
     expect(r.porDisciplina[0].fracaoEstudada).toBeCloseTo(90 / 120);
     expect(r.porDisciplina[0].fracaoPlanejada).toBeCloseTo(2 / 3);
@@ -159,6 +159,23 @@ describe('montarRelatorio', () => {
       sessao({ topicoId: 'c', topicoNome: 'C', acertos: 9, erros: 1 }),
     ]);
     expect(r.reforcar).toEqual([{ disciplinaNome: 'Português', topicoId: 'b', topicoNome: 'B', questoes: 10, percentual: 60 }]);
+  });
+
+  it('reforçar: percentual exibido é truncado (69,6% → 69%), coerente com a regra < 70%', () => {
+    const r = montar([sessao({ topicoId: 'a', topicoNome: 'A', acertos: 16, erros: 7 })]);
+    expect(r.reforcar).toEqual([{ disciplinaNome: 'Português', topicoId: 'a', topicoNome: 'A', questoes: 23, percentual: 69 }]);
+    expect(r.orientacoes).toContainEqual({ tipo: 'reforcar', topicoNome: 'A', percentual: 69, questoes: 23 });
+  });
+
+  it('dias com estudo do período anterior: dias distintos com minutos', () => {
+    const r = montar([
+      sessao({ data: '2026-11-09', minutos: 30 }),
+      sessao({ data: '2026-11-09', minutos: 10 }),
+      sessao({ data: '2026-11-12', minutos: 0, acertos: 5, erros: 0 }),
+      sessao({ data: '2026-11-14', minutos: 20 }),
+    ]);
+    expect(r.diasComEstudo).toBe(0);
+    expect(r.anterior.diasComEstudo).toBe(2);
   });
 
   it('revisões: agendadas, concluídas e atrasadas', () => {

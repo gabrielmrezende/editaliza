@@ -73,6 +73,44 @@ async function fatoresAcertoVigentes(planoId: string): Promise<Record<string, nu
   return multiplicadores?.acerto ?? {};
 }
 
+const LOTE = 1000; // limite padrão de linhas do PostgREST
+
+interface SessaoAjuste {
+  data: string;
+  disciplinaId: string;
+  minutos: number;
+  acertos: number;
+  erros: number;
+}
+
+/** Sessões do plano com data >= `desde`, lidas em lotes (sem o teto de 1000 linhas do PostgREST). */
+async function sessoesDesde(planoId: string, desde: string): Promise<SessaoAjuste[]> {
+  const db = criarClienteAdmin();
+  const sessoes: SessaoAjuste[] = [];
+  for (let inicio = 0; ; inicio += LOTE) {
+    const { data, error } = await db
+      .from('sessoes_estudo')
+      .select('data, disciplina_id, minutos, acertos, erros')
+      .eq('plano_id', planoId)
+      .gte('data', desde)
+      .order('data')
+      .order('id')
+      .range(inicio, inicio + LOTE - 1);
+    if (error) throw error;
+    const linhas = data ?? [];
+    for (const s of linhas) {
+      sessoes.push({
+        data: s.data as string,
+        disciplinaId: s.disciplina_id as string,
+        minutos: s.minutos as number,
+        acertos: s.acertos as number,
+        erros: s.erros as number,
+      });
+    }
+    if (linhas.length < LOTE) return sessoes;
+  }
+}
+
 /**
  * Calcula e grava o ajuste do plano (módulo puro + `aplicar_ajuste`).
  * Devolve o id do ajuste, ou null se outra requisição ajustou antes (ou o plano deixou de ser ativo).
@@ -84,28 +122,16 @@ async function executarAjuste(plano: LinhaPlano, agora: Date): Promise<string | 
   // O ciclo anda pelas sessões em [desde, hoje), como na página do plano.
   const desde = hojeEmSaoPaulo(new Date(plano.ajustado_em ?? plano.created_at));
 
-  const [conteudoCargo, vigentes, sessoes, feitos, pendentes] = await Promise.all([
+  const [conteudoCargo, vigentes, todas, feitos, pendentes] = await Promise.all([
     conteudoDoCargo(plano.cargo_id),
     fatoresAcertoVigentes(plano.id),
-    db
-      .from('sessoes_estudo')
-      .select('data, disciplina_id, minutos, acertos, erros')
-      .eq('plano_id', plano.id)
-      .gte('data', desde < inicioAcerto ? desde : inicioAcerto),
+    sessoesDesde(plano.id, desde < inicioAcerto ? desde : inicioAcerto),
     db.from('topicos_concluidos').select('topico_id').eq('plano_id', plano.id),
     db.from('revisoes').select('disciplina_id, data_revisao').eq('plano_id', plano.id).is('concluida_em', null),
   ]);
-  if (sessoes.error) throw sessoes.error;
   if (feitos.error) throw feitos.error;
   if (pendentes.error) throw pendentes.error;
 
-  const todas = (sessoes.data ?? []).map((s) => ({
-    data: s.data as string,
-    disciplinaId: s.disciplina_id as string,
-    minutos: s.minutos as number,
-    acertos: s.acertos as number,
-    erros: s.erros as number,
-  }));
   const posicaoAtual =
     plano.gerado.modo === 'ciclo'
       ? posicaoEmMinutos(plano.gerado.ciclo, plano.ciclo_inicio, minutosRegistradosNoCiclo(todas, desde, hoje))
@@ -193,7 +219,10 @@ export async function ajustarAgora(userId: string, planoId: string, agora: Date 
   throw naoEncontrado();
 }
 
-/** Fecha o resumo do ajuste (o aluno já viu). */
+/**
+ * Fecha o resumo do ajuste (o aluno já viu).
+ * Não passa pelo portão de registro (`exigirPodeRegistrar`) — decisão do Plano 2; Plano 3: revisar.
+ */
 export async function marcarResumoVisto(userId: string, planoId: string, ajusteId: string): Promise<void> {
   if (!uuid.safeParse(ajusteId).success || !(await planoDoUsuario(userId, planoId))) throw naoEncontrado();
   const { data, error } = await criarClienteAdmin()
