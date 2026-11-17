@@ -49,7 +49,8 @@ export function pesosDoPlano(conteudoCargo: ConteudoCargo | null, disciplinas: D
 }
 
 /** Limites generosos (um edital real tem dezenas de matérias e centenas de tópicos) contra abuso. */
-export const LIMITES = { disciplinas: 100, topicos: 3000, nome: 300, id: 64 };
+// Nomes de tópico de editais reais passam de 400 caracteres (itens do conteúdo programático escritos por extenso).
+export const LIMITES = { disciplinas: 100, topicos: 3000, nome: 2000, id: 64 };
 
 function dentroDosLimites(disciplinas: DisciplinaPlano[]): boolean {
   const topicos = disciplinas.flatMap((d) => d.topicos);

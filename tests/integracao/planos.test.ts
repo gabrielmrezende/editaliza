@@ -162,8 +162,16 @@ describe('planos (serviço)', () => {
     disciplinas[0].topicos = Array.from({ length: 3001 }, (_, i) => ({ id: `d0-x${i}`, nome: 'T' }));
     await esperarErro(criarPlano(usuario.id, { ...entrada(e), disciplinas }, AGORA), 400);
     const longo = disciplinasDe(e.conteudo);
-    longo[0].nome = 'x'.repeat(301);
+    longo[0].nome = 'x'.repeat(2001);
     await esperarErro(criarPlano(usuario.id, { ...entrada(e), disciplinas: longo }, AGORA), 400);
+  });
+
+  it('aceita tópicos longos como os de editais reais (até 2000 caracteres)', async () => {
+    const e = await criarEdital({ acesso: [usuario.id] });
+    const disciplinas = disciplinasDe(e.conteudo);
+    disciplinas[0].topicos[0].nome = 'x'.repeat(450);
+    disciplinas[0].topicos[1].nome = 'y'.repeat(2000);
+    await expect(criarPlano(usuario.id, { ...entrada(e), disciplinas }, AGORA)).resolves.toEqual(expect.any(String));
   });
 
   it('novo plano desativa o anterior, inclusive em paralelo', async () => {
