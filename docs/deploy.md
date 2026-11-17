@@ -25,6 +25,10 @@ app se recusa a ler editais com `EXTRACAO_MODO=fake` (toda leitura falha).
 1. Vincule o projeto: `npx supabase link --project-ref <ref-do-projeto>`.
 2. Aplique as migrações: `npx supabase db push`.
    - O `supabase/seed.sql` é só do ambiente local e **não** roda no `db push`.
+   - O Plano 2 traz duas migrações novas, aplicadas na ordem pelo mesmo `db push`:
+     `20261117000000_acompanhamento.sql` (sessões de estudo, revisões e ajustes do plano, com RLS só de leitura
+     para o dono e escrita só pelo servidor) e `20261117000100_excluir_sessao_reaponta.sql` (exclusão de sessão
+     que re-aponta as revisões pendentes). Nenhuma variável de ambiente nova.
 3. Confira em *Database → Extensions* que `pg_cron` e `pg_net` ficaram ativas (as migrações as criam).
 
 ### Limpeza de envios esquecidos em `tmp/` (pg_cron)

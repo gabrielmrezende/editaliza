@@ -19,6 +19,7 @@ Registro das decisões feitas durante a construção (revisões por etapa e revi
 - R14: pesosInformados no servidor = flag do edital OU algum questoes/pontos > 0 enviado pelo aluno (spec 7.1/7.2: aluno edita nº de questões) — refina R1 — custo: baixo
 - R15 (minors promovidos): servidor recusa minutosPorDia com total 0 (Focus 3 no servidor); toggles por tópico serializados/ignoram resposta velha; sondagem mostra aviso de conexão após falhas seguidas (Focus 1); alvo dos rádios de nível ≥44px; tag de log [api/planos]
 - Ruling: tema só claro aceito por ora (tema é spec 7.6, Plano 2); datas por extenso / "16/11" na tela aceitas (legíveis, pt-BR); avanço do ciclo por dia de estudo aceito como decisão de produto (revisitado no ajuste semanal do Plano 2)
+  - RESOLVIDO no Plano 2: tema escuro em `0ccc8e6 feat(tema): tema escuro com escolha salva` e `8de0d92 fix(tema): cores legíveis no tema escuro`; avanço do ciclo pelo estudo registrado em `04ff511 fix(ciclo): avança pelo estudo registrado e não repete tópico no dia`
 - Ruling: revisão final do branch roda agora em paralelo à espera da Task 10 (Task 10 só pode mexer em prompts.ts) — custo se errado: re-revisar o diff de prompts
 - Ruling (fix wave): lista e decisões em final-review-findings.md — C1 ciclo em minutos com offset desde created_at; I1 teto 3 anos; I2 cota 15 chamadas IA/usuário/24h + custo em falha + cache_control; I3 copiar progresso se mesmo cargo; I5 20 URLs/h, sem INSERT cliente em tmp/, varredura 1h; I6 revogar escrita cliente; I7 limites locais + globalSetup; minors M1–M6 e docs/deploy.md — custo se errado: valores de cota/teto ajustáveis
 
@@ -42,7 +43,9 @@ Registro das decisões feitas durante a construção (revisões por etapa e revi
 - Task 9: minor (deferred): nome da matéria truncado em 375px; aviso next/font
 - Task 9: minor (deferred): página aberta após meia-noite não refaz o pin; sem teste do log [api/planos]; flake ocasional no beforeAll de planos.test.ts (criação de usuário)
 - parked — mensagem de cota gravada em linha compartilhada de edital/cargo — Ruling: real, se recupera sozinho (o próximo usuário que tenta reivindica e é cobrado); corrigir no Plano 2 guardando o erro de cota por usuário, não na linha
+  - RESOLVIDA no Plano 2: `c2b16c6 fix(editais): mensagem de cota só para quem pediu`
 - parked — mesmo tópico em dois blocos no dia quando o ciclo dá a volta — Ruling: raro (dia com quase toda a carga semanal); corrigir no Plano 2 junto com o ajuste semanal
+  - RESOLVIDA no Plano 2: `04ff511 fix(ciclo): avança pelo estudo registrado e não repete tópico no dia`
 - parked — custo perdido se a escrita no banco falhar depois de uma chamada bem-sucedida — Ruling: real e pequeno; Plano 3 (painel de custo) deve somar o custo antes das escritas
 - parked — item fica 'processando' 10 min se consumir_cota falhar após o claim — Ruling: a expiração de 10 min já cobre (Review Focus 1 mantido)
 - Task 10a: complete (0f1fb6f..9672bf3, review clean); minor (deferred): custo calculado 2x no log; deploy.md diz 'erro claro'; erro de rede no stream sem custo/log
