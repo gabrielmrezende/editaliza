@@ -39,13 +39,13 @@ function textoOrientacao(o: Orientacao): string {
     case 'reforcar':
       return `Considere reforçar ${o.topicoNome} (${o.percentual}% em ${o.questoes} questões).`;
     case 'uma_materia':
-      return 'Todo o tempo ficou em uma matéria. Compare com o seu plano.';
+      return 'Todo o tempo ficou em uma matéria.';
     case 'revisoes_atrasadas':
       return o.quantidade === 1 ? 'Há 1 revisão atrasada.' : `Há ${o.quantidade} revisões atrasadas.`;
     case 'sem_estudo':
       return 'Nenhum estudo registrado neste período.';
     case 'menos_que_anterior':
-      return 'Você estudou menos que no período anterior. Confira se o tempo planejado continua viável.';
+      return 'Você estudou menos que no período anterior.';
   }
 }
 
@@ -169,7 +169,7 @@ export function PainelRelatorio({
             <h2 id="rel-materias" className={titulo}>
               Por matéria
             </h2>
-            <p className="text-sm text-texto-suave">Parte do tempo estudado e parte do tempo planejado em cada matéria.</p>
+            <p className="text-sm text-texto-suave">Tempo estudado e planejado.</p>
           </div>
           <ul className="flex flex-col gap-5">
             {r.porDisciplina.map((d) => {
@@ -204,9 +204,7 @@ export function PainelRelatorio({
               Assuntos para reforçar
             </h2>
             {r.reforcar.length === 0 ? (
-              <p className="text-sm text-texto-suave">
-                Sem assuntos com pelo menos 5 questões e acerto abaixo de 70% neste período.
-              </p>
+              <p className="text-sm text-texto-suave">Nenhum assunto abaixo de 70% de acerto.</p>
             ) : (
               <ul className="flex flex-col divide-y divide-borda">
                 {r.reforcar.map((t) => (

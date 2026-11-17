@@ -1,15 +1,20 @@
 'use client';
 
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { estiloMateria } from '@/components/cores';
+import { botaoSecundario } from '@/components/estilos';
 import type { DisciplinaPlano } from '@/lib/dominio/tipos';
 import { formatarMinutos } from '@/lib/formatar';
 import { QUANTIDADE_PROXIMOS, numeracao, proximosBlocos, type Fila } from '@/lib/plano/fila';
 import { tituloDoBloco } from './CartaoProximoBloco';
 
+/** No celular (< 640 px) a grade mostra só estes; "Ver mais blocos" abre o resto. */
+const VISIVEIS_NO_CELULAR = 4;
+
 /**
  * Os próximos blocos da fila, numerados pela ordem real. No prazo cada um mostra o tópico; no ciclo
- * só a matéria e os minutos (o tópico do ciclo é decidido quando o bloco chega).
+ * só a matéria e os minutos (o tópico do ciclo é decidido quando o bloco chega). No celular, só os
+ * primeiros aparecem até o aluno pedir o resto.
  */
 export function ProximosBlocos({
   fila,
@@ -23,6 +28,7 @@ export function ProximosBlocos({
   indices: Map<string, number>;
 }) {
   const id = useId();
+  const [todos, setTodos] = useState(false);
   const blocos = proximosBlocos(fila, posicao, QUANTIDADE_PROXIMOS);
   if (blocos.length === 0) return null;
   const porId = new Map(disciplinas.map((d) => [d.id, d]));
@@ -36,14 +42,16 @@ export function ProximosBlocos({
         aria-label="Próximos blocos"
         className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 lg:max-[1099px]:grid-cols-3"
       >
-        {blocos.map((b) => {
+        {blocos.map((b, i) => {
           const disciplina = porId.get(b.disciplinaId);
           const indice = indices.get(b.disciplinaId) ?? -1;
           return (
             // key = posição: ao concluir, a grade anda uma posição e só o último bloco entra.
             <li
               key={b.posicao}
-              className="bloco-entrada flex min-w-0 flex-col gap-1 rounded-linha border border-borda bg-superficie px-3.5 py-3"
+              className={`bloco-entrada flex min-w-0 flex-col gap-1 rounded-linha border border-borda bg-superficie px-3.5 py-3 ${
+                !todos && i >= VISIVEIS_NO_CELULAR ? 'max-sm:hidden' : ''
+              }`}
               style={indice >= 0 ? estiloMateria(indice) : undefined}
             >
               <p className="flex items-center gap-2 text-sm text-texto-suave">
@@ -64,6 +72,16 @@ export function ProximosBlocos({
           );
         })}
       </ol>
+      {blocos.length > VISIVEIS_NO_CELULAR && (
+        <button
+          type="button"
+          aria-expanded={todos}
+          className={`${botaoSecundario} self-start sm:hidden`}
+          onClick={() => setTodos((t) => !t)}
+        >
+          {todos ? 'Ver menos' : 'Ver mais blocos'}
+        </button>
+      )}
     </section>
   );
 }

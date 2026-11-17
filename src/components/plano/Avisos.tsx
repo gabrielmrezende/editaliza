@@ -14,14 +14,12 @@ export function Avisos({ avisos, disciplinas }: { avisos: Aviso[]; disciplinas: 
           <div className="min-w-0 flex-1">
             {a.tipo === 'nao_cabe' ? (
               <>
-                <p>
-                  <strong className="text-texto">
-                    {a.topicosFora.length === 1
-                      ? '1 tópico não coube até a prova.'
-                      : `${a.topicosFora.length} tópicos não couberam até a prova.`}
-                  </strong>{' '}
-                  Demos prioridade às matérias de maior peso. Mais horas por semana ou menos tópicos fazem caber mais.
+                <p className="text-texto">
+                  {a.topicosFora.length === 1
+                    ? '1 tópico não coube até a prova'
+                    : `${a.topicosFora.length} tópicos não couberam até a prova`}
                 </p>
+                <p>As matérias de maior peso vieram primeiro.</p>
                 <details className="mt-2">
                   <summary className="cursor-pointer font-semibold text-link">Ver tópicos de fora</summary>
                   <ul className="mt-2 list-disc pl-5">
