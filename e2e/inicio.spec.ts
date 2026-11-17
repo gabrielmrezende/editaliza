@@ -186,4 +186,48 @@ test.describe('início', () => {
     await expect(secoes.getByRole('link', { name: 'Estudar' })).toHaveCount(0);
     await expect(secoes.getByRole('link', { name: 'Início' })).toHaveAttribute('aria-current', 'page');
   });
+
+  test('no celular a grade mostra 4 blocos e "Ver mais blocos" abre o resto', async ({ page }) => {
+    await criarPlano(page, { prefixo: 'inicio' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    const visiveis = grade(page).filter({ visible: true });
+    await expect(visiveis).toHaveCount(4);
+    // O número de cada bloco é o primeiro texto da linha de cima.
+    const numeros = () => visiveis.evaluateAll((lis) => lis.map((li) => li.querySelector('p > span')?.textContent?.trim()));
+    expect(await numeros()).toEqual(['2', '3', '4', '5']);
+
+    const botao = page.getByRole('button', { name: 'Ver mais blocos' });
+    await expect(botao).toHaveAttribute('aria-expanded', 'false');
+    await botao.click();
+    await expect(visiveis).toHaveCount(12);
+    expect((await numeros()).slice(0, 5)).toEqual(['2', '3', '4', '5', '6']);
+    await page.getByRole('button', { name: 'Ver menos' }).click();
+    await expect(visiveis).toHaveCount(4);
+
+    // No computador a grade mostra todos e o botão não aparece.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(visiveis).toHaveCount(12);
+    await expect(page.getByRole('button', { name: 'Ver mais blocos' })).toBeHidden();
+  });
+
+  test('capturas do Início', async ({ page }) => {
+    await criarPlano(page, { prefixo: 'inicio' });
+    // Sem as animações de entrada: a captura sai com tudo no lugar.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    for (const tema of ['light', 'dark'] as const) {
+      await page.evaluate((t) => localStorage.setItem('editaliza:tema', t), tema);
+      for (const [largura, altura] of [
+        [1280, 900],
+        [375, 812],
+      ] as const) {
+        await page.setViewportSize({ width: largura, height: altura });
+        await page.reload();
+        await expect(page.locator('html')).toHaveAttribute('data-theme', tema);
+        await expect(cartao(page)).toContainText(/Bloco 1 de \d+/);
+        await page.evaluate(() => document.fonts.ready);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        await page.screenshot({ path: `test-results/capturas/inicio-${tema}-${largura}.png`, fullPage: true });
+      }
+    }
+  });
 });

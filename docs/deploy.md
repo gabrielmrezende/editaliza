@@ -29,6 +29,13 @@ app se recusa a ler editais com `EXTRACAO_MODO=fake` (toda leitura falha).
      `20261117000000_acompanhamento.sql` (sessões de estudo, revisões e ajustes do plano, com RLS só de leitura
      para o dono e escrita só pelo servidor) e `20261117000100_excluir_sessao_reaponta.sql` (exclusão de sessão
      que re-aponta as revisões pendentes). Nenhuma variável de ambiente nova.
+   - O Início no estilo do legado (fila de blocos) traz quatro migrações novas, aplicadas na ordem pelo mesmo
+     `db push`: `20261118000000_fila.sql` (posição da fila em `planos.fila_posicao`/`fila_desde` e a função
+     `concluir_bloco`, que grava sessão, revisões, tópico e avanço da fila numa transação),
+     `20261118000100_fila_guarda.sql` (`concluir_bloco` recusa a posição esperada nula),
+     `20261118000200_ajuste_fila.sql` (o ajuste semanal refaz a fila e só grava se a posição lida ainda vale) e
+     `20261118000300_remover_ciclo_inicio.sql` (remove a coluna `planos.ciclo_inicio`, substituída pela fila).
+     Sem migração de dados: planos existentes começam no bloco 1. Nenhuma variável de ambiente nova.
 3. Confira em *Database → Extensions* que `pg_cron` e `pg_net` ficaram ativas (as migrações as criam).
 
 ### Limpeza de envios esquecidos em `tmp/` (pg_cron)

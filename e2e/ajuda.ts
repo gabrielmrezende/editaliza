@@ -87,3 +87,23 @@ export async function criarPlano(
   await page.getByRole('button', { name: 'Gerar meu plano' }).click();
   await page.waitForURL(/\/app\/plano$/);
 }
+
+/** Abre "Registrar sem cronômetro" no Início (`/app/plano`): o registro manual e o rápido ficam dentro. */
+export async function abrirRegistroSemCronometro(page: Page): Promise<void> {
+  await page.locator('summary', { hasText: 'Registrar sem cronômetro' }).click();
+  await expect(page.getByRole('region', { name: 'Registrar sessão' })).toBeVisible();
+}
+
+/** No Início, registra pelo "Registro rápido" (matéria, tópico e minutos) e espera a confirmação. */
+export async function registroRapido(
+  page: Page,
+  { materia, topico, minutos }: { materia: string; topico: string; minutos: string },
+): Promise<void> {
+  await abrirRegistroSemCronometro(page);
+  const rapido = page.getByRole('region', { name: 'Registro rápido' });
+  await rapido.getByLabel('Matéria').selectOption({ label: materia });
+  await rapido.getByLabel('Tópico').selectOption({ label: topico });
+  await rapido.getByLabel('Minutos').fill(minutos);
+  await rapido.getByRole('button', { name: 'Registrar' }).click();
+  await expect(rapido.getByRole('status')).toHaveText('Sessão registrada');
+}

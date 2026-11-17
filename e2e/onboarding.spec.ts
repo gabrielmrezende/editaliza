@@ -41,23 +41,22 @@ test.describe('onboarding', () => {
     await page.getByRole('button', { name: 'Gerar meu plano' }).click();
 
     await page.waitForURL(/\/app\/plano$/);
-    await expect(page.getByRole('heading', { name: 'Hoje' })).toBeVisible();
-    const hoje = page.getByRole('region', { name: 'Hoje' });
-    await expect(hoje.getByRole('listitem').first().or(hoje.getByText('Dia livre'))).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Progresso' }).getByText('0%', { exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Próximo bloco' })).toContainText(/Bloco 1 de \d+/);
+    const progresso = page.getByRole('region', { name: 'Meu progresso' });
+    await expect(progresso.getByText('0%', { exact: true })).toBeVisible();
     await expect(page.getByText('Ortografia oficial')).toHaveCount(0);
 
-    // Marcar um tópico grava no servidor e o progresso sobe (sem bloco hoje, ex. domingo, não há o que marcar).
-    const caixa = hoje.getByLabel('Concluí este tópico').first();
-    if ((await caixa.count()) === 0) return;
+    // Marcar um tópico em Conteúdos grava no servidor e o progresso do Início sobe.
+    await page.goto('/app/conteudos');
+    const caixa = page.getByRole('region', { name: 'Língua Portuguesa' }).getByRole('checkbox').first();
     const [resposta] = await Promise.all([
       page.waitForResponse((r) => r.request().method() === 'PUT' && r.url().includes('/api/planos/')),
       caixa.check(),
     ]);
     expect(resposta.status()).toBe(204);
-    await page.reload();
-    await expect(hoje.getByLabel('Concluí este tópico').first()).toBeChecked();
-    await expect(page.getByRole('region', { name: 'Progresso' }).getByText('0%', { exact: true })).toHaveCount(0);
+    await page.goto('/app/plano');
+    await expect(progresso.getByText(/^\d+%$/)).toBeVisible();
+    await expect(progresso.getByText('0%', { exact: true })).toHaveCount(0);
 
     const urlPlano = resposta.url().replace(/\/topicos\/.*$/, '');
     expect((await page.request.put(`${urlPlano}/topicos/nao-existe`)).status()).toBe(400);
@@ -93,7 +92,8 @@ test.describe('onboarding', () => {
     await expect(page.getByRole('heading', { name: 'Qual é o seu nível?' })).toBeVisible();
   });
 
-  test('ciclo: topico de hoje fica fixo e pode ser desmarcado', async ({ page }) => {
+  test('ciclo: o tópico do bloco fica até concluir o tópico', async ({ page }) => {
+    test.setTimeout(240_000);
     await ateRevisao(page);
     await continuar(page);
     await page.getByLabel('A data ainda não saiu').check();
@@ -105,44 +105,38 @@ test.describe('onboarding', () => {
     await page.getByRole('button', { name: 'Gerar meu plano' }).click();
     await page.waitForURL(/\/app\/plano$/);
 
-    const hoje = page.getByRole('region', { name: 'Hoje' });
-    // Hoje mostra exatamente o tempo do dia (1 h), não a cota semanal da matéria.
-    await expect(hoje.getByText(/, 1 h de estudo$/)).toBeVisible();
-    // A semana segue o ciclo: 7 dias, cada um com 1 h.
-    const dias = page.getByRole('region', { name: 'Semana' }).locator('ol').first().locator(':scope > li');
-    await expect(dias).toHaveCount(7);
-    for (let i = 0; i < 7; i++) await expect(dias.nth(i)).toHaveText(/1 h$/);
-    const caixa = hoje.getByLabel('Concluí este tópico');
-    await expect(caixa).toHaveCount(1);
-    const nomeTopico = hoje.getByRole('listitem').locator('p').nth(1);
-    const topico = await nomeTopico.textContent();
-    const status = page.getByRole('main').getByRole('status');
-    const gravou = (metodo: string) =>
-      page.waitForResponse((r) => r.request().method() === metodo && r.url().includes('/api/planos/'));
+    const cartao = page.getByRole('region', { name: 'Próximo bloco' });
+    const topicoDoCartao = cartao.getByRole('heading', { level: 3 });
+    const rotulo = async () => /Bloco \d+ · volta \d+/.exec((await cartao.textContent()) ?? '')?.[0] ?? '';
+    /** Conclui blocos até o cartão mostrar `alvo` (o mesmo item do ciclo na volta seguinte). */
+    async function concluirAte(alvo: string, marcarPrimeiro = false) {
+      for (let i = 0; i < 40 && (await rotulo()) !== alvo; i++) {
+        const antes = await rotulo();
+        await cartao.getByRole('button', { name: 'Concluir bloco' }).click();
+        const passo = cartao.getByRole('form', { name: 'Concluir o bloco' });
+        if (marcarPrimeiro && i === 0) await passo.getByLabel('Concluí este tópico').check();
+        await passo.getByRole('button', { name: 'Concluir bloco' }).click();
+        await expect.poll(rotulo).not.toBe(antes);
+      }
+      await expect(cartao).toContainText(alvo);
+    }
 
-    // Marca: continua no mesmo tópico (não pula para o próximo) e é anunciado.
-    await Promise.all([gravou('PUT'), caixa.check()]);
-    await expect(caixa).toBeChecked();
-    await expect(nomeTopico).toHaveText(topico!);
-    await expect(status).toContainText('marcado como concluído');
+    await expect(cartao).toContainText('Bloco 1 · volta 1');
+    const topico = (await topicoDoCartao.textContent())!.trim();
 
-    // Recarregando, o tópico de hoje segue fixo e marcado; dá para desmarcar.
+    // Concluir sem "Concluí este tópico": quando a matéria volta, o tópico é o mesmo.
+    await concluirAte('Bloco 1 · volta 2');
+    await expect(topicoDoCartao).toHaveText(topico);
+
+    // Com a caixa marcada: na volta seguinte vem o próximo tópico da matéria.
+    await concluirAte('Bloco 1 · volta 3', true);
+    await expect(topicoDoCartao).not.toHaveText(topico);
+    const seguinte = (await topicoDoCartao.textContent())!.trim();
+
+    // Recarregar mantém a posição e o tópico.
     await page.reload();
-    await expect(caixa).toBeChecked();
-    await expect(nomeTopico).toHaveText(topico!);
-    await Promise.all([gravou('DELETE'), caixa.uncheck()]);
-    await expect(caixa).not.toBeChecked();
-    await expect(status).toContainText('desmarcado');
-
-    // Cliques rápidos: o servidor termina com o último estado escolhido.
-    await caixa.click();
-    await caixa.click();
-    await caixa.click();
-    await expect(caixa).toBeChecked();
-    await page.waitForLoadState('networkidle');
-    await page.reload();
-    await expect(caixa).toBeChecked();
-    await expect(nomeTopico).toHaveText(topico!);
+    await expect(cartao).toContainText('Bloco 1 · volta 3');
+    await expect(topicoDoCartao).toHaveText(seguinte);
   });
 
   test('sem conexao durante a leitura avisa e permite tentar de novo', async ({ page }) => {

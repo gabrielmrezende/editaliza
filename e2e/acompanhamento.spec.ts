@@ -1,138 +1,39 @@
 import { expect, test, type Page } from '@playwright/test';
-import { criarPlano } from './ajuda';
+import { abrirRegistroSemCronometro, criarPlano, registroRapido } from './ajuda';
 
-const hoje = (page: Page) => page.getByRole('region', { name: 'Hoje' });
-const primeiroBloco = (page: Page) => hoje(page).getByRole('listitem').first();
-
-/** Clica em "Estudei" no 1º bloco de Hoje e espera a gravação (201). */
-async function estudeiNoPrimeiroBloco(page: Page): Promise<void> {
-  const [resposta] = await Promise.all([
-    page.waitForResponse((r) => r.request().method() === 'POST' && r.url().endsWith('/api/sessoes')),
-    primeiroBloco(page).getByRole('button', { name: 'Estudei' }).click(),
-  ]);
-  expect(resposta.status()).toBe(201);
-  await expect(primeiroBloco(page).getByText('Registrado')).toBeVisible();
-}
+const cartao = (page: Page) => page.getByRole('region', { name: 'Próximo bloco' });
 
 test.describe('acompanhamento', () => {
   test.describe.configure({ timeout: 120_000 });
 
-  test('Estudei registra e desfaz', async ({ page }) => {
-    await criarPlano(page, { prefixo: 'acompanhamento', horasDomingo: '2' });
-    const bloco = primeiroBloco(page);
-    await expect(bloco.getByRole('link', { name: 'Iniciar' })).toHaveAttribute(
-      'href',
-      /^\/app\/estudar\?disciplina=[^&]+&topico=[^&]+&iniciar=1$/,
-    );
+  test('cronômetro pausado continua pausado ao sair e voltar pela aba Revisões', async ({ page }) => {
+    await criarPlano(page, { prefixo: 'acompanhamento' });
+    const secoes = page.getByRole('navigation', { name: 'Seções' }).first();
 
-    await estudeiNoPrimeiroBloco(page);
-    await page.reload();
-    await expect(primeiroBloco(page).getByText('Registrado')).toBeVisible();
+    await page.goto('/app/plano?iniciar=1');
+    await expect(cartao(page).getByRole('timer')).toHaveText('00:00:02');
+    await cartao(page).getByRole('button', { name: 'Pausar' }).click();
+    await expect(cartao(page).getByRole('button', { name: 'Retomar' })).toBeVisible();
+    const pausado = await cartao(page).getByRole('timer').textContent();
 
-    await primeiroBloco(page).getByRole('button', { name: 'Desfazer' }).click();
-    await expect(primeiroBloco(page).getByRole('button', { name: 'Estudei' })).toBeVisible();
-    await page.reload();
-    await expect(primeiroBloco(page).getByRole('button', { name: 'Estudei' })).toBeVisible();
-  });
-
-  test('Iniciar do mesmo estudo retoma o cronômetro parado', async ({ page }) => {
-    await criarPlano(page, { prefixo: 'acompanhamento', horasDomingo: '2' });
-    const secoes = page.getByRole('navigation', { name: 'Seções' });
-    const cronometro = page.getByRole('region', { name: 'Cronômetro' });
-
-    await primeiroBloco(page).getByRole('link', { name: 'Iniciar' }).click();
-    await expect(cronometro.getByRole('button', { name: 'Pausar' })).toBeVisible();
-    await cronometro.getByRole('button', { name: 'Parar' }).click();
-    await expect(cronometro.getByText('Menos de 1 minuto marcado.')).toBeVisible();
-
-    // Volta a Hoje e pede o mesmo estudo: o formulário de parada sai e o cronômetro volta a rodar.
-    await secoes.getByRole('link', { name: 'Plano' }).click();
-    await primeiroBloco(page).getByRole('link', { name: 'Iniciar' }).click();
-    await expect(page).toHaveURL(/\/app\/estudar$/);
-    await expect(cronometro.getByRole('button', { name: 'Pausar' })).toBeVisible();
-    await expect(cronometro.getByText('Menos de 1 minuto marcado.')).toBeHidden();
-  });
-
-  test('Iniciar retoma o cronômetro mesmo saindo antes de a página sem o pedido chegar', async ({ page }) => {
-    await criarPlano(page, { prefixo: 'acompanhamento', horasDomingo: '2' });
-    const secoes = page.getByRole('navigation', { name: 'Seções' });
-    const cronometro = page.getByRole('region', { name: 'Cronômetro' });
-    // Atrasa a resposta do servidor a `/app/estudar` sem o pedido (a limpeza da URL): o aluno sai
-    // da página antes de ela chegar, e a página fica escondida pela Activity com o pedido antigo.
-    await page.route(
-      (url) => url.pathname === '/app/estudar' && !url.searchParams.has('iniciar'),
-      async (rota) => {
-        if (!rota.request().headers()['rsc']) return rota.continue();
-        await new Promise((r) => setTimeout(r, 8000));
-        await rota.continue().catch(() => {}); // a navegação pode ter sido abandonada
-      },
-    );
-
-    await primeiroBloco(page).getByRole('link', { name: 'Iniciar' }).click();
-    await expect(cronometro.getByRole('button', { name: 'Pausar' })).toBeVisible();
-    await cronometro.getByRole('button', { name: 'Parar' }).click();
-    await expect(cronometro.getByText('Menos de 1 minuto marcado.')).toBeVisible();
-
-    await secoes.getByRole('link', { name: 'Plano' }).click();
-    await primeiroBloco(page).getByRole('link', { name: 'Iniciar' }).click();
-    await expect(cronometro.getByRole('button', { name: 'Pausar' })).toBeVisible();
-    await expect(cronometro.getByText('Menos de 1 minuto marcado.')).toBeHidden();
-    // A URL sai na hora, sem esperar o servidor.
-    await expect(page).toHaveURL(/\/app\/estudar$/, { timeout: 2000 });
-  });
-
-  test('cronômetro pausado continua pausado ao sair e voltar pela aba Estudar', async ({ page }) => {
-    await criarPlano(page, { prefixo: 'acompanhamento', horasDomingo: '2' });
-    const secoes = page.getByRole('navigation', { name: 'Seções' });
-    const cronometro = page.getByRole('region', { name: 'Cronômetro' });
-
-    await primeiroBloco(page).getByRole('link', { name: 'Iniciar' }).click();
-    await expect(cronometro.getByRole('timer')).toHaveText('00:00:02');
-    await cronometro.getByRole('button', { name: 'Pausar' }).click();
-    await expect(cronometro.getByRole('button', { name: 'Continuar' })).toBeVisible();
-
-    // O pedido "Iniciar" já foi atendido: voltar à página não o repete.
-    await secoes.getByRole('link', { name: 'Plano' }).click();
-    await expect(primeiroBloco(page)).toBeVisible();
-    await secoes.getByRole('link', { name: 'Estudar' }).click();
-    await expect(cronometro.getByRole('button', { name: 'Continuar' })).toBeVisible();
+    // O pedido "iniciar" já foi atendido: voltar ao Início pela aba não o repete.
+    await secoes.getByRole('link', { name: 'Revisões' }).click();
+    await expect(page).toHaveURL(/\/app\/revisoes$/);
+    await secoes.getByRole('link', { name: 'Início' }).click();
+    await expect(page).toHaveURL(/\/app\/plano$/);
+    await expect(cartao(page).getByRole('button', { name: 'Retomar' })).toBeVisible();
     await page.waitForTimeout(1500);
-    await expect(cronometro.getByRole('button', { name: 'Continuar' })).toBeVisible();
-  });
-
-  test('tópico concluído em Estudar aparece concluído ao voltar para Plano pela aba', async ({ page }) => {
-    await criarPlano(page, { prefixo: 'acompanhamento', horasDomingo: '2' });
-    const secoes = page.getByRole('navigation', { name: 'Seções' });
-    const concluido = primeiroBloco(page).getByRole('checkbox', { name: 'Concluí este tópico' });
-    await expect(concluido).not.toBeChecked();
-    const href = await primeiroBloco(page).getByRole('link', { name: 'Iniciar' }).getAttribute('href');
-    const busca = new URL(href!, 'http://localhost').searchParams;
-
-    // Plano fica escondido (Activity), não desmontado, enquanto o tópico é concluído em Estudar.
-    await secoes.getByRole('link', { name: 'Estudar' }).click();
-    const registro = page.getByRole('region', { name: 'Registrar sessão' });
-    await registro.getByLabel('Matéria').selectOption(busca.get('disciplina')!);
-    await registro.getByLabel('Tópico').selectOption(busca.get('topico')!);
-    await registro.getByLabel('Minutos').fill('30');
-    await registro.getByLabel('Concluí este tópico').check();
-    const [resposta] = await Promise.all([
-      page.waitForResponse((r) => r.request().method() === 'POST' && r.url().endsWith('/api/sessoes')),
-      registro.getByRole('button', { name: 'Salvar sessão' }).click(),
-    ]);
-    expect(resposta.status()).toBe(201);
-
-    await secoes.getByRole('link', { name: 'Plano' }).click();
-    await expect(concluido).toBeChecked();
-    await expect(primeiroBloco(page).getByText('Registrado')).toBeHidden();
+    await expect(cartao(page).getByRole('button', { name: 'Retomar' })).toBeVisible();
+    await expect(cartao(page).getByRole('timer')).toHaveText(pausado!);
   });
 
   test('histórico edita e exclui', async ({ page }) => {
-    await criarPlano(page, { prefixo: 'acompanhamento', horasDomingo: '2' });
+    await criarPlano(page, { prefixo: 'acompanhamento' });
     await page.goto('/app/historico');
     await expect(page.getByText('Nenhuma sessão registrada ainda.')).toBeVisible();
 
     await page.goto('/app/plano');
-    await estudeiNoPrimeiroBloco(page);
+    await registroRapido(page, { materia: 'Raciocínio Lógico', topico: 'Sequências', minutos: '30' });
     await page.goto('/app/historico');
     const linhas = page.getByRole('list', { name: 'Sessões' }).getByRole('listitem');
     await expect(linhas).toHaveCount(1);
@@ -165,11 +66,12 @@ test.describe('acompanhamento', () => {
   });
 
   test('relatório mostra o tempo, o acerto e o assunto a reforçar', async ({ page }) => {
-    await criarPlano(page, { prefixo: 'acompanhamento', horasDomingo: '2' });
+    await criarPlano(page, { prefixo: 'acompanhamento' });
     await page.goto('/app/relatorio');
     await expect(page.getByText('Nenhum estudo registrado neste período.')).toBeVisible();
 
-    await page.goto('/app/estudar');
+    await page.goto('/app/plano');
+    await abrirRegistroSemCronometro(page);
     const registro = page.getByRole('region', { name: 'Registrar sessão' });
     await registro.getByLabel('Matéria').selectOption({ index: 1 });
     await registro.getByLabel('Tópico').selectOption({ index: 1 });
