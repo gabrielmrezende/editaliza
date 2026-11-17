@@ -6,6 +6,7 @@ import {
   montarRelatorio,
   periodoAnterior,
   planejadoNoIntervalo,
+  totaisDoIntervalo,
 } from '@/lib/acompanhamento/relatorio';
 
 const disc = (id: string, nome: string): DisciplinaPlano => ({
@@ -217,5 +218,19 @@ describe('montarRelatorio', () => {
       sessao({ data: '2026-11-10', minutos: 300 }),
     ]);
     expect(r.orientacoes).toEqual([{ tipo: 'menos_que_anterior' }]);
+  });
+});
+
+describe('totaisDoIntervalo', () => {
+  const s = (data: string, minutos: number, acertos: number, erros: number) => ({ data, minutos, acertos, erros });
+  it('soma só o intervalo e calcula o percentual', () => {
+    const t = totaisDoIntervalo(
+      [s('2026-11-16', 30, 4, 1), s('2026-11-17', 20, 3, 2), s('2026-11-20', 99, 9, 9)],
+      { inicio: '2026-11-15', fim: '2026-11-18' },
+    );
+    expect(t).toEqual({ minutos: 50, questoes: 10, acertos: 7, percentualAcerto: 70 });
+  });
+  it('sem questões: null', () => {
+    expect(totaisDoIntervalo([s('2026-11-16', 30, 0, 0)], { inicio: '2026-11-16', fim: '2026-11-16' }).percentualAcerto).toBeNull();
   });
 });

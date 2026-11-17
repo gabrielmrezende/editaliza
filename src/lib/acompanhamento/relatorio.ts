@@ -81,6 +81,23 @@ export function planejadoNoIntervalo(gerado: PlanoGerado, minutosPorDia: Minutos
 
 const percentual = (acertos: number, questoes: number) => (questoes > 0 ? Math.round((100 * acertos) / questoes) : null);
 
+/** Minutos, questões e percentual de acerto das sessões dentro do intervalo. */
+export function totaisDoIntervalo(
+  sessoes: { data: string; minutos: number; acertos: number; erros: number }[],
+  i: Intervalo,
+): { minutos: number; questoes: number; acertos: number; percentualAcerto: number | null } {
+  let minutos = 0;
+  let acertos = 0;
+  let questoes = 0;
+  for (const s of sessoes) {
+    if (!dentro(s.data, i)) continue;
+    minutos += s.minutos;
+    acertos += s.acertos;
+    questoes += s.acertos + s.erros;
+  }
+  return { minutos, questoes, acertos, percentualAcerto: percentual(acertos, questoes) };
+}
+
 function totais(sessoes: Sessao[]) {
   let minutos = 0;
   let acertos = 0;
