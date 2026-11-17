@@ -1,6 +1,9 @@
 import { expect, type Page } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
+import path from 'node:path';
 
 const MAILPIT = 'http://127.0.0.1:54324';
+const PDF = path.join(__dirname, '..', 'tests', 'fixtures', 'edital-exemplo.pdf');
 
 type Mensagem = { ID: string; To: { Address: string }[] };
 
@@ -36,4 +39,45 @@ export async function entrar(page: Page, email: string): Promise<void> {
   await expect(page.getByText('Enviamos um link')).toBeVisible();
   await page.goto(await lerLinkMagico(email));
   await page.waitForURL(/\/app(\/|$)/);
+}
+
+/** Data (aaaa-mm-dd) em São Paulo daqui a `dias` dias. */
+export function dataDaquiA(dias: number): string {
+  const d = new Date(Date.now() + dias * 86_400_000);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(d);
+}
+
+export async function continuar(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Continuar' }).click();
+}
+
+/** Login (usuário novo) → envio do PDF → Cargo A → tela de revisão do conteúdo. */
+export async function ateRevisao(page: Page, prefixo = 'onboarding'): Promise<void> {
+  await entrar(page, `${prefixo}-${randomUUID()}@teste.local`);
+  await expect(page).toHaveURL(/\/app\/novo$/);
+  await page.getByLabel('PDF do edital').setInputFiles(PDF);
+  await page.getByRole('button', { name: 'Ler edital' }).click();
+  await page.getByRole('button', { name: 'Cargo A' }).click({ timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: 'Confira o conteúdo' })).toBeVisible({ timeout: 30_000 });
+}
+
+/**
+ * Usuário novo com um plano ativo (Cargo A, horas e níveis padrão). `dataProva` ausente = daqui a
+ * 90 dias; `null` = "a data ainda não saiu" (ciclo).
+ */
+export async function criarPlano(
+  page: Page,
+  { dataProva = dataDaquiA(90), prefixo = 'plano' }: { dataProva?: string | null; prefixo?: string } = {},
+): Promise<void> {
+  await ateRevisao(page, prefixo);
+  await continuar(page);
+  await expect(page.getByRole('heading', { name: 'Quando é a prova?' })).toBeVisible();
+  if (dataProva === null) await page.getByLabel('A data ainda não saiu').check();
+  else await page.getByLabel('Data da prova').fill(dataProva);
+  await continuar(page);
+  await expect(page.getByRole('heading', { name: 'Quanto tempo você tem?' })).toBeVisible();
+  await continuar(page);
+  await expect(page.getByRole('heading', { name: 'Qual é o seu nível?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Gerar meu plano' }).click();
+  await page.waitForURL(/\/app\/plano$/);
 }

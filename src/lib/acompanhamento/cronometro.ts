@@ -68,11 +68,12 @@ export function chaveRascunho(userId: string): string {
   return `editaliza:cronometro:${userId}`;
 }
 
+// Em Zod 4, z.number() já recusa NaN e ±Infinity (`.finite()` é um no-op obsoleto).
 const EsquemaRascunho = z.object({
   versao: z.literal(1),
   estado: z.object({
     rodando: z.boolean(),
-    iniciadoEm: z.number().nullable(),
+    iniciadoEm: z.number().int().nullable(),
     acumuladoSeg: z.number().int().min(0),
   }),
   formulario: z.object({
@@ -82,10 +83,12 @@ const EsquemaRascunho = z.object({
     acertos: z.string(),
     erros: z.string(),
     observacao: z.string(),
-    intervalos: z.array(z.number().refine((n) => INTERVALOS_VALIDOS.includes(n))),
+    intervalos: z
+      .array(z.number().refine((n) => INTERVALOS_VALIDOS.includes(n)))
+      .transform((v) => [...new Set(v)]),
     concluir: z.boolean(),
   }),
-  atualizadoEm: z.number(),
+  atualizadoEm: z.number().int(),
 });
 
 /** Devolve o rascunho se for coerente e útil de restaurar; senão null. */

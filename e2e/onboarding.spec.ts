@@ -1,29 +1,9 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
-import { entrar } from './ajuda';
+import { ateRevisao, continuar, dataDaquiA, entrar } from './ajuda';
 
 const PDF = path.join(__dirname, '..', 'tests', 'fixtures', 'edital-exemplo.pdf');
-
-/** Data (aaaa-mm-dd) em São Paulo daqui a `dias` dias. */
-function dataDaquiA(dias: number): string {
-  const d = new Date(Date.now() + dias * 86_400_000);
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(d);
-}
-
-/** Login → envio do PDF → Cargo A → tela de revisão. */
-async function ateRevisao(page: Page) {
-  await entrar(page, `onboarding-${randomUUID()}@teste.local`);
-  await expect(page).toHaveURL(/\/app\/novo$/);
-  await page.getByLabel('PDF do edital').setInputFiles(PDF);
-  await page.getByRole('button', { name: 'Ler edital' }).click();
-  await page.getByRole('button', { name: 'Cargo A' }).click({ timeout: 30_000 });
-  await expect(page.getByRole('heading', { name: 'Confira o conteúdo' })).toBeVisible({ timeout: 30_000 });
-}
-
-async function continuar(page: Page) {
-  await page.getByRole('button', { name: 'Continuar' }).click();
-}
 
 test.describe('onboarding', () => {
   test.describe.configure({ timeout: 120_000 });

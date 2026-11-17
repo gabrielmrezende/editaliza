@@ -98,7 +98,20 @@ describe('validarRascunho', () => {
     ['parado zerado', rascunho({}, { rodando: false, iniciadoEm: null, acumuladoSeg: 0 })],
     ['versão 2', rascunho({ versao: 2 })],
     ['intervalo inválido', rascunho({ formulario: { ...formulario, intervalos: [1, 5] } })],
+    ['acumuladoSeg fracionário', rascunho({}, { rodando: false, iniciadoEm: null, acumuladoSeg: 1.5 })],
+    ['acumuladoSeg infinito', rascunho({}, { rodando: false, iniciadoEm: null, acumuladoSeg: Infinity })],
+    ['iniciadoEm NaN', rascunho({}, { iniciadoEm: NaN })],
+    ['iniciadoEm fracionário', rascunho({}, { iniciadoEm: 999_999.5 })],
+    ['iniciadoEm infinito negativo', rascunho({}, { iniciadoEm: -Infinity })],
+    ['atualizadoEm infinito', rascunho({ atualizadoEm: Infinity })],
   ])('devolve null para %s', (_nome, valor) => {
     expect(validarRascunho(valor, agora)).toBeNull();
+  });
+});
+
+describe('validarRascunho: intervalos', () => {
+  it('remove intervalos repetidos mantendo a ordem', () => {
+    const r = rascunho({ formulario: { ...formulario, intervalos: [7, 1, 7, 30, 1] } });
+    expect(validarRascunho(r, 1_000_000)?.formulario.intervalos).toEqual([7, 1, 30]);
   });
 });
